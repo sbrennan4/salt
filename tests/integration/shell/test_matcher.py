@@ -98,12 +98,6 @@ class MatchTest(ShellCase, ShellCaseCommonTestsMixin):
         assert minion_in_returns('minion', data) is True
         assert minion_in_returns('sub_minion', data) is True
 
-    @flaky
-    def test_coumpound_pillar_pcre(self):
-        data = self.run_salt("-C 'J%@knights%^(Lancelot|Galahad)$' test.ping")
-        assert minion_in_returns('minion', data) is True
-        assert minion_in_returns('sub_minion', data) is True
-
     def test_nodegroup(self):
         '''
         test salt nodegroup matcher
