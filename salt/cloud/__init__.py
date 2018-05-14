@@ -1943,18 +1943,15 @@ class Map(Cloud):
                 else:
                     alias, driver = profile_data.get('provider').split(':')
 
-                provider_details = copy.deepcopy(self.opts['providers'][alias][driver])
+                provider_details = self.opts['providers'][alias][driver].copy()
                 del provider_details['profiles']
 
                 # Update the provider details information with profile data
                 # Profile data and node overrides should override provider data, if defined.
                 # This keeps map file data definitions consistent with -p usage.
-                salt.utils.dictupdate.update(provider_details, profile_data)
+                provider_details.update(profile_data)
                 nodedata = copy.deepcopy(provider_details)
 
-            for nodename, overrides in six.iteritems(nodes):
-                # Get the VM name
-                nodedata = copy.deepcopy(profile_data)
                 # Update profile data with the map overrides
                 for setting in ('grains', 'master', 'minion', 'volumes',
                                 'requires'):
