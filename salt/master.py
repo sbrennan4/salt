@@ -1086,7 +1086,15 @@ class MWorker(salt.utils.process.SignalHandlingMultiprocessingProcess):
         if self.opts['master_stats']:
             start = time.time()
             self.stats[cmd]['runs'] += 1
-        ret = self.aes_funcs.run_func(data['cmd'], data)
+
+        def run_func(data):
+            return self.aes_funcs.run_func(data['cmd'], data)
+
+        with StackContext(functools.partial(RequestContext,
+                                            {'data': data,
+                                             'opts': self.opts})):
+            ret = run_func(data)
+
         if self.opts['master_stats']:
             self._post_stats(start, cmd)
         return ret

@@ -304,6 +304,18 @@ class SaltLoggingClass(six.with_metaclass(LoggingMixInMeta, LOGGING_LOGGER_CLASS
     def _log(self, level, msg, args, exc_info=None, extra=None,  # pylint: disable=arguments-differ
              exc_info_on_loglevel=None):
         # If both exc_info and exc_info_on_loglevel are both passed, let's fail
+        if extra is None:
+            extra = {}
+
+        current_jid = RequestContext.current.get('data', {}).get('jid', None)
+        log_fmt_jid = RequestContext.current.get('opts', {}).get('log_fmt_jid', None)
+
+        if current_jid is not None:
+            extra['jid'] = current_jid
+
+        if log_fmt_jid is not None:
+            extra['log_fmt_jid'] = log_fmt_jid
+
         if exc_info and exc_info_on_loglevel:
             raise RuntimeError(
                 'Only one of \'exc_info\' and \'exc_info_on_loglevel\' is '
@@ -334,6 +346,12 @@ class SaltLoggingClass(six.with_metaclass(LoggingMixInMeta, LOGGING_LOGGER_CLASS
                    func=None, extra=None, sinfo=None):
         # Let's remove exc_info_on_loglevel from extra
         exc_info_on_loglevel = extra.pop('exc_info_on_loglevel')
+
+        jid = extra.pop('jid', '')
+        log_fmt_jid = extra.pop('log_fmt_jid', '[JID: %(jid)s]')
+        if jid:
+            jid = log_fmt_jid % {'jid': jid}
+
         if not extra:
             # If nothing else is in extra, make it None
             extra = None
