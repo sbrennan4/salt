@@ -54,6 +54,7 @@ _DFLT_LOG_FMT_CONSOLE = '[%(levelname)-8s] %(message)s'
 _DFLT_LOG_FMT_LOGFILE = (
     '%(asctime)s,%(msecs)03d [%(name)-17s:%(lineno)-4d][%(levelname)-8s][%(process)d] %(message)s'
 )
+_DFLT_LOG_FMT_JID = "[JID: %(jid)s]"
 _DFLT_REFSPECS = ['+refs/heads/*:refs/remotes/origin/*', '+refs/tags/*:refs/tags/*']
 DEFAULT_INTERVAL = 60
 
@@ -1395,6 +1396,7 @@ DEFAULT_MINION_OPTS = {
     'log_datefmt_logfile': _DFLT_LOG_DATEFMT_LOGFILE,
     'log_fmt_console': _DFLT_LOG_FMT_CONSOLE,
     'log_fmt_logfile': _DFLT_LOG_FMT_LOGFILE,
+    'log_fmt_jid': _DFLT_LOG_FMT_JID,
     'log_granular_levels': {},
     'log_rotate_max_bytes': 0,
     'log_rotate_backup_count': 0,
@@ -1731,6 +1733,7 @@ DEFAULT_MASTER_OPTS = {
     'log_datefmt_logfile': _DFLT_LOG_DATEFMT_LOGFILE,
     'log_fmt_console': _DFLT_LOG_FMT_CONSOLE,
     'log_fmt_logfile': _DFLT_LOG_FMT_LOGFILE,
+    'log_fmt_jid': _DFLT_LOG_FMT_JID,
     'log_granular_levels': {},
     'log_rotate_max_bytes': 0,
     'log_rotate_backup_count': 0,
@@ -1923,6 +1926,7 @@ DEFAULT_CLOUD_OPTS = {
     'log_datefmt_logfile': _DFLT_LOG_DATEFMT_LOGFILE,
     'log_fmt_console': _DFLT_LOG_FMT_CONSOLE,
     'log_fmt_logfile': _DFLT_LOG_FMT_LOGFILE,
+    'log_fmt_jid': _DFLT_LOG_FMT_JID,
     'log_granular_levels': {},
     'log_rotate_max_bytes': 0,
     'log_rotate_backup_count': 0,
