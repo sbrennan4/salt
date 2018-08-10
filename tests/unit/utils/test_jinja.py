@@ -4,6 +4,21 @@ Tests for salt.utils.jinja
 '''
 # Import Python libs
 from __future__ import absolute_import, unicode_literals, print_function
+from jinja2 import Environment, DictLoader, exceptions
+import ast
+import copy
+import datetime
+import os
+import pprint
+import re
+import tempfile
+
+# Import Salt Testing libs
+from tests.support.unit import skipIf, TestCase
+from tests.support.case import ModuleCase
+from tests.support.helpers import flaky
+from tests.support.mock import NO_MOCK, NO_MOCK_REASON, patch, MagicMock, Mock
+from tests.support.paths import BASE_FILES, TMP, TMP_CONF_DIR
 
 from jinja2 import Environment, DictLoader, exceptions
 import ast
@@ -65,7 +80,7 @@ class JinjaTestCase(TestCase):
         content should be dumped with ensure_ascii=True.
         '''
         data = {'Non-ascii words': ['süß', 'спам', 'яйца']}
-        result = salt.utils.jinja.tojson(data)
+        result = tojson(data)
         expected = '{"Non-ascii words": ["s\\u00fc\\u00df", "\\u0441\\u043f\\u0430\\u043c", "\\u044f\\u0439\\u0446\\u0430"]}'
         assert result == expected, result
 
