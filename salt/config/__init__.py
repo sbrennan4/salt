@@ -971,8 +971,8 @@ VALID_OPTS = {
     # Always generate minion id in lowercase.
     'minion_id_lowercase': bool,
 
-    # Remove this single domain (e.g. 'foo.org') in a generated minion id.
-    'minion_id_remove_domain': six.string_types,
+    # Remove either a single domain (foo.org), or all (True) from a generated minion id.
+    'minion_id_remove_domain': (six.string_types, bool),
 
     # If set, the master will sign all publications before they are sent out
     'sign_pub_messages': bool,
@@ -3648,6 +3648,25 @@ def call_id_function(opts):
         sys.exit(salt.defaults.exitcodes.EX_GENERIC)
 
 
+def remove_domain_from_fqdn(newid):
+    '''
+    Depending on the values of `minion_id_remove_domain`,
+    remove all domains or a single domain from a FQDN, effectivly generating a hostname.
+    '''
+    rem_domain = opts.get('minion_id_remove_domain')
+    if rem_domain is True:
+        if '.' in newid:
+            # Clean away any domain
+            newid, xdomain = newid.split('.', 1)
+            log.debug('Removed any domain (%s) from minion id.', xdomain)
+    else:
+        if newid.upper().endswith('.' + rem_domain.upper()):
+            # Remove single domain
+            newid = newid[:-len('.' + rem_domain)]
+            log.debug('Removed single domain %s from minion id.', rem_domain)
+    return newid
+
+
 def get_id(opts, cache_minion_id=False):
     '''
     Guess the id of the minion.
@@ -3700,11 +3719,9 @@ def get_id(opts, cache_minion_id=False):
         newid = newid.lower()
         log.debug('Changed minion id %s to lowercase.', newid)
 
-    # Optionally remove a domain in a generated minion id
-    if opts.get('minion_id_remove_domain') and \
-        newid.upper().endswith('.' + opts.get('minion_id_remove_domain').upper()):
-        newid = newid[:-len('.' + opts.get('minion_id_remove_domain'))]
-        log.debug('Removed domain %s from minion id.', opts.get('minion_id_remove_domain'))
+    # Optionally remove one or many domains in a generated minion id
+    if opts.get('minion_id_remove_domain'):
+        newid = remove_domain_from_fqdn(newid)
 
     if '__role' in opts and opts.get('__role') == 'minion':
         if opts.get('id_function'):
