@@ -52,9 +52,9 @@ else:
     import imp
     USE_IMPORTLIB = False
 
-if sys.version_info > (3, 7):
+try:
     from collections.abc import MutableMapping
-else:
+except ImportError:
     from collections import MutableMapping
 
 try:
