@@ -11,18 +11,42 @@
 from __future__ import absolute_import
 
 # Import Salt testing libs
-from tests.support.case import ModuleCase
-from tests.support.helpers import flaky
+from tests.support.case import ShellTestCase
 from tests.support.mixins import SaltMinionEventAssertsMixin
+from tests.support.unit import skipIf
+from tests.support.helpers import flaky
 
 # Import Salt libs
 import salt.utils.event
+import salt.utils.reactor
+import signal
 
 
-class ReactorTest(ModuleCase, SaltMinionEventAssertsMixin):
+class TimeoutException(Exception):
+    pass
+
+
+class ReactorTest(ShellTestCase, SaltMinionEventAssertsMixin):
     '''
     Test Salt's reactor system
     '''
+    def setUp(self):
+        self.timeout = 30
+
+    def get_event(self, class_type='master'):
+        return salt.utils.event.get_event(
+            class_type,
+            sock_dir=self.master_opts['sock_dir'],
+            transport=self.master_opts['transport'],
+            keep_loop=True,
+            opts=self.master_opts)
+
+    def fire_event(self, tag, data):
+        event = self.get_event()
+        event.fire_event(tag, data)
+
+    def alarm_handler(self, signal, frame):
+        raise TimeoutException('Timeout of {0} seconds reached'.format(self.timeout))
 
     @flaky()
     def test_ping_reaction(self):
@@ -35,7 +59,7 @@ class ReactorTest(ModuleCase, SaltMinionEventAssertsMixin):
 
         e.fire_event({'a': 'b'}, '/test_event')
 
-        self.assertMinionEventReceived({'a': 'b'}, queue_wait=5)
+        self.assertMinionEventReceived({'a': 'b'})
 
     @skipIf(salt.utils.platform.is_windows(), 'no sigalarm on windows')
     def test_reactor_reaction(self):

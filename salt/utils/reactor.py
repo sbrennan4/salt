@@ -245,31 +245,21 @@ class Reactor(salt.utils.process.SignalHandlingMultiprocessingProcess, salt.stat
             # skip all events fired by ourselves
             if data['data'].get('user') == self.wrap.event_user:
                 continue
-            # NOTE: these events must contain the masters key in order to be accepted
-            # see salt.runners.reactor for the requesting interface
-            if 'salt/reactors/manage' in data['tag']:
-                master_key = salt.utils.master.get_master_key('root', self.opts)
-                if data['data'].get('key') != master_key:
-                    log.error('received salt/reactors/manage event without matching master_key. discarding')
-                    continue
             if data['tag'].endswith('salt/reactors/manage/is_leader'):
-                self.event.fire_event({'result': self.is_leader,
-                                       'user': self.wrap.event_user},
-                                      'salt/reactors/manage/leader/value')
+                self.event.fire_event({'result': self.is_leader},
+                                       'salt/reactors/manage/leader/value')
             if data['tag'].endswith('salt/reactors/manage/set_leader'):
                 # we only want to register events from the local master
                 if data['data'].get('id') == self.opts['id']:
                     self.is_leader = data['data']['value']
-                self.event.fire_event({'result': self.is_leader,
-                                       'user': self.wrap.event_user},
-                                      'salt/reactors/manage/leader/value')
+                self.event.fire_event({'result': self.is_leader},
+                                       'salt/reactors/manage/leader/value')
             if data['tag'].endswith('salt/reactors/manage/add'):
                 _data = data['data']
                 res = self.add_reactor(_data['event'], _data['reactors'])
                 self.event.fire_event({'reactors': self.list_all(),
-                                       'result': res,
-                                       'user': self.wrap.event_user},
-                                      'salt/reactors/manage/add-complete')
+                                       'result': res},
+                                       'salt/reactors/manage/add-complete')
             elif data['tag'].endswith('salt/reactors/manage/delete'):
                 _data = data['data']
                 res = self.delete_reactor(_data['event'])
@@ -281,7 +271,6 @@ class Reactor(salt.utils.process.SignalHandlingMultiprocessingProcess, salt.stat
                 self.event.fire_event({'reactors': self.list_all(),
                                        'user': self.wrap.event_user},
                                       'salt/reactors/manage/list-results')
-
             # do not handle any reactions if not leader in cluster
             if not self.is_leader:
                 continue

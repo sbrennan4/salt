@@ -132,9 +132,7 @@ def is_leader():
             opts=__opts__,
             listen=True)
 
-    master_key = salt.utils.master.get_master_key('root', __opts__)
-
-    __jid_event__.fire_event({'key': master_key}, 'salt/reactors/manage/is_leader')
+    __jid_event__.fire_event({}, 'salt/reactors/manage/is_leader')
 
     res = sevent.get_event(wait=30, tag='salt/reactors/manage/leader/value')
     return res['result']
@@ -157,9 +155,7 @@ def set_leader(value=True):
             opts=__opts__,
             listen=True)
 
-    master_key = salt.utils.master.get_master_key('root', __opts__)
-
-    __jid_event__.fire_event({'id': __opts__['id'], 'value': value, 'key': master_key}, 'salt/reactors/manage/set_leader')
+    __jid_event__.fire_event({'id': __opts__['id'], 'value': value}, 'salt/reactors/manage/set_leader')
 
     res = sevent.get_event(wait=30, tag='salt/reactors/manage/leader/value')
     return res['result']
