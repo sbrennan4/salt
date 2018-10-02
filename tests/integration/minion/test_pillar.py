@@ -190,6 +190,67 @@ GPG_PILLAR_DECRYPTED = {
 }
 
 
+class BasePillarTest(ModuleCase):
+    '''
+    Tests for pillar decryption
+    '''
+    @classmethod
+    def setUpClass(cls):
+        os.makedirs(PILLAR_BASE)
+        with salt.utils.files.fopen(TOP_SLS, 'w') as fp_:
+            fp_.write(textwrap.dedent('''\
+            base:
+              'N@mins not L@minion':
+                - ng1
+              'N@missing_minion':
+                - ng2
+            '''))
+
+        with salt.utils.files.fopen(os.path.join(PILLAR_BASE, 'ng1.sls'), 'w') as fp_:
+            fp_.write('pillar_from_nodegroup: True')
+
+        with salt.utils.files.fopen(os.path.join(PILLAR_BASE, 'ng2.sls'), 'w') as fp_:
+            fp_.write('pillar_from_nodegroup_with_ghost: True')
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(PILLAR_BASE)
+
+    def _build_opts(self, opts):
+        ret = copy.deepcopy(DEFAULT_OPTS)
+        for item in ADDITIONAL_OPTS:
+            ret[item] = self.master_opts[item]
+        ret.update(opts)
+        return ret
+
+    def test_pillar_top_compound_match(self, grains=None):
+        '''
+        Test that a compound match topfile that refers to a nodegroup via N@ works
+        as expected.
+        '''
+        if not grains:
+            grains = {}
+        grains['os'] = 'Fedora'
+        nodegroup_opts = salt.utils.yaml.safe_load(textwrap.dedent('''\
+            nodegroups:
+              min: minion
+              sub_min: sub_minion
+              mins: N@min or N@sub_min
+              missing_minion: L@minion,ghostminion
+        '''))
+
+        opts = self._build_opts(nodegroup_opts)
+        pillar_obj = pillar.Pillar(opts, grains, 'minion', 'base')
+        ret = pillar_obj.compile_pillar()
+        self.assertEqual(ret.get('pillar_from_nodegroup_with_ghost'), True)
+        self.assertEqual(ret.get('pillar_from_nodegroup'), None)
+
+        sub_pillar_obj = pillar.Pillar(opts, grains, 'sub_minion', 'base')
+        sub_ret = sub_pillar_obj.compile_pillar()
+        self.assertEqual(sub_ret.get('pillar_from_nodegroup_with_ghost'), None)
+        self.assertEqual(sub_ret.get('pillar_from_nodegroup'), True)
+
+
 @skipIf(not salt.utils.path.which('gpg'), 'GPG is not installed')
 class DecryptGPGPillarTest(ModuleCase):
     '''
