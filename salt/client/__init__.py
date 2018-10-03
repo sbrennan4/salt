@@ -323,16 +323,7 @@ class LocalClient(object):
             >>> local.run_job('*', 'test.sleep', [300])
             {'jid': '20131219215650131543', 'minions': ['jerry']}
         '''
-        if 'expr_form' in kwargs:
-            salt.utils.versions.warn_until(
-                'Fluorine',
-                'The target type should be passed using the \'tgt_type\' '
-                'argument instead of \'expr_form\'. Support for using '
-                '\'expr_form\' will be removed in Salt Fluorine.'
-            )
-            tgt_type = kwargs.pop('expr_form')
-
-        arg = salt.utils.args.condition_input(arg, kwarg)
+        arg = salt.utils.args.parse_input(arg, kwargs=kwarg)
 
         try:
             pub_data = self.pub(
@@ -392,16 +383,7 @@ class LocalClient(object):
             >>> local.run_job_async('*', 'test.sleep', [300])
             {'jid': '20131219215650131543', 'minions': ['jerry']}
         '''
-        if 'expr_form' in kwargs:
-            salt.utils.versions.warn_until(
-                'Fluorine',
-                'The target type should be passed using the \'tgt_type\' '
-                'argument instead of \'expr_form\'. Support for using '
-                '\'expr_form\' will be removed in Salt Fluorine.'
-            )
-            tgt_type = kwargs.pop('expr_form')
-
-        arg = salt.utils.args.condition_input(arg, kwarg)
+        arg = salt.utils.args.parse_input(arg, kwargs=kwarg)
 
         try:
             pub_data = yield self.pub_async(
@@ -453,16 +435,7 @@ class LocalClient(object):
             >>> local.cmd_async('*', 'test.sleep', [300])
             '20131219215921857715'
         '''
-        if 'expr_form' in kwargs:
-            salt.utils.versions.warn_until(
-                'Fluorine',
-                'The target type should be passed using the \'tgt_type\' '
-                'argument instead of \'expr_form\'. Support for using '
-                '\'expr_form\' will be removed in Salt Fluorine.'
-            )
-            tgt_type = kwargs.pop('expr_form')
-
-        arg = salt.utils.args.condition_input(arg, kwarg)
+        arg = salt.utils.args.parse_input(arg, kwargs=kwarg)
         pub_data = self.run_job(tgt,
                                 fun,
                                 arg,
@@ -583,7 +556,8 @@ class LocalClient(object):
             tgt_type = kwargs.pop('expr_form')
 
         import salt.cli.batch
-        arg = salt.utils.args.condition_input(arg, kwarg)
+
+        arg = salt.utils.args.parse_input(arg, kwargs=kwarg)
         opts = {'tgt': tgt,
                 'fun': fun,
                 'arg': arg,
@@ -731,16 +705,7 @@ class LocalClient(object):
             minion ID. A compound command will return a sub-dictionary keyed by
             function name.
         '''
-        if 'expr_form' in kwargs:
-            salt.utils.versions.warn_until(
-                'Fluorine',
-                'The target type should be passed using the \'tgt_type\' '
-                'argument instead of \'expr_form\'. Support for using '
-                '\'expr_form\' will be removed in Salt Fluorine.'
-            )
-            tgt_type = kwargs.pop('expr_form')
-
-        arg = salt.utils.args.condition_input(arg, kwarg)
+        arg = salt.utils.args.parse_input(arg, kwargs=kwarg)
         was_listening = self.event.cpub
 
         try:
@@ -800,16 +765,7 @@ class LocalClient(object):
         :param verbose: Print extra information about the running command
         :returns: A generator
         '''
-        if 'expr_form' in kwargs:
-            salt.utils.versions.warn_until(
-                'Fluorine',
-                'The target type should be passed using the \'tgt_type\' '
-                'argument instead of \'expr_form\'. Support for using '
-                '\'expr_form\' will be removed in Salt Fluorine.'
-            )
-            tgt_type = kwargs.pop('expr_form')
-
-        arg = salt.utils.args.condition_input(arg, kwarg)
+        arg = salt.utils.args.parse_input(arg, kwargs=kwarg)
         was_listening = self.event.cpub
 
         try:
@@ -887,16 +843,7 @@ class LocalClient(object):
             {'dave': {'ret': True}}
             {'stewart': {'ret': True}}
         '''
-        if 'expr_form' in kwargs:
-            salt.utils.versions.warn_until(
-                'Fluorine',
-                'The target type should be passed using the \'tgt_type\' '
-                'argument instead of \'expr_form\'. Support for using '
-                '\'expr_form\' will be removed in Salt Fluorine.'
-            )
-            tgt_type = kwargs.pop('expr_form')
-
-        arg = salt.utils.args.condition_input(arg, kwarg)
+        arg = salt.utils.args.parse_input(arg, kwargs=kwarg)
         was_listening = self.event.cpub
 
         try:
@@ -963,16 +910,7 @@ class LocalClient(object):
             None
             {'stewart': {'ret': True}}
         '''
-        if 'expr_form' in kwargs:
-            salt.utils.versions.warn_until(
-                'Fluorine',
-                'The target type should be passed using the \'tgt_type\' '
-                'argument instead of \'expr_form\'. Support for using '
-                '\'expr_form\' will be removed in Salt Fluorine.'
-            )
-            tgt_type = kwargs.pop('expr_form')
-
-        arg = salt.utils.args.condition_input(arg, kwarg)
+        arg = salt.utils.args.parse_input(arg, kwargs=kwarg)
         was_listening = self.event.cpub
 
         try:
@@ -1020,16 +958,7 @@ class LocalClient(object):
         '''
         Execute a salt command and return
         '''
-        if 'expr_form' in kwargs:
-            salt.utils.versions.warn_until(
-                'Fluorine',
-                'The target type should be passed using the \'tgt_type\' '
-                'argument instead of \'expr_form\'. Support for using '
-                '\'expr_form\' will be removed in Salt Fluorine.'
-            )
-            tgt_type = kwargs.pop('expr_form')
-
-        arg = salt.utils.args.condition_input(arg, kwarg)
+        arg = salt.utils.args.parse_input(arg, kwargs=kwarg)
         was_listening = self.event.cpub
 
         try:
@@ -2174,6 +2103,5 @@ class Caller(object):
         func = self.sminion.functions[fun]
         args, kwargs = salt.minion.load_args_and_kwargs(
             func,
-            salt.utils.args.parse_input(args),
-            kwargs)
+            salt.utils.args.parse_input(args, kwargs=kwargs),)
         return func(*args, **kwargs)
