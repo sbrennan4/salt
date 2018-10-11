@@ -11,10 +11,10 @@ from tests.support.unit import skipIf, TestCase
 from tests.support.mock import (
     NO_MOCK,
     NO_MOCK_REASON,
+    mock_open,
     patch)
 
 # Import Salt Libs
-import salt.config
 import salt.engines.script as script
 from salt.exceptions import CommandExecutionError
 
@@ -32,7 +32,7 @@ class EngineScriptTestCase(TestCase, LoaderModuleMockMixin):
             script: {
                 '__opts__': {
                     '__role': '',
-                    'extension_modules': ''
+                    'extension_modules' : ''
                 }
              }
         }
@@ -42,8 +42,7 @@ class EngineScriptTestCase(TestCase, LoaderModuleMockMixin):
         Test known serializer is returned or exception is raised
         if unknown serializer
         '''
-        for serializers in ('json', 'yaml', 'msgpack'):
-            self.assertTrue(script._get_serializer(serializers))
+        self.assertTrue(script._get_serializer('yaml'))
 
         with self.assertRaises(CommandExecutionError):
             script._get_serializer('bad')
