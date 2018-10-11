@@ -29,8 +29,11 @@ class EngineScriptTestCase(TestCase, LoaderModuleMockMixin):
 
         opts = salt.config.DEFAULT_MASTER_OPTS
         return {
-            script: { 
-                '__opts__': opts
+            script: {
+                '__opts__': {
+                    '__role': '',
+                    'extension_modules': ''
+                }
              }
         }
 
