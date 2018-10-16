@@ -57,21 +57,19 @@ def _get_serializer(output):
     except AttributeError:
         raise CommandExecutionError("Unknown serializer '%s' found for output option", output)
 
-    return serializer
-
 
 def start(cmd, output='json', interval=1):
     '''
     Parse stdout of a command and generate an event
-       
-    The script engine will scrap stdout of the 
+
+    The script engine will scrap stdout of the
     given script and generate an event based on the
     presence of the 'tag' key and it's value.
-    
+
     If there is a data obj available, that will also
-    be fired along with the tag. 
-    
-    Example: 
+    be fired along with the tag.
+
+    Example:
 
         Given the following json output from a script:
 
@@ -81,12 +79,11 @@ def start(cmd, output='json', interval=1):
 
         This will fire the event 'lots/of/tacos'
         on the event bus with the data obj as is.
-        
+
     :param cmd: The command to execute
     :param output: How to deserialize stdout of the script
     :param interval: How often to execute the script.
     '''
-
     try:
         cmd = shlex.split(cmd)
     except AttributeError:
@@ -108,13 +105,13 @@ def start(cmd, output='json', interval=1):
             proc = subprocess.Popen(cmd,
                                     stdout=subprocess.PIPE,
                                     stderr=subprocess.STDOUT)
-        
-            log.debug("Starting script with pid %d", proc.pid) 
+
+            log.debug("Starting script with pid %d", proc.pid)
 
             for raw_event in _read_stdout(proc):
                 log.debug(raw_event)
 
-                event = serializer.deserialize(raw_event) 
+                event = serializer.deserialize(raw_event)
                 tag = event.get('tag', None)
                 data = event.get('data', {})
 
