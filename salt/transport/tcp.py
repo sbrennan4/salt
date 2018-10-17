@@ -506,7 +506,7 @@ class AsyncTCPPubChannel(salt.transport.mixins.auth.AESPubClientMixin, salt.tran
                 yield self.auth.authenticate()
             if self.auth.authenticated:
                 # if this is changed from the default, we assume it was intentional
-                if int(self.opts.get('publish_port', 4505)) != 4505:
+                if int(self.opts.get('publish_port', 4506)) != 4506:
                     self.publish_port = self.opts.get('publish_port')
                 # else take the relayed publish_port master reports
                 else:
@@ -514,7 +514,7 @@ class AsyncTCPPubChannel(salt.transport.mixins.auth.AESPubClientMixin, salt.tran
 
                 self.message_client = SaltMessageClientPool(
                     self.opts,
-                    args=(self.opts, self.opts['master_ip'], int(self.auth.creds['publish_port']),),
+                    args=(self.opts, self.opts['master_ip'], int(self.publish_port),),
                     kwargs={'io_loop': self.io_loop,
                             'connect_callback': self.connect_callback,
                             'disconnect_callback': self.disconnect_callback,
