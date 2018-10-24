@@ -1892,7 +1892,7 @@ def refresh_dns():
 
 
 @jinja_filter('dns_check')
-def dns_check(addr, port, safe=False, ipv6=None):
+def dns_check(addr, port=80, safe=False, ipv6=None, attempt_connect=True):
     '''
     Return the ip resolved by dns, but do not exit on failure, only raise an
     exception. Obeys system preference for IPv4/6 address resolution.
@@ -1925,18 +1925,23 @@ def dns_check(addr, port, safe=False, ipv6=None):
 
                 candidate_addr = salt.utils.zeromq.ip_bracket(h[4][0])
 
-                if h[0] != socket.AF_INET6 or ipv6 is not None:
-                    candidates.append(candidate_addr)
+                # sometimes /etc/hosts contains ::1 localhost
+                if not ipv6 and candidate_addr == '[::1]':
+                    continue
 
-                try:
-                    s = socket.socket(h[0], socket.SOCK_STREAM)
-                    s.connect((candidate_addr.strip('[]'), port))
-                    s.close()
+                candidates.append(candidate_addr)
 
-                    resolved = candidate_addr
-                    break
-                except socket.error:
-                    pass
+                if attempt_connect:
+                    try:
+                        s = socket.socket(h[0], socket.SOCK_STREAM)
+                        s.settimeout(2)
+                        s.connect((candidate_addr.strip('[]'), h[4][1]))
+                        s.close()
+
+                        resolved = candidate_addr
+                        break
+                    except socket.error:
+                        pass
             if not resolved:
                 if len(candidates) > 0:
                     resolved = candidates[0]
