@@ -216,8 +216,12 @@ There are several corresponding requisite_any statements:
 * ``onchanges_any``
 * ``onfail_any``
 
-All of the requisites define specific relationships and always work with the
-dependency logic defined above.
+Lastly, onfail has one special ``onfail_all`` form to account for when `AND`
+logic is desired instead of the default `OR` logic of onfail/onfail_any (which
+are equivalent).
+
+All requisites define specific relationships and always work with the dependency
+logic defined `above <requisites-matching>`.
 
 .. _requisites-require:
 
@@ -541,14 +545,36 @@ The ``onfail_any`` requisite is applied in the same way as ``require_any`` and `
         - device: 10.0.0.45:/code
         - fstype: nfs
 
-    backup_mount:
-      mount.mounted:
-        - name: /mnt/share
-        - device: 192.168.40.34:/share
-        - fstype: nfs
-        - onfail_any:
-          - mount: primary_mount
-          - mount: secondary_mount
+
+The default behavior of the ``onfail`` when multiple requisites are listed is
+the opposite of other requisites in the salt state engine, it acts by default
+like ``any()`` instead of ``all()``. This means that when you list multiple
+onfail requisites on a state, if *any* fail the requisite will be satisfied.
+If you instead need *all* logic to be applied, you can use ``onfail_all``
+form:
+
+.. code-block:: yaml
+
+    test_site_a:
+      cmd.run:
+        - name: ping -c1 10.0.0.1
+
+    test_site_b:
+      cmd.run:
+        - name: ping -c1 10.0.0.2
+
+    notify_site_down:
+      hipchat.send_message:
+        - room_id: 123456
+        - message: "Both primary and backup sites are down!"
+      - onfail_all:
+        - cmd: test_site_a
+        - cmd: test_site_b
+
+In this contrived example `notify_site_down` will run when both 10.0.0.1 and
+10.0.0.2 fail to respond to ping.
+
+.. note::
 
 In this example, the `backup_mount` will be mounted if either of the
 `primary_mount` or `secondary_mount` states results in a failure.
@@ -612,7 +638,11 @@ if any of the watched states changes.
             - onchanges:
               - file: /etc/myservice/myservice.conf
 
-.. _requisites-onchanges_any:
+    Beginning in the ``2016.11.0`` release of Salt, ``onfail`` uses OR logic for
+    multiple listed ``onfail`` requisites. Prior to the ``2016.11.0`` release,
+    ``onfail`` used AND logic. See `Issue #22370`_ for more information.
+    Beginning in the ``Neon`` release of Salt, a new ``onfail_all`` requisite
+    form is available if AND logic is desired.
 
 onchanges_any
 ~~~~~~~~~~~~~
