@@ -20,6 +20,9 @@ from random import randint
 # Import Salt Libs
 import salt.auth
 import salt.crypt
+import salt.utils
+import salt.log.setup
+import salt.utils.verify
 import salt.utils.event
 import salt.utils.files
 import salt.utils.minions
