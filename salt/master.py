@@ -679,7 +679,7 @@ class Master(SMaster):
             log.info('Creating master publisher process')
             for transport, opts in iter_transport_opts(self.opts):
                 chan = salt.transport.server.PubServerChannel.factory(opts)
-                chan.pre_fork(self.process_manager)
+                chan.pre_fork(self.process_manager, kwargs={'log_queue': log_queue})
                 pub_channels.append(chan)
 
             log.info('Creating master event publisher process')
