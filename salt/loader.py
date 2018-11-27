@@ -14,6 +14,7 @@ import time
 import logging
 import inspect
 import tempfile
+import threading
 import functools
 import threading
 import traceback
@@ -33,6 +34,7 @@ import salt.utils.files
 import salt.utils.lazy
 import salt.utils.odict
 import salt.utils.platform
+import salt.utils.thread_local_proxy
 import salt.utils.versions
 from salt.exceptions import LoaderError
 from salt.template import check_render_pipe_str
@@ -1051,6 +1053,7 @@ def _inject_into_mod(mod, name, value, force_lock=False):
         module's variable without acquiring the lock and only acquires the lock
         if a new proxy has to be created and injected.
     '''
+
     old_value = getattr(mod, name, None)
     # We use a double-checked locking scheme in order to avoid taking the lock
     # when a proxy object has already been injected.
@@ -1659,7 +1662,7 @@ class LazyLoader(salt.utils.lazy.LazyDict):
 
         # pack whatever other globals we were asked to
         for p_name, p_value in six.iteritems(self.pack):
-            setattr(mod, p_name, p_value)
+            _inject_into_mod(mod, p_name, p_value)
 
         module_name = mod.__name__.rsplit('.', 1)[-1]
 
