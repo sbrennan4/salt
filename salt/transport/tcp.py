@@ -505,6 +505,13 @@ class AsyncTCPPubChannel(salt.transport.mixins.auth.AESPubClientMixin, salt.tran
             if not self.auth.authenticated:
                 yield self.auth.authenticate()
             if self.auth.authenticated:
+                # if this is changed from the default, we assume it was intentional
+                if int(self.opts.get('publish_port', 4505)) != 4505:
+                    self.publish_port = self.opts.get('publish_port')
+                # else take the relayed publish_port master reports
+                else:
+                    self.publish_port = self.auth.creds['publish_port']
+
                 self.message_client = SaltMessageClientPool(
                     self.opts,
                     args=(self.opts, self.opts['master_ip'], int(self.auth.creds['publish_port']),),
