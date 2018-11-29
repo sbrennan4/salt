@@ -8,6 +8,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 import errno
 import logging
 import os
+import re
 import shutil
 import signal
 import tempfile
@@ -211,7 +212,7 @@ class StateRunnerTest(ShellCase):
         self.assertIn('Succeeded: 4 (changed=4)\n', ret)
 
         # scrub ephemeral output
-        ret = re.sub(r'\d', 'x', ret)
+        ret = re.sub('\d', 'x', ret)
         ret = re.sub('Duration: .*', 'Duration: x', ret)
         ret = re.sub('Started: .*', 'Started: x', ret)
 
