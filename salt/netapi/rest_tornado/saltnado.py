@@ -1042,7 +1042,7 @@ class SaltAPIHandler(BaseSaltAPIHandler):  # pylint: disable=W0223
 
             def cancel_inflight_futures():
                 for event in to_wait:
-                    if not event.done() and not event is is_timed_out:
+                    if not event.done() and event is not is_timed_out:
                         event.set_result(None)
             f = yield Any(to_wait)
             try:
