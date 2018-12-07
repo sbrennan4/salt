@@ -6,9 +6,14 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 # Import Salt Testing Libs
+from tests.support.runtests import RUNTIME_VARS
 from tests.support.mixins import LoaderModuleMockMixin
+<<<<<<< HEAD
 from tests.support.paths import TMP
 from tests.support.unit import TestCase, skipIf, expectedFailure
+=======
+from tests.support.unit import TestCase, skipIf
+>>>>>>> 0545cb5c7a... Point paths to RUNTIME_VARS
 from tests.support.mock import (
     MagicMock,
     patch,
@@ -31,7 +36,7 @@ class EventTestCase(TestCase, LoaderModuleMockMixin):
             event: {
                 '__opts__': {
                     'id': 'id',
-                    'sock_dir': TMP,
+                    'sock_dir': RUNTIME_VARS.TMP,
                     'transport': 'zeromq'
                 }
             }

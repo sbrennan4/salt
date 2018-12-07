@@ -66,6 +66,7 @@ class PipModuleVenvTest(ModuleCase):
         self.venv_test_dir = tempfile.mkdtemp(dir=RUNTIME_VARS.TMP)
         # Remove the venv test directory
         self.addCleanup(shutil.rmtree, self.venv_test_dir, ignore_errors=True)
+        self.venv_test_dir = tempfile.mkdtemp(dir=RUNTIME_VARS.TMP)
         self.venv_dir = os.path.join(self.venv_test_dir, 'venv')
         self.pip_temp = os.path.join(self.venv_test_dir, '.pip-temp')
         # Remove the pip-temp directory

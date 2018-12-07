@@ -17,10 +17,10 @@ import textwrap
 import threading
 
 # Import Salt Testing Libs
+from tests.support.runtests import RUNTIME_VARS
 from tests.support.case import ShellCase
 from tests.support.helpers import flaky, expensiveTest
 from tests.support.mock import MagicMock, patch
-from tests.support.paths import TMP
 from tests.support.unit import skipIf
 
 # Import Salt Libs
@@ -224,7 +224,7 @@ class StateRunnerTest(ShellCase):
              Comment: Runner function 'runtests_helpers.success' executed.
              Started: x
             Duration: x
-             Changes:   
+             Changes:
                       ----------
                       return:
                           ----------
@@ -240,7 +240,7 @@ class StateRunnerTest(ShellCase):
              Comment: wheel submitted successfully.
              Started: x
             Duration: x
-             Changes:   
+             Changes:
                       ----------
                       jid:
                           xxxxxxxxxxxxxxxxxxxx
@@ -254,7 +254,7 @@ class StateRunnerTest(ShellCase):
              Comment: Function submitted successfully.
              Started: x
             Duration: x
-             Changes:   
+             Changes:
                       ----------
                       jid:
                           xxxxxxxxxxxxxxxxxxxx
@@ -267,7 +267,7 @@ class StateRunnerTest(ShellCase):
              Comment: State submitted successfully.
              Started: x
             Duration: x
-             Changes:   
+             Changes:
                       ----------
                       jid:
                           xxxxxxxxxxxxxxxxxxxx
@@ -382,7 +382,7 @@ class OrchEventTest(ShellCase):
             dir=self.master_d_dir,
             delete=True,
         )
-        self.base_env = tempfile.mkdtemp(dir=TMP)
+        self.base_env = tempfile.mkdtemp(dir=RUNTIME_VARS.TMP)
         self.addCleanup(shutil.rmtree, self.base_env)
         self.addCleanup(self.conf.close)
         for attr in ('timeout', 'master_d_dir', 'conf', 'base_env'):
@@ -703,3 +703,122 @@ class OrchEventTest(ShellCase):
             self.assertTrue(received)
             del listener
             signal.alarm(0)
+<<<<<<< HEAD
+=======
+
+    def test_orchestration_onchanges_and_prereq(self):
+        '''
+        Test to confirm that the parallel state requisite works in orch
+        we do this by running 10 test.sleep's of 10 seconds, and insure it only takes roughly 10s
+        '''
+        self.write_conf({
+            'fileserver_backend': ['roots'],
+            'file_roots': {
+                'base': [self.base_env],
+            },
+        })
+
+        orch_sls = os.path.join(self.base_env, 'orch.sls')
+        with salt.utils.files.fopen(orch_sls, 'w') as fp_:
+            fp_.write(textwrap.dedent('''
+                manage_a_file:
+                  salt.state:
+                    - tgt: minion
+                    - sls:
+                      - orch.req_test
+
+                do_onchanges:
+                  salt.function:
+                    - tgt: minion
+                    - name: test.ping
+                    - onchanges:
+                      - salt: manage_a_file
+
+                do_prereq:
+                  salt.function:
+                    - tgt: minion
+                    - name: test.ping
+                    - prereq:
+                      - salt: manage_a_file
+            '''))
+
+        listener = salt.utils.event.get_event(
+            'master',
+            sock_dir=self.master_opts['sock_dir'],
+            transport=self.master_opts['transport'],
+            opts=self.master_opts)
+
+        try:
+            jid1 = self.run_run_plus(
+                'state.orchestrate',
+                'orch',
+                test=True,
+                __reload_config=True).get('jid')
+
+            # Run for real to create the file
+            self.run_run_plus(
+                'state.orchestrate',
+                'orch',
+                __reload_config=True).get('jid')
+
+            # Run again in test mode. Since there were no changes, the
+            # requisites should not fire.
+            jid2 = self.run_run_plus(
+                'state.orchestrate',
+                'orch',
+                test=True,
+                __reload_config=True).get('jid')
+        finally:
+            try:
+                os.remove(os.path.join(RUNTIME_VARS.TMP, 'orch.req_test'))
+            except OSError:
+                pass
+
+        assert jid1 is not None
+        assert jid2 is not None
+
+        tags = {'salt/run/{0}/ret'.format(x): x for x in (jid1, jid2)}
+        ret = {}
+
+        signal.signal(signal.SIGALRM, self.alarm_handler)
+        signal.alarm(self.timeout)
+        try:
+            while True:
+                event = listener.get_event(full=True)
+                if event is None:
+                    continue
+
+                if event['tag'] in tags:
+                    ret[tags.pop(event['tag'])] = self.repack_state_returns(
+                        event['data']['return']['data']['master']
+                    )
+                    if not tags:
+                        # If tags is empty, we've grabbed all the returns we
+                        # wanted, so let's stop listening to the event bus.
+                        break
+        finally:
+            del listener
+            signal.alarm(0)
+
+        for sls_id in ('manage_a_file', 'do_onchanges', 'do_prereq'):
+            # The first time through, all three states should have a None
+            # result, while the second time through, they should all have a
+            # True result.
+            assert ret[jid1][sls_id]['result'] is None, \
+                'result of {0} ({1}) is not None'.format(
+                    sls_id,
+                    ret[jid1][sls_id]['result'])
+            assert ret[jid2][sls_id]['result'] is True, \
+                'result of {0} ({1}) is not True'.format(
+                    sls_id,
+                    ret[jid2][sls_id]['result'])
+
+        # The file.managed state should have shown changes in the test mode
+        # return data.
+        assert ret[jid1]['manage_a_file']['changes']
+
+        # After the file was created, running again in test mode should have
+        # shown no changes.
+        assert not ret[jid2]['manage_a_file']['changes'], \
+            ret[jid2]['manage_a_file']['changes']
+>>>>>>> 0545cb5c7a... Point paths to RUNTIME_VARS

@@ -7,6 +7,7 @@ import shutil
 import time
 
 # Import Salt Testing libs
+from tests.support.runtests import RUNTIME_VARS
 from tests.support.case import ShellCase
 from tests.support.helpers import flaky
 from tests.support.mixins import ShellCaseCommonTestsMixin
@@ -366,7 +367,7 @@ class MatchTest(ShellCase, ShellCaseCommonTestsMixin):
 
     def test_issue_7754(self):
         old_cwd = os.getcwd()
-        config_dir = os.path.join(TMP, 'issue-7754')
+        config_dir = os.path.join(RUNTIME_VARS.TMP, 'issue-7754')
         if not os.path.isdir(config_dir):
             os.makedirs(config_dir)
 
