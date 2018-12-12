@@ -762,7 +762,6 @@ class SaltAuthHandler(BaseSaltAPIHandler):  # pylint: disable=W0223
                 if perm not in perms:
                     perms.append(perm)
 
-            perms = sorted(list(set(perms)))
         # If we can't find the creds, then they aren't authorized
         except KeyError:
             self.send_error(401)
