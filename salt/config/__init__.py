@@ -590,6 +590,23 @@ VALID_OPTS = {
     # Refs https://github.com/saltstack/salt/issues/34215
     'ipc_write_buffer': int,
 
+    # IPC tcp socket max send buffer
+    'ipc_so_sndbuf': (type(None), int),
+
+    # IPC tcp socket max receive buffer
+    'ipc_so_rcvbuf': (type(None), int),
+
+    # IPC tcp socket backlog size
+    'ipc_so_backlog': (type(None), int),
+
+    # various subprocess niceness levels
+    'req_server_niceness': (type(None), int),
+    'pub_server_niceness': (type(None), int),
+    'mworker_niceness': (type(None), int),
+    'event_return_niceness': (type(None), int),
+    'event_publisher_niceness': (type(None), int),
+    'reactor_niceness': (type(None), int),
+
     # The number of MWorker processes for a master to startup. This number needs to scale up as
     # the number of connected minions increases.
     'worker_threads': int,
@@ -1354,6 +1371,9 @@ DEFAULT_MINION_OPTS = {
     'mine_interval': 60,
     'ipc_mode': _DFLT_IPC_MODE,
     'ipc_write_buffer': _DFLT_IPC_WBUFFER,
+    'ipc_so_rcvbuf': None,
+    'ipc_so_sndbuf': None,
+    'ipc_so_backlog': 128,
     'ipv6': False,
     'file_buffer_size': 262144,
     'tcp_pub_port': 4510,
@@ -1679,6 +1699,16 @@ DEFAULT_MASTER_OPTS = {
     'enforce_mine_cache': False,
     'ipc_mode': _DFLT_IPC_MODE,
     'ipc_write_buffer': _DFLT_IPC_WBUFFER,
+    'ipc_so_rcvbuf': None,
+    'ipc_so_sndbuf': None,
+    'ipc_so_backlog': 128,
+    # various subprocess niceness levels
+    'req_server_niceness': None,
+    'pub_server_niceness': None,
+    'mworker_niceness': None,
+    'event_return_niceness': None,
+    'event_publisher_niceness': None,
+    'reactor_niceness': None,
     'ipv6': False,
     'tcp_master_pub_port': 4512,
     'tcp_master_pull_port': 4513,
