@@ -600,13 +600,13 @@ VALID_OPTS = {
     'ipc_write_buffer': int,
 
     # IPC tcp socket max send buffer
-    'ipc_so_sndbuf': (type(None), int),
+    'ipc_so_sndbuf': int,
 
     # IPC tcp socket max receive buffer
-    'ipc_so_rcvbuf': (type(None), int),
+    'ipc_so_rcvbuf': int,
 
     # IPC tcp socket backlog size
-    'ipc_so_backlog': (type(None), int),
+    'ipc_so_backlog': int,
 
     # various subprocess niceness levels
     'req_server_niceness': (type(None), int),
