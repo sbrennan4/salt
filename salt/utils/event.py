@@ -1083,6 +1083,11 @@ class EventPublisher(salt.utils.process.SignalHandlingMultiprocessingProcess):
         Bind the pub and pull sockets for events
         '''
         salt.utils.process.appendproctitle(self.__class__.__name__)
+
+        if self.opts['event_publisher_niceness'] and not salt.utils.platform.is_windows():
+            log.info('EventPublisher setting nice to %i', self.opts['event_publisher_niceness'])
+            os.nice(self.opts['event_publisher_niceness'])
+
         self.io_loop = tornado.ioloop.IOLoop()
         with salt.utils.asynchronous.current_ioloop(self.io_loop):
             if self.opts['ipc_mode'] == 'tcp':
@@ -1246,6 +1251,11 @@ class EventReturn(salt.utils.process.SignalHandlingMultiprocessingProcess):
         Spin up the multiprocess event returner
         '''
         salt.utils.process.appendproctitle(self.__class__.__name__)
+
+        if self.opts['event_return_niceness'] and not salt.utils.platform.is_windows():
+            log.info('EventReturn setting nice to %i', self.opts['event_return_niceness'])
+            os.nice(self.opts['event_return_niceness'])
+
         self.event = get_event('master', opts=self.opts, listen=True)
         events = self.event.iter_events(full=True)
         self.event.fire_event({}, 'salt/event_listen/start')

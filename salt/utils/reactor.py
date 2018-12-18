@@ -9,6 +9,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 import fnmatch
 import glob
 import logging
+import os
 
 # Import salt libs
 import salt.client
@@ -322,6 +323,10 @@ class ReactWrap(object):
         '''
         Execute a reaction by invoking the proper wrapper func
         '''
+        if self.opts['reactor_niceness'] and not salt.utils.platform.is_windows():
+            log.info('Reactor setting nice to %i', self.opts['reactor_niceness'])
+            os.nice(self.opts['reactor_niceness'])
+
         self.populate_client_cache(low)
         try:
             l_fun = getattr(self, low['state'])

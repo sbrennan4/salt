@@ -883,6 +883,10 @@ class ReqServer(salt.utils.process.SignalHandlingMultiprocessingProcess):
                             'when using Python 2.')
                 self.opts['worker_threads'] = 1
 
+        if self.opts['req_server_niceness'] and not salt.utils.platform.is_windows():
+            log.info('setting ReqServer_PRocessManager to %d', self.opts['req_server_niceness'])
+            os.nice(self.opts['req_server_niceness'])
+
         # Reset signals to default ones before adding processes to the process
         # manager. We don't want the processes being started to inherit those
         # signal handlers
@@ -1083,6 +1087,18 @@ class MWorker(salt.utils.process.SignalHandlingMultiprocessingProcess):
         Start a Master Worker
         '''
         salt.utils.process.appendproctitle(self.name)
+
+        # if we inherit jeq_server level without our own, reset it
+        if not salt.utils.platform.is_windows():
+            if self.opts['req_server_niceness'] and not self.opts['mworker_niceness']:
+                log.info('reseting %s niceness to 0', self.name)
+                os.nice(-1 * self.opts['req_server_niceness'])
+
+            # else set what we're explicitly asked for
+            if self.opts['mworker_niceness']:
+                log.info('setting %s niceness to %i', self.name, self.opts['mworker_niceness'])
+                os.nice(self.opts['mworker_niceness'])
+
         self.clear_funcs = ClearFuncs(
            self.opts,
            self.key,

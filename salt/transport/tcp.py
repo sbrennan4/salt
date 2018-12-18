@@ -600,6 +600,10 @@ class TCPReqServerChannel(salt.transport.mixins.auth.AESReqServerMixin, salt.tra
 
         payload_handler: function to call with your payloads
         '''
+        if self.opts['pub_server_niceness'] and not salt.utils.platform.is_windows():
+            log.info('Publish daemon setting nice to %i', self.opts['pub_server_niceness'])
+            os.nice(self.opts['pub_server_niceness'])
+
         self.payload_handler = payload_handler
         self.io_loop = io_loop
         self.serial = salt.payload.Serial(self.opts)

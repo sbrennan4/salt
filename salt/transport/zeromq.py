@@ -772,6 +772,11 @@ class ZeroMQPubServerChannel(salt.transport.server.PubServerChannel):
         Bind to the interface specified in the configuration file
         '''
         salt.utils.process.appendproctitle(self.__class__.__name__)
+
+        if self.opts['pub_server_niceness'] and not salt.utils.platform.is_windows():
+            log.info('Publish daemon setting nice to %i', self.opts['pub_server_niceness'])
+            os.nice(self.opts['pub_server_niceness'])
+
         # Set up the context
         context = zmq.Context(1)
         # Prepare minion publish socket
