@@ -187,7 +187,7 @@ def send(tag,
         ``pillarenv`` values or ``False`` to omit them.
 
     :param timeout: maximum duration to wait to connect to Salt's
-        IPCMessageServer in seconds. defaults to 60s
+        IPCMessageServer in seconds. Defaults to 60s
 
     :param kwargs: Any additional keyword arguments passed to this function
         will be interpreted as key-value pairs and included in the event data.
