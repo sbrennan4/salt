@@ -149,13 +149,13 @@ def get_event(
                                               opts=opts)
 
 
-def get_master_event(opts, sock_dir, listen=True, io_loop=None, raise_errors=False):
+def get_master_event(opts, sock_dir, listen=True, io_loop=None, raise_errors=False, keep_loop=False):
     '''
     Return an event object suitable for the named transport
     '''
     # TODO: AIO core is separate from transport
     if opts['transport'] in ('zeromq', 'tcp', 'detect'):
-        return MasterEvent(sock_dir, opts, listen=listen, io_loop=io_loop, raise_errors=raise_errors)
+        return MasterEvent(sock_dir, opts, listen=listen, io_loop=io_loop, raise_errors=raise_errors, keep_loop=False)
     elif opts['transport'] == 'raet':
         import salt.utils.raetevent
         return salt.utils.raetevent.MasterEvent(
