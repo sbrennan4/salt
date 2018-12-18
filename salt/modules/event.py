@@ -120,7 +120,7 @@ def fire(data, tag, timeout=None):
     else:
         timeout = timeout * 1000
     try:
-        event = salt.utils.event.get_event(__opts__.get('__role', 'minion'),
+        event = salt.utils.event.get_event(__opts__['__role'],
                                            sock_dir=__opts__['sock_dir'],
                                            transport=__opts__['transport'],
                                            opts=__opts__,
