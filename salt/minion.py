@@ -1504,6 +1504,7 @@ class Minion(MinionBase):
                 self.schedule.returners = self.returners
 
         process_count_max = self.opts.get('process_count_max')
+        process_count_max_sleep_secs = self.opts.get('process_count_max_sleep_secs')
         if process_count_max > 0:
             process_count = len(salt.utils.minion.running(self.opts))
             while process_count >= process_count_max:
