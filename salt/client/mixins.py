@@ -28,9 +28,15 @@ import salt.utils.process
 import salt.utils.state
 import salt.utils.user
 import salt.utils.versions
+<<<<<<< HEAD
 import salt.transport
 import salt.utils.files
 import salt.serializers.json
+=======
+import salt.utils.files
+import salt.serializers.json
+import salt.transport.client
+>>>>>>> Track jid in proc file for runners
 import salt.log.setup
 from salt.ext import six
 
@@ -379,7 +385,6 @@ class SyncClientMixin(object):
             data['pid'] = os.getpid()
             with salt.utils.files.fopen(jid_proc_file, 'w+b') as fp_:
                 fp_.write(serial.dumps(data))
-            del data['pid']
 
             # Initialize a context for executing the method.
             with tornado.stack_context.StackContext(self.functions.context_dict.clone):
