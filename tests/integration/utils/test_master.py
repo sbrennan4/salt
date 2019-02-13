@@ -23,10 +23,8 @@ DEFAULT_CONFIG['cachedir'] = os.path.join(TMP_ROOT_DIR, 'cache')
 class MasterUtilJobsTestCase(ShellTestCase):
 
     def setUp(self):
-        '''
-        Necessary so that the master pid health check
-        passes as it looks for salt in cmdline
-        '''
+        # Necessary so that the master pid health check
+        # passes as it looks for salt in cmdline
         setproctitle.setproctitle('salt')
 
     @flaky
