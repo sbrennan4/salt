@@ -36,18 +36,7 @@ class MasterUtilJobsTestCase(ShellTestCase):
         '''
         ret = self.run_run_plus("test.sleep", '90', asynchronous=True)
         jid = ret['jid']
-
-        # Ran into a problem where the async jump was not seen until
-        # after the test had finished. This caused the test to fail
-        # because no job was present (not proc file). This attempts
-        # to wait a total of 20s before giving up.
-        attempt = 0
-        while attempt < 10:
-            jobs = master.get_running_jobs(DEFAULT_CONFIG)
-            if jobs:
-                break
-            time.sleep(2)
-            attempt += attempt + 1
-
+        time.sleep(20)
+        jobs = master.get_running_jobs(DEFAULT_CONFIG)
         jids = [job['jid'] for job in jobs]
         assert jids.count(jid) == 1
