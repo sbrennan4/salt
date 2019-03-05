@@ -1500,6 +1500,9 @@ def master(master=None, connected=True):
             master_connection_status = True
             break
 
+    if not master_connection_status:
+        log.info('master is disconnected: %s', master)
+
     # Connection to master is not as expected
     if master_connection_status is not connected:
         event = salt.utils.event.get_event('minion', opts=__opts__, listen=False)
