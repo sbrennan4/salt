@@ -964,6 +964,8 @@ class SaltAPIHandler(BaseSaltAPIHandler):  # pylint: disable=W0223
         '''
         # Generate jid and find all minions before triggering a job to subscribe all returns from minions
         full_return = chunk.pop('full_return', False)
+        timeout_length = chunk.get('timeout', self.application.opts['gather_job_timeout'])
+
         chunk['jid'] = salt.utils.jid.gen_jid(self.application.opts) if not chunk.get('jid', None) else chunk['jid']
         self._log_req_id_jid(chunk)
         minions = set(self.ckminions.check_minions(chunk['tgt'], chunk.get('tgt_type', 'glob')))
@@ -1010,7 +1012,7 @@ class SaltAPIHandler(BaseSaltAPIHandler):  # pylint: disable=W0223
         minions = {m: False for m in pub_data['minions']}
 
         # To ensure job_not_running and all_return are terminated by each other, communicate using a future
-        is_finished = Future()
+        is_timed_out = tornado.gen.sleep(timeout_length)
 
         # ping until the job is not running, while doing so, if we see new minions returning
         # that they are running the job, add them to the list
