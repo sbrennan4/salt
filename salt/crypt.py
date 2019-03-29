@@ -113,6 +113,7 @@ def gen_keys(keydir, keyname, keysize, user=None, passphrase=None, permissive=Fa
     :param int keysize: The number of bits in the key
     :param str user: The user on the system who should own this keypair
     :param str passphrase: The passphrase which should be used to encrypt the private key
+    :param str permissive: whether to use 0o0750 perms for key files or 0o0700, maps to opts['permissive_pki_access']
 
     :rtype: str
     :return: Path on the filesystem to the RSA private key
