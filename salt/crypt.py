@@ -104,7 +104,7 @@ def dropfile(cachedir, user=None):
                 pass
 
 
-def gen_keys(keydir, keyname, keysize, user=None, passphrase=None):
+def gen_keys(keydir, keyname, keysize, user=None, passphrase=None, permissive=False):
     '''
     Generate a RSA public keypair for use with salt
 
@@ -135,7 +135,12 @@ def gen_keys(keydir, keyname, keysize, user=None, passphrase=None):
     if not os.access(keydir, os.W_OK):
         raise IOError('Write access denied to "{0}" for user "{1}".'.format(os.path.abspath(keydir), getpass.getuser()))
 
-    with salt.utils.files.set_umask(0o277):
+    if permissive:
+        umask = 0o0700
+    else:
+        umask = 0o0750
+
+    with salt.utils.files.set_umask(umask):
         if HAS_M2:
             # if passphrase is empty or None use no cipher
             if not passphrase:
@@ -153,7 +158,13 @@ def gen_keys(keydir, keyname, keysize, user=None, passphrase=None):
     else:
         with salt.utils.files.fopen(pub, 'wb+') as f:
             f.write(gen.publickey().exportKey('PEM'))
-    os.chmod(priv, 0o400)
+
+    if permissive:
+        mod = 0o0440
+    else:
+        mod = 0o0400
+
+    os.chmod(priv, mod)
     if user:
         try:
             import pwd
@@ -391,7 +402,8 @@ class MasterKeys(dict):
                      name,
                      self.opts['keysize'],
                      self.opts.get('user'),
-                     passphrase)
+                     passphrase,
+                     permissive=self.opts.get('permissive_pki_access'))
         if HAS_M2:
             key_error = RSA.RSAError
         else:
@@ -779,7 +791,8 @@ class AsyncAuth(object):
             gen_keys(self.opts['pki_dir'],
                      'minion',
                      self.opts['keysize'],
-                     self.opts.get('user'))
+                     self.opts.get('user'),
+                     permissive=self.opts.get('permissive_pki_access'))
         key = get_rsa_key(self.rsa_path, None)
         log.debug('Loaded minion key: %s', self.rsa_path)
         return key
