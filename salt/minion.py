@@ -610,9 +610,13 @@ class MinionBase(object):
             # shuffle the masters and then loop through them
             opts['local_masters'] = copy.copy(opts['master'])
             if opts['random_master']:
-                shuffle(opts['local_masters'])
-            last_exc = None
-            opts['master_uri_list'] = list()
+                # master_failback is only used when master_type is set to failover
+                if opts['master_type'] == 'failover' and opts['master_failback']:
+                    secondary_masters = opts['local_masters'][1:]
+                    shuffle(secondary_masters)
+                    opts['local_masters'][1:] = secondary_masters
+                else:
+                    shuffle(opts['local_masters'])
 
             while True:
                 if attempts != 0:
@@ -1002,16 +1006,7 @@ class MinionManager(MinionBase):
         if (self.opts['master_type'] in ('failover', 'distributed')) or not isinstance(self.opts['master'], list):
             masters = [masters]
 
-        # This sits outside of the connection loop below because it needs to set
-        # up a list of master URIs regardless of which masters are available
-        # to connect _to_. This is primarily used for masterless and multimaster mode,
-        # when we need a list of master URIs to fire calls back to.
-        self.opts['master_uri_list'] = []
-        for master in masters:
-            s_opts = copy.deepcopy(self.opts)
-            s_opts['master'] = master
-            s_opts.update(prep_ip_port(s_opts))
-            self.opts['master_uri_list'].append(resolve_dns(s_opts)['master_uri'])
+        self.opts['master_list'] = copy.deepcopy(masters)
 
         for master in masters:
             s_opts = copy.deepcopy(self.opts)
