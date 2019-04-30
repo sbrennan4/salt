@@ -1392,37 +1392,19 @@ def _remotes_on(port, which_end):
     port = int(port)
     ret = set()
 
-    proc_available = False
-    for statf in ['/proc/net/tcp', '/proc/net/tcp6']:
-        if os.path.isfile(statf):
-            proc_available = True
-            with salt.utils.files.fopen(statf, 'r') as fp_:
-                for line in fp_:
-                    line = salt.utils.stringutils.to_unicode(line)
-                    if line.strip().startswith('sl'):
-                        continue
-                    iret = _parse_tcp_line(line)
-                    sl = next(iter(iret))
-                    if iret[sl][which_end] == port:
-                        ret.add(iret[sl]['remote_addr'])
-
-    if not proc_available:  # Fallback to use OS specific tools
-        if salt.utils.platform.is_sunos():
-            return _sunos_remotes_on(port, which_end)
-        if salt.utils.platform.is_freebsd():
-            return _freebsd_remotes_on(port, which_end)
-        if salt.utils.platform.is_netbsd():
-            return _netbsd_remotes_on(port, which_end)
-        if salt.utils.platform.is_openbsd():
-            return _openbsd_remotes_on(port, which_end)
-        if salt.utils.platform.is_windows():
-            return _windows_remotes_on(port, which_end)
-        if salt.utils.platform.is_aix():
-            return _aix_remotes_on(port, which_end)
-
-        return _linux_remotes_on(port, which_end)
-
-    return ret
+    if salt.utils.platform.is_sunos():
+        return _sunos_remotes_on(port, which_end)
+    if salt.utils.platform.is_freebsd():
+        return _freebsd_remotes_on(port, which_end)
+    if salt.utils.platform.is_netbsd():
+        return _netbsd_remotes_on(port, which_end)
+    if salt.utils.platform.is_openbsd():
+        return _openbsd_remotes_on(port, which_end)
+    if salt.utils.platform.is_windows():
+        return _windows_remotes_on(port, which_end)
+    if salt.utils.platform.is_aix():
+        return _aix_remotes_on(port, which_end)
+    return _linux_remotes_on(port, which_end)
 
 
 def _parse_tcp_line(line):
@@ -1680,30 +1662,24 @@ def _linux_remotes_on(port, which_end):
     Returns set of ip host addresses of remote established connections
     on local tcp port port.
 
-    Parses output of shell 'lsof'
-    to get connections
+    Parses output of shell 'ss' to get connections. We use ss instead of lsof
+    or netstat because it does not read from /proc/net/tcp.
 
-    $ sudo lsof -iTCP:4505 -n
-    COMMAND   PID USER   FD   TYPE             DEVICE SIZE/OFF NODE NAME
-    Python   9971 root   35u  IPv4 0x18a8464a29ca329d      0t0  TCP *:4505 (LISTEN)
-    Python   9971 root   37u  IPv4 0x18a8464a29b2b29d      0t0  TCP 127.0.0.1:4505->127.0.0.1:55703 (ESTABLISHED)
-    Python  10152 root   22u  IPv4 0x18a8464a29c8cab5      0t0  TCP 127.0.0.1:55703->127.0.0.1:4505 (ESTABLISHED)
-    Python  10153 root   22u  IPv4 0x18a8464a29c8cab5      0t0  TCP [fe80::249a]:4505->[fe80::150]:59367 (ESTABLISHED)
-
+    $ sudo ss -Atcp
+    State      Recv-Q Send-Q Local Address:Port             Peer Address:Port
+    ESTAB      0      0      127.0.0.1:4200                 127.0.0.1:58756
+    ESTAB      0      0      1.70.111.90:37938              10.124.24.110:9223
+    ESTAB      0      0      1.70.111.90:45326              10.124.24.62:9223
     '''
+
     remotes = set()
 
     try:
         data = subprocess.check_output(
-            ['lsof', '-iTCP:{0:d}'.format(port), '-n', '-P']  # pylint: disable=minimum-python-version
+            ['ss', '-Atcp', 'sport = :{0} or dport = :{0}'.format(port)]  # pylint: disable=minimum-python-version
         )
     except subprocess.CalledProcessError as ex:
-        if ex.returncode == 1:
-            # Lsof return 1 if any error was detected, including the failure
-            # to locate Internet addresses, and it is not an error in this case.
-            log.warning('"lsof" returncode = 1, likely no active TCP sessions.')
-            return remotes
-        log.error('Failed "lsof" with returncode = {0}'.format(ex.returncode))
+        log.error('Failed "ss" with returncode = {0}'.format(ex.returncode))
         raise
 
     lines = salt.utils.stringutils.to_str(data).split('\n')
@@ -1711,17 +1687,14 @@ def _linux_remotes_on(port, which_end):
         chunks = line.split()
         if not chunks:
             continue
-        # ['Python', '9971', 'root', '37u', 'IPv4', '0x18a8464a29b2b29d', '0t0',
-        # 'TCP', '127.0.0.1:4505->127.0.0.1:55703', '(ESTABLISHED)']
-        # print chunks
-        if 'COMMAND' in chunks[0]:
+        # [State      Recv-Q Send-Q      Local Address:Port          Peer Address:Port]
+        # [ESTAB      0      0           10.122.97.100:35350        10.124.237.35:4505]
+        if 'State' in chunks[0]:
             continue  # ignore header
-        if 'ESTABLISHED' not in chunks[-1]:
+        if 'ESTAB' not in chunks[0]:
             continue  # ignore if not ESTABLISHED
-        # '127.0.0.1:4505->127.0.0.1:55703'
-        local, remote = chunks[8].split('->')
-        _, lport = local.rsplit(':', 1)
-        rhost, rport = remote.rsplit(':', 1)
+        local, lport = chunks[3].split(':')
+        rhost, rport = chunks[4].split(':')
         if which_end == 'remote_port' and int(rport) != port:
             continue
         if which_end == 'local_port' and int(lport) != port:
