@@ -848,7 +848,7 @@ def sync_pillar(saltenv=None, refresh=True, extmod_whitelist=None, extmod_blackl
 
 def sync_executors(saltenv=None, refresh=True, extmod_whitelist=None, extmod_blacklist=None):
     '''
-    .. versionadded:: 2019.2.1
+    .. versionadded:: neon
 
     Sync executors from ``salt://_executors`` to the minion
 
@@ -945,6 +945,7 @@ def sync_all(saltenv=None, refresh=True, extmod_whitelist=None, extmod_blacklist
     ret['output'] = sync_output(saltenv, False, extmod_whitelist, extmod_blacklist)
     ret['utils'] = sync_utils(saltenv, False, extmod_whitelist, extmod_blacklist)
     ret['log_handlers'] = sync_log_handlers(saltenv, False, extmod_whitelist, extmod_blacklist)
+    ret['executors'] = sync_executors(saltenv, False, extmod_whitelist, extmod_blacklist)
     ret['proxymodules'] = sync_proxymodules(saltenv, False, extmod_whitelist, extmod_blacklist)
     ret['engines'] = sync_engines(saltenv, False, extmod_whitelist, extmod_blacklist)
     ret['thorium'] = sync_thorium(saltenv, False, extmod_whitelist, extmod_blacklist)

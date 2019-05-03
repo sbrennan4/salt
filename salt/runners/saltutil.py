@@ -63,6 +63,8 @@ def sync_all(saltenv='base', extmod_whitelist=None, extmod_blacklist=None):
     ret['fileserver'] = sync_fileserver(saltenv=saltenv, extmod_whitelist=extmod_whitelist, extmod_blacklist=extmod_blacklist)
     ret['tops'] = sync_tops(saltenv=saltenv, extmod_whitelist=extmod_whitelist, extmod_blacklist=extmod_blacklist)
     ret['tokens'] = sync_eauth_tokens(saltenv=saltenv, extmod_whitelist=extmod_whitelist, extmod_blacklist=extmod_blacklist)
+    ret['serializers'] = sync_serializers(saltenv=saltenv, extmod_whitelist=extmod_whitelist, extmod_blacklist=extmod_blacklist)
+    ret['executors'] = sync_executors(saltenv=saltenv, extmod_whitelist=extmod_whitelist, extmod_blacklist=extmod_blacklist)
     return ret
 
 
@@ -610,7 +612,7 @@ def sync_serializers(saltenv='base', extmod_whitelist=None, extmod_blacklist=Non
 
 def sync_executors(saltenv='base', extmod_whitelist=None, extmod_blacklist=None):
     '''
-    .. versionadded:: 2019.2.1
+    .. versionadded:: neon
 
     Sync executor modules from ``salt://_executors`` to the master
 
