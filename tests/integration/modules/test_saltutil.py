@@ -96,6 +96,7 @@ class SaltUtilSyncModuleTest(ModuleCase):
                            'states': [],
                            'sdb': [],
                            'proxymodules': [],
+                           'executors': [],
                            'output': [],
                            'thorium': []}
         ret = self.run_function('saltutil.sync_all')
@@ -117,6 +118,7 @@ class SaltUtilSyncModuleTest(ModuleCase):
                            'states': [],
                            'sdb': [],
                            'proxymodules': [],
+                           'executors': [],
                            'output': [],
                            'thorium': []}
         ret = self.run_function('saltutil.sync_all', extmod_whitelist={'modules': ['salttest']})
@@ -141,6 +143,7 @@ class SaltUtilSyncModuleTest(ModuleCase):
                            'states': [],
                            'sdb': [],
                            'proxymodules': [],
+                           'executors': [],
                            'output': [],
                            'thorium': []}
         ret = self.run_function('saltutil.sync_all', extmod_blacklist={'modules': ['runtests_decorators']})
@@ -156,8 +159,10 @@ class SaltUtilSyncModuleTest(ModuleCase):
                            'beacons': [],
                            'utils': [],
                            'returners': [],
+                           'executors': [],
                            'modules': [],
                            'renderers': [],
+                           'executors': [],
                            'log_handlers': [],
                            'states': [],
                            'sdb': [],
