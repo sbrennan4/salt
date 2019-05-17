@@ -6,6 +6,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 # Import Python libs
 import inspect
 import os
+import socket
 
 # Import Salt libs
 import salt.log  # pylint: disable=W0611
@@ -42,6 +43,13 @@ class NetapiClient(object):
         Note, this will return an invalid success if the master crashed or was
         not shut down cleanly.
         '''
+        if self.opts.get('ipc_mode', '') == 'tcp':
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            port = self.opts.get('tcp_master_publish_pull', 4514)
+            if sock.connect_ex(('127.0.0.1', port)) == 0:
+                return True
+            return False
+
         if self.opts['transport'] == 'tcp':
             ipc_file = 'publish_pull.ipc'
         else:
