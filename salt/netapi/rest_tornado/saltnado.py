@@ -1058,11 +1058,6 @@ class SaltAPIHandler(BaseSaltAPIHandler):  # pylint: disable=W0223
             except TimeoutException:
                 break
 
-            if f == events[0]:
-                events[0] = self.application.event_listener.get_event(self, tag='salt/job/'+chunk['jid'])
-            else:
-                events[1] = self.application.event_listener.get_event(self, tag='syndic/job/'+chunk['jid'])
-
     @tornado.gen.coroutine
     def job_not_running(self, jid, tgt, tgt_type, minions, is_finished):
         '''
