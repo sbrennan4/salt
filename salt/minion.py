@@ -1553,11 +1553,14 @@ class Minion(MinionBase):
                     get_proc_dir(opts['cachedir'], uid=uid)
                     )
 
-        with tornado.stack_context.StackContext(minion_instance.ctx):
-            if isinstance(data['fun'], tuple) or isinstance(data['fun'], list):
-                Minion._thread_multi_return(minion_instance, opts, data)
-            else:
-                Minion._thread_return(minion_instance, opts, data)
+
+        current_context = {'data': data, 'opts': opts, 'auth_check': data.pop('auth_check', None)}
+        with tornado.stack_context.StackContext(functools.partial(RequestContext, current_context)):
+            with tornado.stack_context.StackContext(minion_instance.ctx):
+                if isinstance(data['fun'], tuple) or isinstance(data['fun'], list):
+                    return Minion._thread_multi_return(minion_instance, opts, data)
+                else:
+                    return Minion._thread_return(minion_instance, opts, data)
 
     @classmethod
     def _thread_return(cls, minion_instance, opts, data):
