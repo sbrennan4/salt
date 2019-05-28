@@ -368,7 +368,6 @@ class Pillar(object):
         self.opts = self.__gen_opts(opts, grains, saltenv=saltenv, pillarenv=pillarenv)
         self.saltenv = saltenv
         self.client = salt.fileclient.get_file_client(self.opts, True)
-        self.avail = self.__gather_avail()
 
         if opts.get('file_client', '') == 'local':
             opts['grains'] = grains
@@ -406,6 +405,10 @@ class Pillar(object):
         if not isinstance(self.extra_minion_data, dict):
             self.extra_minion_data = {}
             log.error('Extra minion data must be a dictionary')
+
+        # this must come last as it has a dependency on ext_pillars
+        self.avail = self.__gather_avail()
+        self._closing = False
 
     def __valid_on_demand_ext_pillar(self, opts):
         '''
@@ -495,6 +498,10 @@ class Pillar(object):
         '''
         Pull the file server environments out of the master options
         '''
+        # environments ext_pillar takes priority always if enabled
+        if any('environments' in ext for ext in self.opts['ext_pillar']):
+            return self.ext_pillars['environments'](self.minion_id, {})
+
         envs = set(['base'])
         if 'file_roots' in self.opts:
             envs.update(list(self.opts['file_roots']))

@@ -51,7 +51,7 @@ def soft_kill(jid, state_id=None):
 
 
 def orchestrate(mods,
-                saltenv='base',
+                saltenv=None,
                 test=None,
                 exclude=None,
                 pillar=None,
@@ -204,7 +204,7 @@ def orchestrate_high(data, test=None, queue=False, pillar=None, **kwargs):
 
 
 def orchestrate_show_sls(mods,
-                         saltenv='base',
+                         saltenv=None,
                          test=None,
                          exclude=None,
                          pillar=None,

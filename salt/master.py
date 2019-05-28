@@ -1157,7 +1157,24 @@ class AESFuncs(object):
         self._file_list_emptydirs = self.fs_.file_list_emptydirs
         self._dir_list = self.fs_.dir_list
         self._symlink_list = self.fs_.symlink_list
-        self._file_envs = self.fs_.envs
+        # only instantiate pillars loader if necessary
+        if any('environments' in ext for ext in self.opts['ext_pillar']):
+            self.pillars = salt.loader.pillars(self.opts, {})
+
+    def _file_envs(self, load=None):
+        '''
+        Return environments for all backends for requests from fileclient
+        '''
+        log.error(load)
+        if load is None:
+            load = {}
+        load.pop('cmd', None)
+
+        # when environments ext_pillar is in place, it is source of truth
+        if any('environments' in ext for ext in self.opts['ext_pillar']):
+            return self.pillars['environments'](load.get('id'), {})
+        else:
+            return self.fs_.file_envs(load=load)
 
     def __verify_minion(self, id_, token):
         '''
@@ -1326,6 +1343,13 @@ class AESFuncs(object):
             if saltenv not in file_roots:
                 file_roots[saltenv] = []
         mopts['file_roots'] = file_roots
+
+        # we dont include ext_pillar wholesale as it may contain sensitive info
+        mopts['ext_pillar'] = []
+        for ext in self.opts['ext_pillar']:
+            if isinstance(ext, dict) and 'environments' in ext:
+                mopts['ext_pillar'].append(ext)
+
         mopts['top_file_merging_strategy'] = self.opts['top_file_merging_strategy']
         mopts['env_order'] = self.opts['env_order']
         mopts['default_top'] = self.opts['default_top']

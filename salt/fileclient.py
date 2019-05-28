@@ -1387,7 +1387,7 @@ class RemoteClient(Client):
         '''
         Return a list of available environments
         '''
-        load = {'cmd': '_file_envs'}
+        load = {'cmd': '_file_envs', 'id': self.opts['id']}
         return salt.utils.data.decode(self.channel.send(load)) if six.PY2 \
             else self.channel.send(load)
 
