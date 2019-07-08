@@ -245,6 +245,7 @@ class LocalClient(object):
                                 **kwargs
                                )
 
+        # we should already be subscribed to the response, but incase we are not
         if 'jid' in pub_data:
             self.event.subscribe(pub_data['jid'])
 
@@ -1192,6 +1193,7 @@ class LocalClient(object):
         else:
             ret_iter = self.get_returns_no_block('salt/job/{0}'.format(jid))
         # iterator for the info of this job
+        jinfo = {}
         jinfo_iter = []
         # open event jids that need to be un-subscribed from later
         open_jids = set()
@@ -1260,6 +1262,12 @@ class LocalClient(object):
             # if the jinfo has timed out and some minions are still running the job
             # re-do the ping
             if time.time() > timeout_at and minions_running:
+                # unsubscribe from previous find_job ping before sending out
+                # the new broadcast if needed, otherwise long running jobs will
+                # accumulate and be computationally expensive to finish
+                if 'jid' in jinfo:
+                    self._clean_up_subscriptions(jinfo['jid'])
+
                 # since this is a new ping, no one has responded yet
                 jinfo = self.gather_job_info(jid, list(minions - found), 'list', **kwargs)
                 minions_running = False
@@ -1296,8 +1304,6 @@ class LocalClient(object):
                             'from client return. This may be an error in '
                             'the client.', missing_key
                         )
-                # Keep track of the jid events to unsubscribe from later
-                open_jids.add(jinfo['jid'])
 
                 # TODO: move to a library??
                 if 'minions' in raw.get('data', {}):
@@ -1346,10 +1352,10 @@ class LocalClient(object):
             else:
                 yield
 
-        # If there are any remaining open events, clean them up.
-        if open_jids:
-            for jid in open_jids:
-                self.event.unsubscribe(jid)
+        # unsubscribe to the last open tracking jids
+        if 'jid' in jinfo:
+            self._clean_up_subscriptions(jinfo['jid'])
+        self._clean_up_subscriptions(jid)
 
         if expect_minions:
             for minion in list((minions - found)):
@@ -1706,6 +1712,7 @@ class LocalClient(object):
                   ret,
                   jid,
                   timeout,
+                  listen,
                   **kwargs):
         '''
         Set up the payload_kwargs to be sent down to the master
@@ -1748,7 +1755,7 @@ class LocalClient(object):
                           'key': self.key,
                           'tgt_type': tgt_type,
                           'ret': ret,
-                          'jid': jid}
+                          'jid': self._prep_jid(jid=jid, nocache=kwargs.get('nocache', False), subscribe=listen)}
 
         # if kwargs are passed, pack them.
         if kwargs:
@@ -1765,6 +1772,34 @@ class LocalClient(object):
             payload_kwargs['to'] = timeout
 
         return payload_kwargs
+
+    def _prep_jid(self, jid=None, nocache=False, subscribe=False):
+        '''
+        Attempt to generate a jid for this publication if necessary
+        '''
+         # remove empty string
+        jid = jid or None
+
+        # Retrieve the jid
+        fstr = '{0}.prep_jid'.format(self.opts['master_job_cache'])
+        try:
+            # Retrieve the jid
+            jid = self.returners[fstr](nocache=nocache, passed_jid=jid)
+        except Exception:
+            # The returner is not present
+            log.error('Failed to allocate a jid. The requested returner \'{0}\' '
+                      'could not be loaded.'.format(fstr.split('.')[0]),
+                      exc_info_on_loglevel=logging.DEBUG)
+            return ''
+
+        # if we did generate a jid or have one provided we should preemptively subscribe
+        if subscribe:
+            self.event.subscribe(jid)
+            if self.opts.get('order_masters'):
+                self.event.subscribe('syndic/.*/{0}'.format(jid), 'regex')
+            self.event.subscribe('salt/job/{0}'.format(jid))
+
+        return jid
 
     def pub(self,
             tgt,
@@ -1824,6 +1859,7 @@ class LocalClient(object):
                 ret,
                 jid,
                 timeout,
+                listen,
                 **kwargs)
 
         master_uri = 'tcp://' + salt.utils.zeromq.ip_bracket(self.opts['interface']) + \
@@ -1837,6 +1873,7 @@ class LocalClient(object):
             # If not, we won't get a response, so error out
             if listen and not self.event.connect_pub(timeout=timeout):
                 raise SaltReqTimeoutError()
+
             payload = channel.send(payload_kwargs, timeout=timeout)
         except SaltReqTimeoutError:
             raise SaltReqTimeoutError(
@@ -1940,6 +1977,7 @@ class LocalClient(object):
                 ret,
                 jid,
                 timeout,
+                listen,
                 **kwargs)
 
         master_uri = 'tcp://' + salt.utils.zeromq.ip_bracket(self.opts['interface']) + \
@@ -1954,6 +1992,7 @@ class LocalClient(object):
             # If not, we won't get a response, so error out
             if listen and not self.event.connect_pub(timeout=timeout):
                 raise SaltReqTimeoutError()
+
             payload = yield channel.send(payload_kwargs, timeout=timeout)
         except SaltReqTimeoutError:
             raise SaltReqTimeoutError(
@@ -2006,6 +2045,7 @@ class LocalClient(object):
             del self.event
 
     def _clean_up_subscriptions(self, job_id):
+        self.event.unsubscribe(job_id)
         if self.opts.get('order_masters'):
             self.event.unsubscribe('syndic/.*/{0}'.format(job_id), 'regex')
         self.event.unsubscribe('salt/job/{0}'.format(job_id))
