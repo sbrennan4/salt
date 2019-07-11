@@ -56,6 +56,8 @@ def execute(opts, data, func, args, kwargs):
     salt-call isn't strictly equivalent to an in-process execution of a minion
     (i.e. multimaster).
 
+    :param str strategy: Can be one of ``salt-call`` or ``inline``; defaults to ``inline``
+
     .. note::
 
         In order for this executor to work the minion pki dir must be readable
@@ -78,7 +80,11 @@ def execute(opts, data, func, args, kwargs):
 
     group = data.get("executor_opts", {}).get("group")
     umask = data.get("executor_opts", {}).get("umask")
-    strategy = data.get("executor_opts", {}).get("strategy")
+    strategy = data.get("executor_opts", {}).get("strategy", "inline")
+
+    if strategy not in set("inline", "salt-call"):
+        raise ValueError("Unrecognized value provided for strategy executor_opts")
+
 
     # this isnt ideal, but I don't think a better way in windows exists
     if salt.utils.platform.is_windows():
