@@ -8,6 +8,7 @@ involves preparing the three listeners and the workers needed by the master.
 from __future__ import absolute_import, with_statement, print_function, unicode_literals
 import copy
 import ctypes
+import functools
 import os
 import re
 import sys
@@ -89,6 +90,9 @@ try:
     HAS_HALITE = True
 except ImportError:
     HAS_HALITE = False
+
+from tornado.stack_context import StackContext
+from salt.utils.ctx import RequestContext
 
 
 log = logging.getLogger(__name__)

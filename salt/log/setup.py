@@ -48,6 +48,7 @@ from salt.log.handlers import (TemporaryLoggingHandler,
                                QueueHandler)
 from salt.log.mixins import LoggingMixInMeta, NewStyleClassMixIn
 
+from salt.utils.ctx import RequestContext
 
 LOG_LEVELS = {
     'all': logging.NOTSET,
