@@ -955,7 +955,7 @@ class MinionManager(MinionBase):
 
     @tornado.gen.coroutine
     def handle_event(self, package):
-        for minion in self.minions]
+        for minion in self.minions:
             minion.handle_event(package)
 
     def _create_minion_object(self, opts, timeout, safe,
