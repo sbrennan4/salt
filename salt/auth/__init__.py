@@ -58,7 +58,7 @@ class LoadAuth(object):
         self.serial = salt.payload.Serial(opts)
         self.auth = salt.loader.auth(opts)
         self.tokens = salt.loader.eauth_tokens(opts)
-        self.ckminions = ckminions or salt.utils.minions.CkMinions(opts)
+        self.ckminions = ckminions or salt.utils.minions.CkMinions.factory(opts)
 
     def load_name(self, load):
         '''
@@ -503,7 +503,7 @@ class Authorize(object):
         )
         self.opts = salt.config.master_config(opts['conf_file'])
         self.load = load
-        self.ckminions = salt.utils.minions.CkMinions(opts)
+        self.ckminions = salt.utils.minions.CkMinions.factory(opts)
         if loadauth is None:
             self.loadauth = LoadAuth(opts)
         else:

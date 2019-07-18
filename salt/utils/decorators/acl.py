@@ -49,7 +49,7 @@ class Authorize(object):
             if not self.ckminions:
                 # late import to avoid circular dependencies
                 import salt.utils.minions
-                self.ckminions = salt.utils.minions.CkMinions(RequestContext.current['opts'])
+                self.ckminions = salt.utils.minions.CkMinions.factory(RequestContext.current['opts'])
 
             # only apply acl if it is listed in auth_list tag set
             if self.tag not in auth_check.get('tags', []):
@@ -57,20 +57,12 @@ class Authorize(object):
                 return f(*args, **kwargs)
 
             # borrowed fromalt.utils.decorators.Depends
-            import pprint ;pprint.pprint(self.item)
-
             if self.tag == 'runners':
                 runner_check = self.ckminions.runner_check(
                     auth_check.get('auth_list', []),
                     self.item,
                     {'arg': args, 'kwargs': kwargs},
                 )
-
-                log.error("WTF")
-                log.error("WTF")
-                log.error("WTF")
-                log.error("WTF")
-                log.error(runner_check)
 
                 if not runner_check:
                     return {'error': {'name': 'EauthAuthenticationError',
@@ -83,31 +75,32 @@ class Authorize(object):
                 # if we've made it here, we are good. call the func
                 return f(*args, **kwargs)
 
-            if self.tag == 'module' and False:
-                # do the same stuff as above for minion...  ckminion will
-                # likely need to be modified to support running minino side, it
-                # might make assumptions about being on the master
-                # also need to account for master and minion side minionmod invocation
+            if self.tag == 'module':
+                if '__opts__' not in f.__globals__ or 'id' not in f.__globals__['__opts__']:
+                    return {'error': {'name': 'AuthorizationError',
+                                      'message': 'Authorization error occurred - no __opts__ accessible from function.'}}
+
+                opts = f.__globals__['__opts__']
+
                 minion_check = self.ckminions.auth_check(
-                    auth_list,
-                    clear_load['fun'],
-                    clear_load['arg'],
-                    clear_load['tgt'],
-                    clear_load.get('tgt_type', 'glob'),
-                    minions=minions,
+                    auth_check.get('auth_list', []),
+                    self.item,
+                    [args, kwargs],
+                    opts['id'],
+                    'list',
+                    minions=[opts['id']],
                     # always accept find_job
                     whitelist=['saltutil.find_job'],
                 )
 
-                if not authorized:
+                if not minion_check:
                     # Authorization error occurred. Do not continue.
-                    if auth_type == 'eauth' and not auth_list and 'username' in extra and 'eauth' in extra:
+                    if auth_check == 'eauth' and not auth_list and 'username' in extra and 'eauth' in extra:
                         log.debug('Auth configuration for eauth "%s" and user "%s" is empty', extra['eauth'], extra['username'])
-                    log.warning(err_msg)
                     return {'error': {'name': 'AuthorizationError',
                                       'message': 'Authorization error occurred.'}}
 
-                elif isinstance(runner_check, dict) and 'error' in minion_check:
+                elif isinstance(minion_check, dict) and 'error' in minion_check:
                     # A dictionary with an error name/message was handled by ckminions.runner_check
                     return minion_check
 

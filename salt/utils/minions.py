@@ -182,6 +182,29 @@ def nodegroup_comp(nodegroup, nodegroups, skip=None, first_call=True):
         return ret
 
 
+def mine_get(tgt, fun, tgt_type='glob', opts=None):
+    '''
+    Gathers the data from the specified minions' mine, pass in the target,
+    function to look up and the target type
+    '''
+    ret = {}
+    serial = salt.payload.Serial(opts)
+    checker = CkMinions(opts)
+    _res = checker.check_minions(
+            tgt,
+            tgt_type)
+    minions = _res['minions']
+    cache = salt.cache.factory(opts)
+    for minion in minions:
+        mdata = cache.fetch('minions/{0}'.format(minion), 'mine')
+        if mdata is None:
+            continue
+        fdata = mdata.get(fun)
+        if fdata:
+            ret[minion] = fdata
+    return ret
+
+
 class CkMinions(object):
     '''
     Used to check what minions should respond from a target
@@ -200,6 +223,13 @@ class CkMinions(object):
             self.acc = 'minions'
         else:
             self.acc = 'accepted'
+
+    @staticmethod
+    def factory(opts):
+        if opts['__role'] == 'minion':
+            return RemoteCkMinions(opts)
+        else:
+            return CkMinions(opts)
 
     def _check_nodegroup_minions(self, expr, greedy):  # pylint: disable=unused-argument
         '''
@@ -477,7 +507,7 @@ class CkMinions(object):
 
         nodegroups = self.opts.get('nodegroups', {})
 
-        if self.opts.get('minion_data_cache', False):
+        if self.opts.get('minion_data_cache', False) or self.opts.get('__role') == 'minion':
             ref = {'G': self._check_grain_minions,
                    'P': self._check_grain_pcre_minions,
                    'I': self._check_pillar_minions,
@@ -1132,24 +1162,39 @@ class CkMinions(object):
         return False
 
 
-def mine_get(tgt, fun, tgt_type='glob', opts=None):
+class RemoteCkMinions(CkMinions):
     '''
-    Gathers the data from the specified minions' mine, pass in the target,
-    function to look up and the target type
+    A remote subclass of CkMinions that can act in the context of a minion;
+    i.e. does the given minion itself match each matcher
     '''
-    ret = {}
-    serial = salt.payload.Serial(opts)
-    checker = CkMinions(opts)
-    _res = checker.check_minions(
-            tgt,
-            tgt_type)
-    minions = _res['minions']
-    cache = salt.cache.factory(opts)
-    for minion in minions:
-        mdata = cache.fetch('minions/{0}'.format(minion), 'mine')
+    def _pki_minions(self):
+        '''
+        stub _pki_minions to only be self
+        '''
+        return [self.opts['id']]
+
+    def _check_cache_minions(self,
+                             expr,
+                             delimiter,
+                             greedy,
+                             search_type,
+                             regex_match=False,
+                             exact_match=False):
+
+        mdata = self.opts.get('grains', {})
+
         if mdata is None:
-            continue
-        fdata = mdata.get(fun)
-        if fdata:
-            ret[minion] = fdata
-    return ret
+            return {'minions': [],
+                    'missing': []}
+
+        search_results = mdata.get(search_type)
+        if salt.utils.data.subdict_match(search_results,
+                                         expr,
+                                         delimiter=delimiter,
+                                         regex_match=regex_match,
+                                         exact_match=exact_match):
+            minions = [self.opts['id']]
+
+        return {'minions': minions,
+                'missing': []}
+

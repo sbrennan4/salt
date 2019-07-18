@@ -2151,7 +2151,6 @@ class ClearFuncs(object):
 
         # store auth_check for later nested authorizations from this call
         RequestContext.current['auth_check'] = auth_check
-        import pprint; pprint.pprint(clear_load)
 
         jid = self._prep_jid(clear_load, extra)
         if jid is None:
