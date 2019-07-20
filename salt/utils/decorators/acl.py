@@ -10,7 +10,7 @@ import logging
 from boltons.funcutils import wraps
 
 # Import salt libs
-from salt.exceptions import CommandExecutionError, SaltConfigurationError
+from salt.exceptions import CommandExecutionError, SaltConfigurationError, AuthorizationError
 from salt.utils.ctx import RequestContext
 from salt.log import LOG_LEVELS
 
@@ -58,27 +58,22 @@ class Authorize(object):
 
             # borrowed fromalt.utils.decorators.Depends
             if self.tag == 'runners':
+                log.error(auth_check)
                 runner_check = self.ckminions.runner_check(
                     auth_check.get('auth_list', []),
                     self.item,
                     {'arg': args, 'kwargs': kwargs},
                 )
 
-                if not runner_check:
-                    return {'error': {'name': 'EauthAuthenticationError',
-                                       'message': 'Authentication failure of type "eauth" occurred for '
-                                                 'user {0}.'.format(auth_check['user'])}}
-                elif isinstance(runner_check, dict) and 'error' in runner_check:
-                    # A dictionary with an error name/message was handled by ckminions.runner_check
-                    return runner_check
+                if not runner_check or isinstance(runner_check, dict) and 'error' in runner_check:
+                    raise AuthorizationError('User \'{0}\' is not permissioned to execute runner \'{1}\''.format(auth_check.get('username', 'UNKNOWN'), self.item))
 
                 # if we've made it here, we are good. call the func
                 return f(*args, **kwargs)
 
             if self.tag == 'module':
                 if '__opts__' not in f.__globals__ or 'id' not in f.__globals__['__opts__']:
-                    return {'error': {'name': 'AuthorizationError',
-                                      'message': 'Authorization error occurred - no __opts__ accessible from function.'}}
+                    raise AuthorizationError('Error occurred - no __opts__ accessible from function.')
 
                 opts = f.__globals__['__opts__']
 
@@ -90,23 +85,18 @@ class Authorize(object):
                     'list',
                     minions=[opts['id']],
                     # always accept find_job
-                    whitelist=['saltutil.find_job'],
+                    whitelist=['saltutil.find_job', 'saltutil.is_running', 'grains.get', 'config.get', 'config.option'],
                 )
-
-                if not minion_check:
+                if not minion_check or isinstance(minion_check, dict) and 'error' in minion_check:
                     # Authorization error occurred. Do not continue.
                     if auth_check == 'eauth' and not auth_list and 'username' in extra and 'eauth' in extra:
                         log.debug('Auth configuration for eauth "%s" and user "%s" is empty', extra['eauth'], extra['username'])
-                    return {'error': {'name': 'AuthorizationError',
-                                      'message': 'Authorization error occurred.'}}
-
-                elif isinstance(minion_check, dict) and 'error' in minion_check:
-                    # A dictionary with an error name/message was handled by ckminions.runner_check
-                    return minion_check
+                    raise AuthorizationError('User \'{0}\' is not permissioned to execute module function \'{1}\' on minion \'{2}\''.format(auth_check.get('username', 'UNKNOWN'), self.item, opts['id']))
 
                 # if we've made it here, we are good. call the func
                 return f(*args, **kwargs)
 
+            # this invocation is the default for lazyloader tags that are unenforced, i.e. no-op
             return f(*args, **kwargs)
 
         return wrapper

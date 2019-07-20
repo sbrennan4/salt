@@ -269,7 +269,8 @@ class CkMinions(object):
         Retreive complete minion list from PKI dir.
         Respects cache if configured
         '''
-        minions = []
+        # we include self.opts['id'] here as a special case to pick up the masterminion _master id
+        minions = [self.opts['id']]
         pki_cache_fn = os.path.join(self.opts['pki_dir'], self.acc, '.key_cache')
         try:
             os.makedirs(os.path.dirname(pki_cache_fn))
@@ -279,7 +280,7 @@ class CkMinions(object):
             if self.opts['key_cache'] and os.path.exists(pki_cache_fn):
                 log.debug('Returning cached minion list')
                 with salt.utils.files.fopen(pki_cache_fn) as fn_:
-                    return self.serial.load(fn_)
+                    minions = minions + self.serial.load(fn_)
             else:
                 for fn_ in salt.utils.data.sorted_ignorecase(os.listdir(os.path.join(self.opts['pki_dir'], self.acc))):
                     if not fn_.startswith('.') and os.path.isfile(os.path.join(self.opts['pki_dir'], self.acc, fn_)):
@@ -503,7 +504,7 @@ class CkMinions(object):
             log.error('Compound target that is neither string, list nor tuple')
             return {'minions': [], 'missing': []}
         minions = set(self._pki_minions())
-        log.debug('minions: %s', minions)
+        log.debug('expr: %s, delimiter: %s, minions: %s', expr, delimiter, minions)
 
         nodegroups = self.opts.get('nodegroups', {})
 
@@ -753,6 +754,7 @@ class CkMinions(object):
         v_expr = target_info['pattern']
 
         _res = self.check_minions(v_expr, v_matcher)
+        log.debug('_expand_matching v_expr: %s v_matcher: %s', v_expr, v_matcher)
         return set(_res['minions'])
 
     def validate_tgt(self, valid, expr, tgt_type, minions=None, expr_form=None):
@@ -778,6 +780,7 @@ class CkMinions(object):
         else:
             minions = set(minions)
         d_bool = not bool(minions.difference(v_minions))
+        log.debug("validate_tgt: valid: %s expr: %s tgt_type: %s minions: %s v_minons: %s d_bool: %s", valid, expr, tgt_type, minions, v_minions, d_bool)
         if len(v_minions) == len(minions) and d_bool:
             return True
         return d_bool
@@ -994,6 +997,7 @@ class CkMinions(object):
                             continue
                         valid = next(six.iterkeys(ind))
                         # Check if minions are allowed
+                        log.debug('validate_tgt valid: %s tgt: %s tgt_type: %s minions: %s', valid, tgt, tgt_type, minions)
                         if self.validate_tgt(
                             valid,
                             tgt,
@@ -1007,6 +1011,7 @@ class CkMinions(object):
                                 del fun_args[-1]
                             else:
                                 fun_kwargs = None
+                            log.debug("auth_check: ind: %s fun: %s fun_args: %s fun_kwargs: %s", ind[valid], fun, fun_args, fun_kwargs)
                             if self.__fun_check(ind[valid], fun, fun_args, fun_kwargs):
                                 return True
         except TypeError:
