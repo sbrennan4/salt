@@ -55,9 +55,25 @@ optional. The following ssl options are simply for illustration purposes:
     alternative.pgjsonb.pass: 'salt'
     alternative.pgjsonb.db: 'salt'
     alternative.pgjsonb.port: 5432
-    alternative.pgjsonb.ssl_ca: '/etc/pki/mysql/certs/localhost.pem'
-    alternative.pgjsonb.ssl_cert: '/etc/pki/mysql/certs/localhost.crt'
-    alternative.pgjsonb.ssl_key: '/etc/pki/mysql/certs/localhost.key'
+    alternative.pgjsonb.ssl_ca: '/etc/pki/postgres/certs/localhost.pem'
+    alternative.pgjsonb.ssl_cert: '/etc/pki/postgres/certs/localhost.crt'
+    alternative.pgjsonb.ssl_key: '/etc/pki/postgres/certs/localhost.key'
+
+Should you wish the returner data to be cleaned out every so often, set
+``keep_jobs`` to the number of hours for the jobs to live in the tables.
+Setting it to ``0`` or leaving it unset will cause the data to stay in the tables.
+
+Should you wish to archive jobs in a different table for later processing,
+set ``archive_jobs`` to True.  Salt will create 3 archive tables;
+
+- ``jids_archive``
+- ``salt_returns_archive``
+- ``salt_events_archive``
+
+and move the contents of ``jids``, ``salt_returns``, and ``salt_events`` that are
+more than ``keep_jobs`` hours old to these tables.
+
+.. versionadded:: 2019.2.0
 
 Use the following Pg database schema:
 
@@ -150,6 +166,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 # Import python libs
 from contextlib import contextmanager
+import re
 import sys
 import time
 import logging
@@ -164,6 +181,8 @@ from salt.ext import six
 try:
     import psycopg2
     import psycopg2.extras
+    import psycopg2.extensions
+    import persistqueue
     HAS_PG = True
 except ImportError:
     HAS_PG = False
@@ -172,6 +191,60 @@ log = logging.getLogger(__name__)
 
 # Define the module's virtual name
 __virtualname__ = 'pgjsonb'
+
+PG_SAVE_LOAD_SQL = '''INSERT INTO jids (jid, load) VALUES (%(jid)s, %(load)s)'''
+
+
+# need a stub connection in cases where we can't connect at all to the database
+class PersistentFailureConn():
+    server_version = 90400
+
+    def close(self):
+        pass
+
+
+class PersistentFailureCursor(psycopg2.extensions.cursor):
+    queue = None
+
+    def __init__(self, *args, **kwargs):
+        # initialize the queue singleton if necessary
+        _options = _get_options(kwargs.pop('ret', None))
+        if not _options.get('persistqueue'):
+            raise salt.exceptions.SaltMasterError('PersistentFailureCursor instantiated but no config found')
+
+        if PersistentFailureCursor.queue is None:
+            PersistentFailureCursor.queue = persistqueue.SQLiteAckQueue(**_options['persistqueue'])
+
+        # when we are returning a stub for an already failed connection we dont want
+        # to call parent init as the connection is already dead/database down
+        if not kwargs.pop('stub', False):
+            return super(PersistentFailureCursor, self).__init__(*args, **kwargs)
+
+    def execute(self, sql, args=None):
+        try:
+            psycopg2.extensions.cursor.execute(self, sql, args)
+        except (psycopg2.OperationalError, psycopg2.InterfaceError) as exc:
+            if re.match('^INSERT|UPDATE', sql, re.I):
+                log.info("PersistentFailureCursor: caught psycopg2.OperationalError/psycopg2.InterfaceError on INSERT, saving for later re-attempt")
+                PersistentFailureCursor.queue.put((sql, args))
+           elif re.match('^ROLLBACK|COMMIT', sql, re.I):
+               pass
+           else:
+               raise salt.exceptions.SaltMasterError('pgjsonb returner could not connect to database: {exc}'.format(exc=exc))
+        else:
+            # no exception, meaning the database is healthy again
+            while True:
+                try:
+                    try:
+                        delayed = PersistentFailureCursor.queue.get(block=False)
+                        psycopg2.extensions.cursor.execute(self, *delayed)
+                        PersistentFailureCursor.queue.ack(delayed)
+                    except psycopg2.OperationalError as exc:
+                        log.error("PersistentFailureCursor: caught psycopg2.OperationalError on re-attempt, nacking for future retry. giving up")
+                        PersistentFailureCursor.queue.nack(delayed)
+                        break
+                except persistqueue.exceptions.Empty:
+                    break
 
 
 def __virtual__():
@@ -182,14 +255,16 @@ def __virtual__():
 
 def _get_options(ret=None):
     '''
-    Returns options used for the MySQL connection.
+    Returns options used for the postgres connection.
     '''
     defaults = {
         'host': 'localhost',
         'user': 'salt',
         'pass': 'salt',
         'db': 'salt',
-        'port': 5432
+        'port': 5432,
+        'persistqueue': None,
+        'on_conflict': True,
     }
 
     attrs = {
@@ -203,6 +278,8 @@ def _get_options(ret=None):
         'sslkey': 'sslkey',
         'sslrootcert': 'sslrootcert',
         'sslcrl': 'sslcrl',
+        'persistqueue': 'persistqueue',
+        'on_conflict': 'on_conflict',
     }
 
     _options = salt.returners.get_returner_options('returner.{0}'.format(__virtualname__),
@@ -223,13 +300,15 @@ def _get_serv(ret=None, commit=False):
     Return a Pg cursor
     '''
     _options = _get_options(ret)
+
+    # An empty ssl_options dictionary passed to postgres.connect will
+    # effectively connect w/o SSL.
+    ssl_options = {
+        k: v for k, v in six.iteritems(_options)
+        if k in ['sslmode', 'sslcert', 'sslkey', 'sslrootcert', 'sslcrl']
+    }
+
     try:
-        # An empty ssl_options dictionary passed to MySQLdb.connect will
-        # effectively connect w/o SSL.
-        ssl_options = {
-            k: v for k, v in six.iteritems(_options)
-            if k in ['sslmode', 'sslcert', 'sslkey', 'sslrootcert', 'sslcrl']
-        }
         conn = psycopg2.connect(
             host=_options.get('host'),
             port=_options.get('port'),
@@ -238,18 +317,29 @@ def _get_serv(ret=None, commit=False):
             password=_options.get('pass'),
             **ssl_options
         )
+
+        if _options.get('persistqueue'):
+            cursor = conn.cursor(cursor_factory=PersistentFailureCursor)
+        else:
+            cursor = conn.cursor()
     except psycopg2.OperationalError as exc:
-        raise salt.exceptions.SaltMasterError('pgjsonb returner could not connect to database: {exc}'.format(exc=exc))
+        cursor = PersistentFailureCursor(ret=ret, stub=True)
+        conn = PersistentFailureConn()
 
-    cursor = conn.cursor()
-
+    # if the database is down we need to hint that on conflict is to be used
+    if (conn.server_version is not None and conn.server_version >= 90500) or _options.get('on_conflict'):
+        global PG_SAVE_LOAD_SQL
+        PG_SAVE_LOAD_SQL = '''INSERT INTO jids
+                              (jid, load)
+                              VALUES (%(jid)s, %(load)s)
+                              ON CONFLICT (jid) DO UPDATE
+                                  SET load=%(load)s'''
     try:
         yield cursor
     except psycopg2.DatabaseError as err:
         error = err.args
         sys.stderr.write(six.text_type(error))
         cursor.execute("ROLLBACK")
-        raise err
     else:
         if commit:
             cursor.execute("COMMIT")
@@ -287,30 +377,27 @@ def event_return(events):
     option in master config.
     '''
     with _get_serv(events, commit=True) as cur:
+        tuples = []
         for event in events:
             tag = event.get('tag', '')
             data = event.get('data', '')
             sql = '''INSERT INTO salt_events (tag, data, master_id, alter_time)
                      VALUES (%s, %s, %s, to_timestamp(%s))'''
-            cur.execute(sql, (tag, psycopg2.extras.Json(data),
-                              __opts__['id'], time.time()))
+            tuples.append((tag, psycopg2.extras.Json(data), __opts__['id'], time.time()))
 
+        psycopg2.extras.execute_batch(cur, sql, tuples)
 
 def save_load(jid, load, minions=None):
     '''
     Save the load to the specified jid id
     '''
     with _get_serv(commit=True) as cur:
-
-        sql = '''INSERT INTO jids
-               (jid, load)
-                VALUES (%s, %s)'''
-
         try:
-            cur.execute(sql, (jid, psycopg2.extras.Json(load)))
+            cur.execute(PG_SAVE_LOAD_SQL,
+                        {'jid': jid, 'load': psycopg2.extras.Json(load)})
         except psycopg2.IntegrityError:
             # https://github.com/saltstack/salt/issues/22171
-            # Without this try:except: we get tons of duplicate entry errors
+            # Without this try/except we get tons of duplicate entry errors
             # which result in job returns not being stored properly
             pass
 
@@ -417,3 +504,126 @@ def prep_jid(nocache=False, passed_jid=None):  # pylint: disable=unused-argument
     Do any work necessary to prepare a JID, including sending a custom id
     '''
     return passed_jid if passed_jid is not None else salt.utils.jid.gen_jid(__opts__)
+
+
+def _purge_jobs(timestamp):
+    '''
+    Purge records from the returner tables.
+    :param job_age_in_seconds:  Purge jobs older than this
+    :return:
+    '''
+    with _get_serv() as cursor:
+        try:
+            sql = 'delete from jids where jid in (select distinct jid from salt_returns where alter_time < %s)'
+            cursor.execute(sql, (timestamp,))
+            cursor.execute('COMMIT')
+        except psycopg2.DatabaseError as err:
+            error = err.args
+            sys.stderr.write(six.text_type(error))
+            cursor.execute("ROLLBACK")
+            raise err
+
+        try:
+            sql = 'delete from salt_returns where alter_time < %s'
+            cursor.execute(sql, (timestamp,))
+            cursor.execute('COMMIT')
+        except psycopg2.DatabaseError as err:
+            error = err.args
+            sys.stderr.write(six.text_type(error))
+            cursor.execute("ROLLBACK")
+            raise err
+
+        try:
+            sql = 'delete from salt_events where alter_time < %s'
+            cursor.execute(sql, (timestamp,))
+            cursor.execute('COMMIT')
+        except psycopg2.DatabaseError as err:
+            error = err.args
+            sys.stderr.write(six.text_type(error))
+            cursor.execute("ROLLBACK")
+            raise err
+
+    return True
+
+
+def _archive_jobs(timestamp):
+    '''
+    Copy rows to a set of backup tables, then purge rows.
+    :param timestamp: Archive rows older than this timestamp
+    :return:
+    '''
+    source_tables = ['jids',
+                     'salt_returns',
+                     'salt_events']
+
+    with _get_serv() as cursor:
+        target_tables = {}
+        for table_name in source_tables:
+            try:
+                tmp_table_name = table_name + '_archive'
+                sql = 'create table IF NOT exists {0} (LIKE {1})'.format(tmp_table_name, table_name)
+                cursor.execute(sql)
+                cursor.execute('COMMIT')
+                target_tables[table_name] = tmp_table_name
+            except psycopg2.DatabaseError as err:
+                error = err.args
+                sys.stderr.write(six.text_type(error))
+                cursor.execute("ROLLBACK")
+                raise err
+
+        try:
+            sql = 'insert into {0} select * from {1} where jid in (select distinct jid from salt_returns where alter_time < %s)'.format(target_tables['jids'], 'jids')
+            cursor.execute(sql, (timestamp,))
+            cursor.execute('COMMIT')
+        except psycopg2.DatabaseError as err:
+            error = err.args
+            sys.stderr.write(six.text_type(error))
+            cursor.execute("ROLLBACK")
+            raise err
+        except Exception as e:
+            log.error(e)
+            raise
+
+        try:
+            sql = 'insert into {0} select * from {1} where alter_time < %s'.format(target_tables['salt_returns'], 'salt_returns')
+            cursor.execute(sql, (timestamp,))
+            cursor.execute('COMMIT')
+        except psycopg2.DatabaseError as err:
+            error = err.args
+            sys.stderr.write(six.text_type(error))
+            cursor.execute("ROLLBACK")
+            raise err
+
+        try:
+            sql = 'insert into {0} select * from {1} where alter_time < %s'.format(target_tables['salt_events'], 'salt_events')
+            cursor.execute(sql, (timestamp,))
+            cursor.execute('COMMIT')
+        except psycopg2.DatabaseError as err:
+            error = err.args
+            sys.stderr.write(six.text_type(error))
+            cursor.execute("ROLLBACK")
+            raise err
+
+    return _purge_jobs(timestamp)
+
+
+def clean_old_jobs():
+    '''
+    Called in the master's event loop every loop_interval.  Archives and/or
+    deletes the events and job details from the database.
+    :return:
+    '''
+    if __opts__.get('keep_jobs', False) and int(__opts__.get('keep_jobs', 0)) > 0:
+        try:
+            with _get_serv() as cur:
+                sql = "select (NOW() -  interval '{0}' hour) as stamp;".format(__opts__['keep_jobs'])
+                cur.execute(sql)
+                rows = cur.fetchall()
+                stamp = rows[0][0]
+
+            if __opts__.get('archive_jobs', False):
+                _archive_jobs(stamp)
+            else:
+                _purge_jobs(stamp)
+        except Exception as e:
+            log.error(e)
