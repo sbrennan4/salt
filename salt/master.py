@@ -1536,7 +1536,7 @@ class AESFuncs(object):
         :rtype: dict
         :return: The pillar data for the minion
         '''
-        if any(key not in load for key in ('id', 'grains')):
+        if any(key not in load or load[key] is None for key in ('id', 'grains')):
             return False
         if not salt.utils.verify.valid_id(self.opts, load['id']):
             return False
