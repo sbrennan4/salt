@@ -82,7 +82,7 @@ def execute(opts, data, func, args, kwargs):
     umask = data.get("executor_opts", {}).get("umask")
     strategy = data.get("executor_opts", {}).get("strategy", "inline")
 
-    if strategy not in set("inline", "salt-call"):
+    if strategy not in set(["inline", "salt-call"]):
         raise ValueError("Unrecognized value provided for strategy executor_opts")
 
 
