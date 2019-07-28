@@ -1058,9 +1058,14 @@ class MWorker(salt.utils.process.SignalHandlingMultiprocessingProcess):
         if cmd.startswith('__'):
             return False
 
-        with StackContext(functools.partial(RequestContext,
-                                            {'data': load,
-                                             'opts': self.opts})):
+        context = {'opts': self.opts}
+        # only add auth_check if it is already present, dont set an empty default
+        if 'auth_check' in load:
+            context['auth_check'] = load.pop('auth_check')
+        # pass load down after removing auth_check
+        context['data'] = load
+
+        with StackContext(functools.partial(RequestContext, context)):
             if self.opts['master_stats']:
                 start = time.time()
 
@@ -2076,6 +2081,19 @@ class ClearFuncs(object):
             return {'error': {'name': 'AuthorizationError',
                               'message': 'Authorization error occurred.'}}
 
+        # Check for external auth calls and authenticate
+        auth_type, err_name, key, sensitive_load_keys = self._prep_auth_info(extra)
+
+        # if auth_check is already in the request ctx, we don't re-authenticate, we assume
+        # from the previous call up the stack it is authenticated and just authorize
+        if 'auth_check' in RequestContext.current:
+            auth_check = RequestContext.current['auth_check']
+        else:
+            if auth_type == 'user':
+                auth_check = self.loadauth.check_authentication(clear_load, auth_type, key=key)
+            else:
+                auth_check = self.loadauth.check_authentication(extra, auth_type)
+
         # Retrieve the minions list
         delimiter = clear_load.get('kwargs', {}).get('delimiter', DEFAULT_TARGET_DELIM)
         _res = self.ckminions.check_minions(
@@ -2087,22 +2105,19 @@ class ClearFuncs(object):
         missing = _res.get('missing', list())
         ssh_minions = _res.get('ssh_minions', False)
 
-        # Check for external auth calls and authenticate
-        auth_type, err_name, key, sensitive_load_keys = self._prep_auth_info(extra)
-        if auth_type == 'user':
-            auth_check = self.loadauth.check_authentication(clear_load, auth_type, key=key)
-        else:
-            auth_check = self.loadauth.check_authentication(extra, auth_type)
-
         # Setup authorization list variable and error information
         auth_list = auth_check.get('auth_list', [])
-        err_msg = 'Authentication failure of type "{0}" occurred.'.format(auth_type)
+
+        if 'user' in clear_load:
+            err_msg = 'Authentication failure of type "{0}" occurred. Is "{1}" authorized to run "{2}" on tgt "{3}"?'.format(auth_type, clear_load['user'], clear_load['fun'], clear_load['tgt'])
+        else:
+            err_msg = 'Authentication failure of type "{0}" occurred.'.format(auth_type)
 
         if auth_check.get('error'):
             # Authentication error occurred: do not continue.
             log.warning(err_msg)
             return {'error': {'name': 'AuthenticationError',
-                              'message': 'Authentication error occurred.'}}
+                              'message': err_msg}}
 
         # All Token, Eauth, and non-root users must pass the authorization check
         if auth_type != 'user' or (auth_type == 'user' and auth_list):
@@ -2122,9 +2137,9 @@ class ClearFuncs(object):
                 # Authorization error occurred. Do not continue.
                 if auth_type == 'eauth' and not auth_list and 'username' in extra and 'eauth' in extra:
                     log.debug('Auth configuration for eauth "%s" and user "%s" is empty', extra['eauth'], extra['username'])
-                log.warning(err_msg)
+
                 return {'error': {'name': 'AuthorizationError',
-                                  'message': 'Authorization error occurred.'}}
+                                  'message': err_msg}}
 
             # Perform some specific auth_type tasks after the authorization check
             if auth_type == 'token':

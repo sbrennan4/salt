@@ -58,6 +58,7 @@ import salt.utils.process
 import salt.utils.url
 import salt.utils.versions
 import salt.wheel
+from salt.utils.ctx import RequestContext
 
 HAS_PSUTIL = True
 try:
@@ -1405,10 +1406,19 @@ def cmd(tgt,
 
         salt '*' saltutil.cmd
     '''
+    # if auth_check is in the current request context, we must propogate it
+    if 'auth_check' in kwargs:
+        raise AuthorizationError('auth_check found in saltutil.cmd kwargs. Someone is trying to be clever and circumvent acl')
+
+    if RequestContext.current.get('auth_check'):
+        log.debug('RequestContext.current auth_check: %s', RequestContext.current['auth_check'])
+        kwargs['auth_check'] = RequestContext.current['auth_check']
+
     cfgfile = __opts__['conf_file']
     client = _get_ssh_or_api_client(cfgfile, ssh)
     fcn_ret = _exec(
         client, tgt, fun, arg, timeout, tgt_type, ret, kwarg, **kwargs)
+
     # if return is empty, we may have not used the right conf,
     # try with the 'minion relative master configuration counter part
     # if available
@@ -1504,6 +1514,15 @@ def runner(name, arg=None, kwarg=None, full_return=False, saltenv='base', jid=No
         arg = []
     if kwarg is None:
         kwarg = {}
+
+    # if auth_check is in the current request context, we must propogate it
+    if 'auth_check' in kwargs:
+        raise AuthorizationError('auth_check found in saltutil.cmd kwargs. Someone is trying to be clever and circumvent acl')
+
+    if 'auth_check' in RequestContext.current:
+        log.debug('RequestContext.current auth_check: %s', RequestContext.current['auth_check'])
+        kwargs['auth_check'] = RequestContext.current['auth_check']
+
     jid = kwargs.pop('__orchestration_jid__', jid)
     saltenv = kwargs.pop('__env__', saltenv)
     kwargs = salt.utils.args.clean_kwargs(**kwargs)
@@ -1586,6 +1605,14 @@ def wheel(name, *args, **kwargs):
         their return data.
 
     '''
+    # if auth_check is in the current request context, we must propogate it
+    if 'auth_check' in kwargs:
+        raise AuthorizationError('auth_check found in saltutil.cmd kwargs. Someone is trying to be clever and circumvent acl')
+
+    if 'auth_check' in RequestContext.current:
+        log.debug('RequestContext.current auth_check: %s', RequestContext.current['auth_check'])
+        kwargs['auth_check'] = RequestContext.current['auth_check']
+
     jid = kwargs.pop('__orchestration_jid__', None)
     saltenv = kwargs.pop('__env__', 'base')
 

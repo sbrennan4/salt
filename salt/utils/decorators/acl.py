@@ -58,7 +58,6 @@ class Authorize(object):
 
             # borrowed fromalt.utils.decorators.Depends
             if self.tag == 'runners':
-                log.error(auth_check)
                 runner_check = self.ckminions.runner_check(
                     auth_check.get('auth_list', []),
                     self.item,
@@ -66,6 +65,7 @@ class Authorize(object):
                 )
 
                 if not runner_check or isinstance(runner_check, dict) and 'error' in runner_check:
+                    log.error("current auth_check profile: %s", auth_check)
                     raise AuthorizationError('User \'{0}\' is not permissioned to execute runner \'{1}\''.format(auth_check.get('username', 'UNKNOWN'), self.item))
 
                 # if we've made it here, we are good. call the func
@@ -76,6 +76,14 @@ class Authorize(object):
                     raise AuthorizationError('Error occurred - no __opts__ accessible from function.')
 
                 opts = f.__globals__['__opts__']
+
+                # minion loader covers two usecases:
+                # 1) master side orchestrations, including salutil.cmd special-cases for salt.state/salt.function
+                # 2) minion side re-enforcment of provided authlist
+                # orchestration enforcement is equivalent to minion side enforcement, as we know minion being acted on
+                # is strictly equivalent to opts['id']. for saltutil.cmd we do not duplicate the work done by the master,
+                # if a user is authorized to run saltutil.cmd he/she must still meet the equivalent acl work being done
+                # in done in salt.master.Master.publish to successfully publish to those minions
 
                 minion_check = self.ckminions.auth_check(
                     auth_check.get('auth_list', []),
@@ -91,6 +99,7 @@ class Authorize(object):
                     # Authorization error occurred. Do not continue.
                     if auth_check == 'eauth' and not auth_list and 'username' in extra and 'eauth' in extra:
                         log.debug('Auth configuration for eauth "%s" and user "%s" is empty', extra['eauth'], extra['username'])
+                    log.error("current auth_check profile: %s", auth_check)
                     raise AuthorizationError('User \'{0}\' is not permissioned to execute module function \'{1}\' on minion \'{2}\''.format(auth_check.get('username', 'UNKNOWN'), self.item, opts['id']))
 
                 # if we've made it here, we are good. call the func

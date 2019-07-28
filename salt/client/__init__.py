@@ -1757,6 +1757,10 @@ class LocalClient(object):
                           'ret': ret,
                           'jid': self._prep_jid(jid=jid, nocache=kwargs.get('nocache', False), subscribe=listen)}
 
+        # dont pass auth_check as a kwarg
+        if 'auth_check' in kwargs:
+            payload_kwargs['auth_check'] = kwargs.pop('auth_check')
+
         # if kwargs are passed, pack them.
         if kwargs:
             payload_kwargs['kwargs'] = kwargs
