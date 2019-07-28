@@ -1217,7 +1217,7 @@ def sls(mods, test=None, exclude=None, queue=False, sync_mods=None, **kwargs):
         __context__['retcode'] = 1
         return disabled
 
-    pillar_override = kwargs.pop('pillar')
+    pillar_override = kwargs.pop('pillar', None)
     orig_test = __opts__.get('test', None)
     opts = salt.utils.state.get_sls_opts(__opts__, __pillar__, **kwargs)
 
