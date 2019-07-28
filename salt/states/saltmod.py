@@ -645,7 +645,7 @@ def function(
         func_ret['command'] = 'No minions responded'
     else:
         if changes:
-            func_ret['changes'] = {'out': 'highstate', 'ret': changes}
+            func_ret['changes'] = changes
         if fail:
             func_ret['result'] = False
             func_ret['comment'] = 'Running function {0} failed on minions: {1}'.format(name, ', '.join(fail))
