@@ -462,6 +462,8 @@ def function(
         timeout=None,
         batch=None,
         subset=None,
+        module_executors=None,
+        executor_opts=None,
         **kwargs):
     '''
     Execute a single module function on a remote minion via salt or salt-ssh
@@ -516,7 +518,10 @@ def function(
         .. versionadded:: 2017.7.0
 
     asynchronous
-        Run the salt command but don't wait for a reply.
+        Ryun the salt command but don't wait for a reply.
+
+    module_executors/executor_opts
+        Execute the given functions with specified executors and options
 
         .. versionadded:: neon
 
@@ -556,6 +561,12 @@ def function(
     cmd_kw['expect_minions'] = expect_minions
     cmd_kw['_cmd_meta'] = True
     cmd_kw['asynchronous'] = kwargs.pop('asynchronous', False)
+
+    if module_executors:
+        cmd_kw['module_executors'] = module_executors
+
+    if executor_opts:
+        cmd_kw['executor_opts'] = executor_opts
 
     if ret_config:
         cmd_kw['ret_config'] = ret_config
