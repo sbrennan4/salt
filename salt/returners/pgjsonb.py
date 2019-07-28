@@ -183,6 +183,7 @@ try:
     import psycopg2.extras
     import psycopg2.extensions
     import persistqueue
+    import persistqueue.serializers.json
     HAS_PG = True
 except ImportError:
     HAS_PG = False
@@ -213,7 +214,10 @@ class PersistentFailureCursor(psycopg2.extensions.cursor):
             raise salt.exceptions.SaltMasterError('PersistentFailureCursor instantiated but no config found')
 
         if PersistentFailureCursor.queue is None:
-            PersistentFailureCursor.queue = persistqueue.SQLiteAckQueue(**_options['persistqueue'])
+            pq_options = _options['persistqueue']
+            # force json serializer
+            pq_options['serializer'] = persistqueue.serializers.json
+            PersistentFailureCursor.queue = persistqueue.SQLiteAckQueue(**pq_options)
 
         # when we are returning a stub for an already failed connection we dont want
         # to call parent init as the connection is already dead/database down
