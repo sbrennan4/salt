@@ -938,14 +938,13 @@ class SaltAPIHandler(BaseSaltAPIHandler):  # pylint: disable=W0223
             self.write(self.serialize({'return': ret}))
             self.finish()
 
-    def _log_req_id_jid(self, chunk_dup):
+    def _log_req_id_jid(self, chunk):
         '''
         Log JID and injected request_id from proxy layer
         '''
-        if 'request_id' in chunk_dup:
-            if 'token' in chunk_dup:
-                del chunk_dup['token']
-            log.info(json.dumps(chunk_dup))
+        if 'request_id' in chunk:
+            stripped = {k: v for k, v in chunk.items() if k not in ['token', 'password']}
+            log.info(json.dumps(stripped))
 
     @tornado.gen.coroutine
     def _disbatch_local(self, chunk):
