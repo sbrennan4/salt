@@ -745,7 +745,7 @@ class ConnectedCache(MultiprocessingProcess):
                     log.debug('ConCache Got malformed result dict from worker')
                     del new_c_data
 
-                log.info('ConCache %s entries in cache', len(self.minions))
+                log.debug('ConCache %s entries in cache', len(self.minions))
 
             # check for next timer-event to start new jobs
             if socks.get(timer_in) == zmq.POLLIN:
