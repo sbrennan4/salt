@@ -102,7 +102,6 @@ Use the following Pg database schema:
     CREATE TABLE salt_returns (
       fun varchar(50) NOT NULL,
       jid varchar(255) NOT NULL,
-      return jsonb NOT NULL,
       id varchar(255) NOT NULL,
       success varchar(10) NOT NULL,
       full_ret jsonb NOT NULL,
@@ -111,8 +110,6 @@ Use the following Pg database schema:
     CREATE INDEX idx_salt_returns_id ON salt_returns (id);
     CREATE INDEX idx_salt_returns_jid ON salt_returns (jid);
     CREATE INDEX idx_salt_returns_fun ON salt_returns (fun);
-    CREATE INDEX idx_salt_returns_return ON salt_returns
-        USING gin (return) with (fastupdate=on);
     CREATE INDEX idx_salt_returns_full_ret ON salt_returns
         USING gin (full_ret) with (fastupdate=on);
 
@@ -357,11 +354,10 @@ def returner(ret):
     try:
         with _get_serv(ret, commit=True) as cur:
             sql = '''INSERT INTO salt_returns
-                    (fun, jid, return, id, success, full_ret, alter_time)
-                    VALUES (%s, %s, %s, %s, %s, %s, to_timestamp(%s))'''
+                    (fun, jid, id, success, full_ret, alter_time)
+                    VALUES (%s, %s, %s, %s, %s, to_timestamp(%s))'''
 
             cur.execute(sql, (ret['fun'], ret['jid'],
-                              psycopg2.extras.Json(ret['return']),
                               ret['id'],
                               ret.get('success', False),
                               psycopg2.extras.Json(ret),
