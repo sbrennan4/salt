@@ -101,6 +101,10 @@ def cmd(fun, *args, **kwargs):
             opts['id'],
             saltenv=opts['saltenv'],
             pillarenv=opts.get('pillarenv')).compile_pillar()
+
+        # needed because pillar compilation clobbers grains etc via lazyLoader
+        # this resets the masterminion back to known state
+        __salt__['salt.cmd']('sys.reload_modules')
     else:
         opts['pillar'] = {}
 
