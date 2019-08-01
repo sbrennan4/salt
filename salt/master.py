@@ -1549,6 +1549,8 @@ class AESFuncs(object):
         if not salt.utils.verify.valid_id(self.opts, load['id']):
             return False
         load['grains']['id'] = load['id']
+        log.error('wtf???')
+        log.error(load)
 
         pillar = salt.pillar.get_pillar(
             self.opts,
@@ -1562,10 +1564,8 @@ class AESFuncs(object):
         data = pillar.compile_pillar()
         self.fs_.update_opts()
         if self.opts.get('minion_data_cache', False):
-            self.masterapi.cache.store('minions/{0}'.format(load['id']),
-                                       'data',
-                                       {'grains': load['grains'],
-                                        'pillar': data})
+            self.masterapi.cache.store('grains', load['id'], load['grains'])
+            self.masterapi.cache.store('pillar', load['id'], data)
             if self.opts.get('minion_data_cache_events') is True:
                 self.event.fire_event({'Minion data cache refresh': load['id']}, tagify(load['id'], 'refresh', 'minion'))
         return data

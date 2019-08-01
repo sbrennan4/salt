@@ -522,11 +522,13 @@ class Key(object):
                                         ex)
                             continue
             cache = salt.cache.factory(self.opts)
-            clist = cache.list(self.ACC)
-            if clist:
-                for minion in clist:
-                    if minion not in minions and minion not in preserve_minions:
-                        cache.flush('{0}/{1}'.format(self.ACC, minion))
+            # flush grains first, then pillar after. this should noop the pillar iteration
+            for _attr in ['grains', 'pillar']:
+                clist = cache.list(_attr)
+                if clist:
+                    for minion in clist:
+                        if minion not in minions and minion not in preserve_minions:
+                            cache.flush(_attr, minion)
 
     def check_master(self):
         '''

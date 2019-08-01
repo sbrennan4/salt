@@ -80,15 +80,14 @@ def get_minion_data(minion, opts):
     if opts.get('minion_data_cache', False):
         cache = salt.cache.factory(opts)
         if minion is None:
-            for id_ in cache.list('minions'):
-                data = cache.fetch('minions/{0}'.format(id_), 'data')
-                if data is None:
+            for id_ in cache.list('grains'):
+                grains = cache.fetch('grains', id_)
+                pillar = cache.fetch('pillar', id_)
+                if grains is None:
                     continue
         else:
-            data = cache.fetch('minions/{0}'.format(minion), 'data')
-        if data is not None:
-            grains = data.get('grains', None)
-            pillar = data.get('pillar', None)
+            grains = cache.fetch('grains', minion)
+            pillar = cache.fetch('pillar', minion)
     return minion if minion else None, grains, pillar
 
 
@@ -197,7 +196,7 @@ def mine_get(tgt, fun, tgt_type='glob', opts=None):
     minions = _res['minions']
     cache = salt.cache.factory(opts)
     for minion in minions:
-        mdata = cache.fetch('minions/{0}'.format(minion), 'mine')
+        mdata = cache.fetch('mine', minion)
         if mdata is None:
             continue
         fdata = mdata.get(fun)
@@ -313,7 +312,8 @@ class CkMinions(object):
         cache_enabled = self.opts.get('minion_data_cache', False)
 
         def list_cached_minions():
-            return self.cache.list('minions')
+            # we use grains as a equivalent for minion list
+            return self.cache.list('grains')
 
         if greedy:
             minions = []
@@ -338,13 +338,12 @@ class CkMinions(object):
             for id_ in cminions:
                 if greedy and id_ not in minions:
                     continue
-                mdata = self.cache.fetch('minions/{0}'.format(id_), 'data')
+                mdata = self.cache.fetch(search_type, id_)
                 if mdata is None:
                     if not greedy:
                         minions.remove(id_)
                     continue
-                search_results = mdata.get(search_type)
-                if not salt.utils.data.subdict_match(search_results,
+                if not salt.utils.data.subdict_match(mdata,
                                                      expr,
                                                      delimiter=delimiter,
                                                      regex_match=regex_match,
@@ -405,14 +404,14 @@ class CkMinions(object):
         if greedy:
             minions = self._pki_minions()
         elif cache_enabled:
-            minions = self.cache.list('minions')
+            minions = self.cache.list('grains')
         else:
             return {'minions': [],
                     'missing': []}
 
         if cache_enabled:
             if greedy:
-                cminions = self.cache.list('minions')
+                cminions = self.cache.list('grains')
             else:
                 cminions = minions
             if cminions is None:
@@ -435,12 +434,11 @@ class CkMinions(object):
 
             minions = set(minions)
             for id_ in cminions:
-                mdata = self.cache.fetch('minions/{0}'.format(id_), 'data')
-                if mdata is None:
+                grains = self.cache.fetch('grains', id_)
+                if grains is None:
                     if not greedy:
                         minions.remove(id_)
                     continue
-                grains = mdata.get('grains')
                 if grains is None or proto not in grains:
                     match = False
                 elif isinstance(tgt, (ipaddress.IPv4Address, ipaddress.IPv6Address)):
@@ -480,7 +478,7 @@ class CkMinions(object):
                 return {'minions': mlist,
                         'missing': []}
             elif cache_enabled:
-                return {'minions': self.cache.list('minions'),
+                return {'minions': self.cache.list('grains'),
                         'missing': []}
             else:
                 return {'minions': [],
@@ -655,7 +653,7 @@ class CkMinions(object):
         '''
         minions = set()
         if self.opts.get('minion_data_cache', False):
-            search = self.cache.list('minions')
+            search = self.cache.list('grains')
             if search is None:
                 return minions
             addrs = salt.utils.network.local_port_tcp(int(self.opts['publish_port']))
@@ -667,16 +665,15 @@ class CkMinions(object):
                 search = subset
             for id_ in search:
                 try:
-                    mdata = self.cache.fetch('minions/{0}'.format(id_), 'data')
+                    grains = self.cache.fetch('grains', id_)
                 except SaltCacheError:
                     # If a SaltCacheError is explicitly raised during the fetch operation,
                     # permission was denied to open the cached data.p file. Continue on as
                     # in the releases <= 2016.3. (An explicit error raise was added in PR
                     # #35388. See issue #36867 for more information.
                     continue
-                if mdata is None:
+                if grains is None:
                     continue
-                grains = mdata.get('grains', {})
                 for ipv4 in grains.get('ipv4', []):
                     if ipv4 == '127.0.0.1' and not include_localhost:
                         continue

@@ -620,7 +620,7 @@ class RemoteFuncs(object):
                 )
         minions = _res['minions']
         for minion in minions:
-            fdata = self.cache.fetch('minions/{0}'.format(minion), 'mine')
+            fdata = self.cache.fetch('mine', minion)
             if isinstance(fdata, dict):
                 fdata = fdata.get(load['fun'])
                 if fdata:
@@ -635,8 +635,8 @@ class RemoteFuncs(object):
             if 'id' not in load or 'data' not in load:
                 return False
         if self.opts.get('minion_data_cache', False) or self.opts.get('enforce_mine_cache', False):
-            cbank = 'minions/{0}'.format(load['id'])
-            ckey = 'mine'
+            cbank = 'mine'
+            ckey = load['id']
             if not load.get('clear', False):
                 data = self.cache.fetch(cbank, ckey)
                 if isinstance(data, dict):
@@ -652,8 +652,8 @@ class RemoteFuncs(object):
         if 'id' not in load or 'fun' not in load:
             return False
         if self.opts.get('minion_data_cache', False) or self.opts.get('enforce_mine_cache', False):
-            cbank = 'minions/{0}'.format(load['id'])
-            ckey = 'mine'
+            cbank = 'mine'
+            ckey = load['id']
             try:
                 data = self.cache.fetch(cbank, ckey)
                 if not isinstance(data, dict):
@@ -672,7 +672,7 @@ class RemoteFuncs(object):
         if not skip_verify and 'id' not in load:
             return False
         if self.opts.get('minion_data_cache', False) or self.opts.get('enforce_mine_cache', False):
-            return self.cache.flush('minions/{0}'.format(load['id']), 'mine')
+            return self.cache.flush('mine', load['id'])
         return True
 
     def _file_recv(self, load):
