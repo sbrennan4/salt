@@ -12,7 +12,6 @@ import weakref
 import traceback
 import collections
 import os
-import copy as pycopy
 
 # Import Salt libs
 import salt.exceptions
@@ -343,22 +342,11 @@ class SyncClientMixin(object):
                         }
 
         try:
-            self_functions = pycopy.copy(self.functions)
-            salt.utils.lazy.verify_fun(self_functions, fun)
+            salt.utils.lazy.verify_fun(self.functions, fun)
 
             # Inject some useful globals to *all* the function's global
             # namespace only once per module-- not per func
-            completed_funcs = []
-
-            for mod_name in six.iterkeys(self_functions):
-                if '.' not in mod_name:
-                    continue
-                mod, _ = mod_name.split('.', 1)
-                if mod in completed_funcs:
-                    continue
-                completed_funcs.append(mod)
-                for global_key, value in six.iteritems(func_globals):
-                    self.functions[mod_name].__globals__[global_key] = value
+            self.functions.inject_globals.update(func_globals)
 
             # There are some discrepancies of what a "low" structure is in the
             # publisher world it is a dict including stuff such as jid, fun,
