@@ -227,10 +227,10 @@ class PersistentFailureCursor(psycopg2.extensions.cursor):
             if re.match('^INSERT|UPDATE', sql, re.I):
                 log.info("PersistentFailureCursor: caught psycopg2.OperationalError/psycopg2.InterfaceError on INSERT, saving for later re-attempt")
                 PersistentFailureCursor.queue.put((sql, args))
-           elif re.match('^ROLLBACK|COMMIT', sql, re.I):
-               pass
-           else:
-               raise salt.exceptions.SaltMasterError('pgjsonb returner could not connect to database: {exc}'.format(exc=exc))
+            elif re.match('^ROLLBACK|COMMIT', sql, re.I):
+                pass
+            else:
+                raise salt.exceptions.SaltMasterError('pgjsonb returner could not connect to database: {exc}'.format(exc=exc))
         else:
             # no exception, meaning the database is healthy again
             while True:
