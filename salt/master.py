@@ -1963,9 +1963,18 @@ class ClearFuncs(object):
             fun = clear_load.pop('fun')
             runner_client = salt.runner.RunnerClient(self.opts)
 
+            # if runner is pre-subscribed from ie salt-api, honor it
+            if 'jid' in clear_load:
+                jid = clear_load['jid']
+                tag = 'salt/run/' + jid
+                pub = {'tag': tag, 'jid': jid}
+            else:
+                pub = None
+
             return runner_client.asynchronous(fun,
                                               clear_load.get('kwarg', {}),
-                                              username)
+                                              username,
+                                              pub=pub)
         except Exception as exc:
             log.error('Exception occurred while introspecting %s: %s', fun, exc)
             return {'error': {'name': exc.__class__.__name__,
