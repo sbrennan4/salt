@@ -449,7 +449,7 @@ class RemoteFuncs(object):
                 opts=self.opts,
                 listen=False)
         self.serial = salt.payload.Serial(opts)
-        self.ckminions = salt.utils.minions.CkMinions(opts)
+        self.ckminions = salt.utils.minions.CkMinions.factory(opts)
         # Create the tops dict for loading external top data
         self.tops = salt.loader.tops(self.opts)
         # Make a client
@@ -612,7 +612,7 @@ class RemoteFuncs(object):
             match_type = 'pillar_exact'
         if match_type.lower() == 'compound':
             match_type = 'compound_pillar_exact'
-        checker = salt.utils.minions.CkMinions(self.opts)
+        checker = salt.utils.minions.CkMinions.factory(self.opts)
         _res = checker.check_minions(
                 load['tgt'],
                 match_type,
@@ -1057,7 +1057,7 @@ class LocalFuncs(object):
         # Make a client
         self.local = salt.client.get_local_client(mopts=self.opts)
         # Make an minion checker object
-        self.ckminions = salt.utils.minions.CkMinions(opts)
+        self.ckminions = salt.utils.minions.CkMinions.factory(opts)
         # Make an Auth object
         self.loadauth = salt.auth.LoadAuth(opts)
         # Stand up the master Minion to access returner data

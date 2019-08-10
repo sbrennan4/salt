@@ -352,7 +352,7 @@ class LocalClient(object):
         return self._check_pub_data(pub_data, listen=listen)
 
     def gather_minions(self, tgt, expr_form):
-        _res = salt.utils.minions.CkMinions(self.opts).check_minions(tgt, tgt_type=expr_form)
+        _res = salt.utils.minions.CkMinions.factory(self.opts).check_minions(tgt, tgt_type=expr_form)
         return _res['minions']
 
     @tornado.gen.coroutine
@@ -1577,7 +1577,7 @@ class LocalClient(object):
             for id_, min_ret in six.iteritems(ret):
                 if min_ret.get('failed') is True:
                     if connected_minions is None:
-                        connected_minions = salt.utils.minions.CkMinions(self.opts).connected_ids()
+                        connected_minions = salt.utils.minions.CkMinions.factory(self.opts).connected_ids()
                     if self.opts['minion_data_cache'] \
                             and salt.cache.factory(self.opts).contains('grains', id_) \
                             and connected_minions \

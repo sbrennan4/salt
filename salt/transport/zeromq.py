@@ -776,7 +776,7 @@ class ZeroMQPubServerChannel(salt.transport.server.PubServerChannel):
     def __init__(self, opts):
         self.opts = opts
         self.serial = salt.payload.Serial(self.opts)  # TODO: in init?
-        self.ckminions = salt.utils.minions.CkMinions(self.opts)
+        self.ckminions = salt.utils.minions.CkMinions.factory(self.opts)
 
     def connect(self):
         return tornado.gen.sleep(5)

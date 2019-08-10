@@ -165,7 +165,7 @@ def ext_pillar(minion_id,
     if match:
         opts['target'] = match.group(1)
         temp = temp.replace(match.group(0), '')
-        checker = salt.utils.minions.CkMinions(__opts__)
+        checker = salt.utils.minions.CkMinions.factory(__opts__)
         _res = checker.check_minions(opts['target'], 'compound')
         minions = _res['minions']
         if minion_id not in minions:
