@@ -1281,23 +1281,23 @@ class PgJsonbCkMinions(CkMinions):
 
             if not lhs and len(tokens) == 1:
                 rhs = tokens[0]
-                fragments.append({ rhs: True })
-                fragments.append({ rhs: {}} )
+                fragments.append({rhs: True})
+                fragments.append({rhs: {}})
             elif len(tokens) == 2:
                 lhs = tokens.pop(0)
                 rhs = tokens.pop(0)
-                fragments.append({ lhs: rhs })
-                fragments.append({ lhs: {rhs: True} } )
-                fragments.append({ lhs: {rhs: {}}} )
+                fragments.append({lhs: rhs})
+                fragments.append({lhs: {rhs: True}})
+                fragments.append({lhs: {rhs: {}}})
 
-                fragments.append({ lhs: [rhs] })
-                fragments.append({ lhs: [{rhs: True}] })
-                fragments.append({ lhs: [{rhs: {}}] })
+                fragments.append({lhs: [rhs] })
+                fragments.append({lhs: [{rhs: True}]})
+                fragments.append({lhs: [{rhs: {}}]})
             else:
                 lhs = tokens.pop(0)
                 for fragment in _recurse_contains(lhs=lhs, tokens=tokens):
-                    fragments.append({ lhs: fragment })
-                    fragments.append({ lhs: [fragment] })
+                    fragments.append({lhs: fragment})
+                    fragments.append({lhs: [fragment]})
 
             return fragments
 
