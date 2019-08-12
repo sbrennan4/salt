@@ -1196,7 +1196,6 @@ class LocalClient(object):
         jinfo = {}
         jinfo_iter = []
         # open event jids that need to be un-subscribed from later
-        open_jids = set()
         timeout_at = time.time() + timeout
         gather_syndic_wait = time.time() + self.opts['syndic_wait']
         # are there still minions running the job out there

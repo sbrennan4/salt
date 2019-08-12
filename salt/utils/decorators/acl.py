@@ -19,9 +19,6 @@ from salt.ext import six
 
 log = logging.getLogger(__name__)
 
-# must match tag in salt.loader - some are plural some aren't
-SUPPORTED_TAGS = ['module', 'runners', 'wheel']
-
 class Authorize(object):
     '''
     This decorator will check if a given call is permitted based on the calling

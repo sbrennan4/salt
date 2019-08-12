@@ -33,7 +33,6 @@ import salt.utils.files
 import salt.serializers.json
 import salt.log.setup
 from salt.ext import six
-from salt.utils.ctx import RequestContext
 
 # Import 3rd-party libs
 import tornado.stack_context

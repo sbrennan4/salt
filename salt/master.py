@@ -1193,7 +1193,6 @@ class AESFuncs(object):
         '''
         Return environments for all backends for requests from fileclient
         '''
-        log.error(load)
         if load is None:
             load = {}
         load.pop('cmd', None)
@@ -2141,7 +2140,7 @@ class ClearFuncs(object):
                 # Authorization error occurred. Do not continue.
                 if auth_type == 'eauth' and not auth_list and 'username' in extra and 'eauth' in extra:
                     log.debug('Auth configuration for eauth "%s" and user "%s" is empty', extra['eauth'], extra['username'])
-
+                log.warning(err_msg)
                 return {'error': {'name': 'AuthorizationError',
                                   'message': err_msg}}
 

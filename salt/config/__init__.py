@@ -812,6 +812,9 @@ VALID_OPTS = {
     # applied only if the user didn't matched by other matchers.
     'permissive_acl': bool,
 
+    # if set, a given loader will enforce acl on each lazyloader invocation, not just on publish
+    'loader_acl': (list, six.string_types),
+
     # Optionally enables keeping the calculated user's auth list in the token file.
     'keep_acl_in_token': bool,
 
@@ -1674,6 +1677,7 @@ DEFAULT_MASTER_OPTS = {
     'token_expire': 43200,
     'token_expire_user_override': False,
     'permissive_acl': False,
+    'loader_acl': [],
     'keep_acl_in_token': False,
     'eauth_acl_module': '',
     'eauth_tokens': 'localfs',

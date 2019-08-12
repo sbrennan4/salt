@@ -518,7 +518,7 @@ def function(
         .. versionadded:: 2017.7.0
 
     asynchronous
-        Ryun the salt command but don't wait for a reply.
+        Run the salt command but don't wait for a reply.
 
     module_executors/executor_opts
         Execute the given functions with specified executors and options

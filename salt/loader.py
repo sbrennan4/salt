@@ -37,7 +37,6 @@ import salt.utils.versions
 from salt.exceptions import LoaderError
 from salt.template import check_render_pipe_str
 from salt.utils.decorators import Depends, Authorize
-from salt.utils.ctx import RequestContext
 
 # Import 3rd-party libs
 from salt.ext import six
@@ -1160,7 +1159,7 @@ class LazyLoader(salt.utils.lazy.LazyDict):
 
         # pass through authorize acl system - will noop unless enabled
         # xxx maybe this should be gated by an opt, unsure of performance impact
-        func = salt.utils.decorators.acl.authorize(tag=self.tag, item=item)(func)
+        func = Authorize(tag=self.tag, item=item)(func)
 
         return func
 

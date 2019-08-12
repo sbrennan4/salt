@@ -411,6 +411,7 @@ class SaltLoggingClass(six.with_metaclass(LoggingMixInMeta, LOGGING_LOGGER_CLASS
             logrecord.exc_info_on_loglevel_formatted = None
 
         logrecord.exc_info_on_loglevel = exc_info_on_loglevel
+        logrecord.jid = jid
         return logrecord
 
     # pylint: enable=C0103

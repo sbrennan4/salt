@@ -430,9 +430,6 @@ class LoadAuth(object):
                'username': username,
                'error': {}}
 
-        # MATT TODO xxx fill this in in config/__init__.py
-        # loader_acl defines which salt.loader types should be restricted and
-        # enforced with auth_list
         if self.opts.get('loader_acl', True):
             ret['tags'] = self.opts.get('loader_acl', ['module', 'runners', 'wheel'])
 

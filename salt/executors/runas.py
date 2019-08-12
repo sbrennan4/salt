@@ -73,14 +73,15 @@ def execute(opts, data, func, args, kwargs):
 
     """
 
-    if data.get("executor_opts", {}).get("user"):
-        user = data["executor_opts"]["user"]
+    executor_opts = data.get("executor_opts", {})
+    if executor_opts.get("user"):
+        user = executor_opts["user"]
     else:
         raise ValueError("user must be specified in executor_opts")
 
-    group = data.get("executor_opts", {}).get("group")
-    umask = data.get("executor_opts", {}).get("umask")
-    strategy = data.get("executor_opts", {}).get("strategy", "inline")
+    group = executor_opts.get("group")
+    umask = executor_opts.get("umask")
+    strategy = executor_opts.get("strategy", "inline")
 
     if strategy not in set(["inline", "salt-call"]):
         raise ValueError("Unrecognized value provided for strategy executor_opts")
@@ -93,7 +94,7 @@ def execute(opts, data, func, args, kwargs):
     elif not group:
         group = salt.utils.user.get_default_group(user)
 
-    log.info("runas: attempting to drop to: '%s'", data.get("executor_opts"))
+    log.info("runas: attempting to drop to: '%s'", executor_opts)
 
     if data["fun"] in ("state.sls", "state.highstate", "state.apply"):
         kwargs["concurrent"] = True
