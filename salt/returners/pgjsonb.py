@@ -211,10 +211,7 @@ class PersistentFailureCursor(psycopg2.extensions.cursor):
             raise salt.exceptions.SaltMasterError('PersistentFailureCursor instantiated but no config found')
 
         if PersistentFailureCursor.queue is None:
-            pq_options = _options['persistqueue']
-            # force json serializer
-            pq_options['serializer'] = persistqueue.serializers.json
-            PersistentFailureCursor.queue = persistqueue.SQLiteAckQueue(**pq_options)
+            PersistentFailureCursor.queue = persistqueue.SQLiteAckQueue(**_options['persistqueue'])
 
         # when we are returning a stub for an already failed connection we dont want
         # to call parent init as the connection is already dead/database down
@@ -228,7 +225,10 @@ class PersistentFailureCursor(psycopg2.extensions.cursor):
             if re.match('^INSERT|UPDATE', sql, re.I):
                 log.info("PersistentFailureCursor: caught psycopg2.OperationalError/psycopg2.InterfaceError on INSERT, saving for later re-attempt")
                 PersistentFailureCursor.queue.put((sql, args))
-            raise salt.exceptions.SaltMasterError('pgjsonb returner could not connect to database: {exc}'.format(exc=exc))
+            elif re.match('^ROLLBACK|COMMIT', sql, re.I):
+                pass
+            else:
+                raise salt.exceptions.SaltMasterError('pgjsonb returner could not connect to database: {exc}'.format(exc=exc))
         else:
             # no exception, meaning the database is healthy again
             while True:
