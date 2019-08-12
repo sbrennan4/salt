@@ -2169,7 +2169,9 @@ class ClearFuncs(object):
                 }
 
         # store auth_check for later nested authorizations from this call
-        RequestContext.current['auth_check'] = auth_check
+        # only if auth_list is defined
+        if auth_check.get('auth_list'):
+            RequestContext.current['auth_check'] = auth_check
 
         jid = self._prep_jid(clear_load, extra)
         if jid is None:
