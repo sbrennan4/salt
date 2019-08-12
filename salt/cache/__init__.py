@@ -300,6 +300,13 @@ class Cache(object):
                 if ts is not None and ts <= time.time():
                     self.modules[flush](bank, key, **self._kwargs)
 
+    def query(self, *args, **kwargs):
+        '''
+        If configured subsystem supports arbitrary queries, pass through.
+        functionality / args / kwargs are subsystem dependent
+        '''
+        query = '{0}.query'.format(self.driver)
+        return self.modules[query](*args, **kwargs)
 
 class MemCache(Cache):
     '''
