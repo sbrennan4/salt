@@ -1549,8 +1549,6 @@ class AESFuncs(object):
         if not salt.utils.verify.valid_id(self.opts, load['id']):
             return False
         load['grains']['id'] = load['id']
-        log.error('wtf???')
-        log.error(load)
 
         pillar = salt.pillar.get_pillar(
             self.opts,
