@@ -13,4 +13,12 @@ futures>=2.0; python_version < '3.0'
 
 # blp internal
 boltons==19.1.0
-hostinfo
+setproctitle
+python-ldap
+persist-queue
+bloomberg.dcsi.redfish
+bloomberg.guts.api
+bloomberg.hostinfo
+psycopg2
+psycopg2-binary
+pyOpenSSL
