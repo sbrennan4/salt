@@ -10,6 +10,7 @@ import os
 import fnmatch
 import re
 import logging
+import copy
 
 # Import salt libs
 import salt.payload
@@ -1042,6 +1043,9 @@ class CkMinions(object):
         This list is a combination of the provided personal matchers plus the
         matchers of any group the user is in.
         '''
+        # we are making modifications, make sure we arent accidentally
+        # introducing side effects
+        auth_provider = copy.deepcopy(auth_provider)
         if auth_list is None:
             auth_list = []
         if permissive is None:
@@ -1050,6 +1054,7 @@ class CkMinions(object):
         for match in auth_provider:
             if match == '*' and not permissive:
                 continue
+
             if match.endswith('%'):
                 if match.rstrip('%') in groups:
                     auth_list.extend(auth_provider[match])
@@ -1059,6 +1064,14 @@ class CkMinions(object):
                     auth_list.extend(auth_provider[match])
         if not permissive and not name_matched and '*' in auth_provider:
             auth_list.extend(auth_provider['*'])
+        # we special case @master to symbolically mean the current master
+        # for minion mods rather then allowing $foo_master explicit node
+        # assignment by id since the masterminion doesnt publish grains to cache
+        for acl in auth_list:
+            if isinstance(acl, dict) and '@master' in acl:
+                acl[self.opts['id']] = acl['@master']
+                del acl['@master']
+
         return auth_list
 
     def wheel_check(self, auth_list, fun, args):
