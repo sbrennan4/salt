@@ -219,7 +219,7 @@ def merge_subreturn(original_return, sub_return, subkey=None):
     return original_return
 
 
-def get_sls_opts(opts, **kwargs):
+def get_sls_opts(opts, pillar, **kwargs):
     '''
     Return a copy of the opts for use, optionally load a local config on top
     '''
@@ -227,6 +227,12 @@ def get_sls_opts(opts, **kwargs):
 
     if 'localconfig' in kwargs:
         return salt.config.minion_config(kwargs['localconfig'], defaults=opts)
+
+    # always force highest priority if environments pillar exists
+    if 'environments' in pillar:
+        opts['saltenv'] = pillar['environments']
+        opts['pillarenv'] = pillar['environments']
+        return opts
 
     if 'saltenv' in kwargs:
         saltenv = kwargs['saltenv']

@@ -1196,7 +1196,6 @@ class LocalClient(object):
         jinfo = {}
         jinfo_iter = []
         # open event jids that need to be un-subscribed from later
-        open_jids = set()
         timeout_at = time.time() + timeout
         gather_syndic_wait = time.time() + self.opts['syndic_wait']
         # are there still minions running the job out there
@@ -1756,6 +1755,10 @@ class LocalClient(object):
                           'tgt_type': tgt_type,
                           'ret': ret,
                           'jid': self._prep_jid(jid=jid, nocache=kwargs.get('nocache', False), subscribe=listen)}
+
+        # dont pass auth_check as a kwarg
+        if 'auth_check' in kwargs:
+            payload_kwargs['auth_check'] = kwargs.pop('auth_check')
 
         # if kwargs are passed, pack them.
         if kwargs:

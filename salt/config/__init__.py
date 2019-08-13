@@ -54,6 +54,7 @@ _DFLT_LOG_FMT_CONSOLE = '[%(levelname)-8s] %(message)s'
 _DFLT_LOG_FMT_LOGFILE = (
     '%(asctime)s,%(msecs)03d [%(name)-17s:%(lineno)-4d][%(levelname)-8s][%(process)d] %(message)s'
 )
+_DFLT_LOG_FMT_JID = "[JID: %(jid)s]"
 _DFLT_REFSPECS = ['+refs/heads/*:refs/remotes/origin/*', '+refs/tags/*:refs/tags/*']
 DEFAULT_INTERVAL = 60
 
@@ -212,6 +213,9 @@ VALID_OPTS = {
 
     # The directory to store all cache files.
     'cachedir': six.string_types,
+
+    # The umask to be used for cache directory and files
+    'cachedir_umask': int,
 
     # Append minion_id to these directories.  Helps with
     # multiple proxies and minions running on the same machine.
@@ -808,6 +812,9 @@ VALID_OPTS = {
     # applied only if the user didn't matched by other matchers.
     'permissive_acl': bool,
 
+    # if set, a given loader will enforce acl on each lazyloader invocation, not just on publish
+    'loader_acl': (list, six.string_types),
+
     # Optionally enables keeping the calculated user's auth list in the token file.
     'keep_acl_in_token': bool,
 
@@ -1240,6 +1247,7 @@ DEFAULT_MINION_OPTS = {
     'id': '',
     'id_function': {},
     'cachedir': os.path.join(salt.syspaths.CACHE_DIR, 'minion'),
+    'cachedir_umask': 0o077,
     'append_minionid_config_dirs': [],
     'cache_jobs': False,
     'grains_cache': False,
@@ -1391,6 +1399,7 @@ DEFAULT_MINION_OPTS = {
     'log_datefmt_logfile': _DFLT_LOG_DATEFMT_LOGFILE,
     'log_fmt_console': _DFLT_LOG_FMT_CONSOLE,
     'log_fmt_logfile': _DFLT_LOG_FMT_LOGFILE,
+    'log_fmt_jid': _DFLT_LOG_FMT_JID,
     'log_granular_levels': {},
     'log_rotate_max_bytes': 0,
     'log_rotate_backup_count': 0,
@@ -1536,6 +1545,7 @@ DEFAULT_MASTER_OPTS = {
     'pki_dir': os.path.join(salt.syspaths.CONFIG_DIR, 'pki', 'master'),
     'key_cache': '',
     'cachedir': os.path.join(salt.syspaths.CACHE_DIR, 'master'),
+    'cachedir_umask': 0o077,
     'file_roots': {
         'base': [salt.syspaths.BASE_FILE_ROOTS_DIR,
                  salt.syspaths.SPM_FORMULA_PATH]
@@ -1667,6 +1677,7 @@ DEFAULT_MASTER_OPTS = {
     'token_expire': 43200,
     'token_expire_user_override': False,
     'permissive_acl': False,
+    'loader_acl': [],
     'keep_acl_in_token': False,
     'eauth_acl_module': '',
     'eauth_tokens': 'localfs',
@@ -1726,6 +1737,7 @@ DEFAULT_MASTER_OPTS = {
     'log_datefmt_logfile': _DFLT_LOG_DATEFMT_LOGFILE,
     'log_fmt_console': _DFLT_LOG_FMT_CONSOLE,
     'log_fmt_logfile': _DFLT_LOG_FMT_LOGFILE,
+    'log_fmt_jid': _DFLT_LOG_FMT_JID,
     'log_granular_levels': {},
     'log_rotate_max_bytes': 0,
     'log_rotate_backup_count': 0,
@@ -1918,6 +1930,7 @@ DEFAULT_CLOUD_OPTS = {
     'log_datefmt_logfile': _DFLT_LOG_DATEFMT_LOGFILE,
     'log_fmt_console': _DFLT_LOG_FMT_CONSOLE,
     'log_fmt_logfile': _DFLT_LOG_FMT_LOGFILE,
+    'log_fmt_jid': _DFLT_LOG_FMT_JID,
     'log_granular_levels': {},
     'log_rotate_max_bytes': 0,
     'log_rotate_backup_count': 0,

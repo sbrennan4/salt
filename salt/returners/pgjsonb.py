@@ -180,6 +180,7 @@ try:
     import psycopg2.extras
     import psycopg2.extensions
     import persistqueue
+    import persistqueue.serializers.json
     HAS_PG = True
 except ImportError:
     HAS_PG = False

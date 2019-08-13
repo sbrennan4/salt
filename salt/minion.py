@@ -4,6 +4,7 @@ Routines to set up a minion
 '''
 # Import python libs
 from __future__ import absolute_import, print_function, with_statement, unicode_literals
+import functools
 import os
 import re
 import sys
@@ -32,6 +33,8 @@ else:
     import salt.ext.ipaddress as ipaddress
 from salt.ext.six.moves import range
 from salt.utils.zeromq import zmq, ZMQDefaultLoop, install_zmq, ZMQ_VERSION_INFO
+
+from salt.utils.ctx import RequestContext
 
 # pylint: enable=no-name-in-module,redefined-builtin
 import tornado
@@ -858,7 +861,7 @@ class SMinion(MinionBase):
         self.rend = salt.loader.render(self.opts, self.functions)
         self.matcher = Matcher(self.opts, self.functions)
         self.functions['sys.reload_modules'] = self.gen_modules
-        self.executors = salt.loader.executors(self.opts)
+        self.executors = salt.loader.executors(self.opts, self.functions, proxy=self.proxy)
 
 
 class MasterMinion(object):
@@ -1554,11 +1557,19 @@ class Minion(MinionBase):
                     get_proc_dir(opts['cachedir'], uid=uid)
                     )
 
-        with tornado.stack_context.StackContext(minion_instance.ctx):
+        def run_func(minion_instance, opts, data):
             if isinstance(data['fun'], tuple) or isinstance(data['fun'], list):
-                Minion._thread_multi_return(minion_instance, opts, data)
+                return Minion._thread_multi_return(minion_instance, opts, data)
             else:
-                Minion._thread_return(minion_instance, opts, data)
+                return Minion._thread_return(minion_instance, opts, data)
+
+        current_context = {'data': data, 'opts': opts, }
+        # only add auth_check if it exists
+        if 'auth_check' in data:
+            current_context['auth_check'] = data['auth_check']
+        with tornado.stack_context.StackContext(functools.partial(RequestContext, current_context)):
+            with tornado.stack_context.StackContext(minion_instance.ctx):
+                run_func(minion_instance, opts, data)
 
     @classmethod
     def _thread_return(cls, minion_instance, opts, data):

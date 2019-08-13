@@ -10,6 +10,7 @@ import os
 import fnmatch
 import re
 import logging
+import copy
 
 # Import salt libs
 import salt.payload
@@ -182,6 +183,29 @@ def nodegroup_comp(nodegroup, nodegroups, skip=None, first_call=True):
         return ret
 
 
+def mine_get(tgt, fun, tgt_type='glob', opts=None):
+    '''
+    Gathers the data from the specified minions' mine, pass in the target,
+    function to look up and the target type
+    '''
+    ret = {}
+    serial = salt.payload.Serial(opts)
+    checker = CkMinions(opts)
+    _res = checker.check_minions(
+            tgt,
+            tgt_type)
+    minions = _res['minions']
+    cache = salt.cache.factory(opts)
+    for minion in minions:
+        mdata = cache.fetch('minions/{0}'.format(minion), 'mine')
+        if mdata is None:
+            continue
+        fdata = mdata.get(fun)
+        if fdata:
+            ret[minion] = fdata
+    return ret
+
+
 class CkMinions(object):
     '''
     Used to check what minions should respond from a target
@@ -200,6 +224,13 @@ class CkMinions(object):
             self.acc = 'minions'
         else:
             self.acc = 'accepted'
+
+    @staticmethod
+    def factory(opts):
+        if opts['__role'] == 'minion':
+            return RemoteCkMinions(opts)
+        else:
+            return CkMinions(opts)
 
     def _check_nodegroup_minions(self, expr, greedy):  # pylint: disable=unused-argument
         '''
@@ -239,7 +270,8 @@ class CkMinions(object):
         Retreive complete minion list from PKI dir.
         Respects cache if configured
         '''
-        minions = []
+        # we include self.opts['id'] here as a special case to pick up the masterminion _master id
+        minions = [self.opts['id']]
         pki_cache_fn = os.path.join(self.opts['pki_dir'], self.acc, '.key_cache')
         try:
             os.makedirs(os.path.dirname(pki_cache_fn))
@@ -477,11 +509,11 @@ class CkMinions(object):
             log.error('Compound target that is neither string, list nor tuple')
             return {'minions': [], 'missing': []}
         minions = set(self._pki_minions())
-        log.debug('minions: %s', minions)
+        log.debug('expr: %s, delimiter: %s, minions: %s', expr, delimiter, minions)
 
         nodegroups = self.opts.get('nodegroups', {})
 
-        if self.opts.get('minion_data_cache', False):
+        if self.opts.get('minion_data_cache', False) or self.opts.get('__role') == 'minion':
             ref = {'G': self._check_grain_minions,
                    'P': self._check_grain_pcre_minions,
                    'I': self._check_pillar_minions,
@@ -727,6 +759,7 @@ class CkMinions(object):
         v_expr = target_info['pattern']
 
         _res = self.check_minions(v_expr, v_matcher)
+        log.debug('_expand_matching v_expr: %s v_matcher: %s', v_expr, v_matcher)
         return set(_res['minions'])
 
     def validate_tgt(self, valid, expr, tgt_type, minions=None, expr_form=None):
@@ -752,6 +785,7 @@ class CkMinions(object):
         else:
             minions = set(minions)
         d_bool = not bool(minions.difference(v_minions))
+        log.debug("validate_tgt: valid: %s expr: %s tgt_type: %s minions: %s v_minons: %s d_bool: %s", valid, expr, tgt_type, minions, v_minions, d_bool)
         if len(v_minions) == len(minions) and d_bool:
             return True
         return d_bool
@@ -968,6 +1002,7 @@ class CkMinions(object):
                             continue
                         valid = next(six.iterkeys(ind))
                         # Check if minions are allowed
+                        log.debug('validate_tgt valid: %s tgt: %s tgt_type: %s minions: %s', valid, tgt, tgt_type, minions)
                         if self.validate_tgt(
                             valid,
                             tgt,
@@ -981,6 +1016,7 @@ class CkMinions(object):
                                 del fun_args[-1]
                             else:
                                 fun_kwargs = None
+                            log.debug("auth_check: ind: %s fun: %s fun_args: %s fun_kwargs: %s", ind[valid], fun, fun_args, fun_kwargs)
                             if self.__fun_check(ind[valid], fun, fun_args, fun_kwargs):
                                 return True
         except TypeError:
@@ -1007,6 +1043,9 @@ class CkMinions(object):
         This list is a combination of the provided personal matchers plus the
         matchers of any group the user is in.
         '''
+        # we are making modifications, make sure we arent accidentally
+        # introducing side effects
+        auth_provider = copy.deepcopy(auth_provider)
         if auth_list is None:
             auth_list = []
         if permissive is None:
@@ -1015,6 +1054,7 @@ class CkMinions(object):
         for match in auth_provider:
             if match == '*' and not permissive:
                 continue
+
             if match.endswith('%'):
                 if match.rstrip('%') in groups:
                     auth_list.extend(auth_provider[match])
@@ -1024,6 +1064,14 @@ class CkMinions(object):
                     auth_list.extend(auth_provider[match])
         if not permissive and not name_matched and '*' in auth_provider:
             auth_list.extend(auth_provider['*'])
+        # we special case @master to symbolically mean the current master
+        # for minion mods rather then allowing $foo_master explicit node
+        # assignment by id since the masterminion doesnt publish grains to cache
+        for acl in auth_list:
+            if isinstance(acl, dict) and '@master' in acl:
+                acl[self.opts['id']] = acl['@master']
+                del acl['@master']
+
         return auth_list
 
     def wheel_check(self, auth_list, fun, args):
@@ -1136,24 +1184,39 @@ class CkMinions(object):
         return False
 
 
-def mine_get(tgt, fun, tgt_type='glob', opts=None):
+class RemoteCkMinions(CkMinions):
     '''
-    Gathers the data from the specified minions' mine, pass in the target,
-    function to look up and the target type
+    A remote subclass of CkMinions that can act in the context of a minion;
+    i.e. does the given minion itself match each matcher
     '''
-    ret = {}
-    serial = salt.payload.Serial(opts)
-    checker = CkMinions(opts)
-    _res = checker.check_minions(
-            tgt,
-            tgt_type)
-    minions = _res['minions']
-    cache = salt.cache.factory(opts)
-    for minion in minions:
-        mdata = cache.fetch('minions/{0}'.format(minion), 'mine')
+    def _pki_minions(self):
+        '''
+        stub _pki_minions to only be self
+        '''
+        return [self.opts['id']]
+
+    def _check_cache_minions(self,
+                             expr,
+                             delimiter,
+                             greedy,
+                             search_type,
+                             regex_match=False,
+                             exact_match=False):
+
+        mdata = self.opts.get('grains', {})
+
         if mdata is None:
-            continue
-        fdata = mdata.get(fun)
-        if fdata:
-            ret[minion] = fdata
-    return ret
+            return {'minions': [],
+                    'missing': []}
+
+        search_results = mdata.get(search_type)
+        if salt.utils.data.subdict_match(search_results,
+                                         expr,
+                                         delimiter=delimiter,
+                                         regex_match=regex_match,
+                                         exact_match=exact_match):
+            minions = [self.opts['id']]
+
+        return {'minions': minions,
+                'missing': []}
+

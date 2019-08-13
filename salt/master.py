@@ -8,6 +8,7 @@ involves preparing the three listeners and the workers needed by the master.
 from __future__ import absolute_import, with_statement, print_function, unicode_literals
 import copy
 import ctypes
+import functools
 import os
 import re
 import sys
@@ -89,6 +90,9 @@ try:
     HAS_HALITE = True
 except ImportError:
     HAS_HALITE = False
+
+from tornado.stack_context import StackContext
+from salt.utils.ctx import RequestContext
 
 
 log = logging.getLogger(__name__)
@@ -1057,12 +1061,24 @@ class MWorker(salt.utils.process.SignalHandlingMultiprocessingProcess):
         cmd = load['cmd']
         if cmd.startswith('__'):
             return False
-        if self.opts['master_stats']:
-            start = time.time()
-            self.stats[cmd]['runs'] += 1
-        ret = getattr(self.clear_funcs, cmd)(load), {'fun': 'send_clear'}
-        if self.opts['master_stats']:
-            self._post_stats(start, cmd)
+
+        context = {'opts': self.opts}
+        # only add auth_check if it is already present, dont set an empty default
+        if 'auth_check' in load:
+            context['auth_check'] = load.pop('auth_check')
+        # pass load down after removing auth_check
+        context['data'] = load
+
+        with StackContext(functools.partial(RequestContext, context)):
+            if self.opts['master_stats']:
+                start = time.time()
+
+            ret = getattr(self.clear_funcs, cmd)(load), {'fun': 'send_clear'}
+
+            if self.opts['master_stats']:
+                stats = salt.utils.event.update_stats(self.stats, start, load)
+                self._post_stats(stats)
+
         return ret
 
     def _handle_aes(self, data):
@@ -1083,7 +1099,15 @@ class MWorker(salt.utils.process.SignalHandlingMultiprocessingProcess):
         if self.opts['master_stats']:
             start = time.time()
             self.stats[cmd]['runs'] += 1
-        ret = self.aes_funcs.run_func(data['cmd'], data)
+
+        def run_func(data):
+            return self.aes_funcs.run_func(data['cmd'], data)
+
+        with StackContext(functools.partial(RequestContext,
+                                            {'data': data,
+                                             'opts': self.opts})):
+            ret = run_func(data)
+
         if self.opts['master_stats']:
             self._post_stats(start, cmd)
         return ret
@@ -1161,7 +1185,23 @@ class AESFuncs(object):
         self._file_list_emptydirs = self.fs_.file_list_emptydirs
         self._dir_list = self.fs_.dir_list
         self._symlink_list = self.fs_.symlink_list
-        self._file_envs = self.fs_.envs
+        # only instantiate pillars loader if necessary
+        if any('environments' in ext for ext in self.opts['ext_pillar']):
+            self.pillars = salt.loader.pillars(self.opts, {})
+
+    def _file_envs(self, load=None):
+        '''
+        Return environments for all backends for requests from fileclient
+        '''
+        if load is None:
+            load = {}
+        load.pop('cmd', None)
+
+        # when environments ext_pillar is in place, it is source of truth
+        if any('environments' in ext for ext in self.opts['ext_pillar']):
+            return self.pillars['environments'](load.get('id'), {})
+        else:
+            return self.fs_.envs()
 
     def __verify_minion(self, id_, token):
         '''
@@ -1330,6 +1370,13 @@ class AESFuncs(object):
             if saltenv not in file_roots:
                 file_roots[saltenv] = []
         mopts['file_roots'] = file_roots
+
+        # we dont include ext_pillar wholesale as it may contain sensitive info
+        mopts['ext_pillar'] = []
+        for ext in self.opts['ext_pillar']:
+            if isinstance(ext, dict) and 'environments' in ext:
+                mopts['ext_pillar'].append(ext)
+
         mopts['top_file_merging_strategy'] = self.opts['top_file_merging_strategy']
         mopts['env_order'] = self.opts['env_order']
         mopts['default_top'] = self.opts['default_top']
@@ -1910,8 +1957,12 @@ class ClearFuncs(object):
 
         # Authorized. Do the job!
         try:
+            # store auth_check for later nested authorizations from this call
+            RequestContext.current['auth_check'] = auth_check
+
             fun = clear_load.pop('fun')
             runner_client = salt.runner.RunnerClient(self.opts)
+
             return runner_client.asynchronous(fun,
                                               clear_load.get('kwarg', {}),
                                               username)
@@ -1965,6 +2016,9 @@ class ClearFuncs(object):
 
         # Authorized. Do the job!
         try:
+            # store auth_check for later nested authorizations from this call
+            RequestContext.current['auth_check'] = auth_check
+
             jid = salt.utils.jid.gen_jid(self.opts)
             fun = clear_load.pop('fun')
             tag = tagify(jid, prefix='wheel')
@@ -2030,6 +2084,19 @@ class ClearFuncs(object):
             return {'error': {'name': 'AuthorizationError',
                               'message': 'Authorization error occurred.'}}
 
+        # Check for external auth calls and authenticate
+        auth_type, err_name, key, sensitive_load_keys = self._prep_auth_info(extra)
+
+        # if auth_check is already in the request ctx, we don't re-authenticate, we assume
+        # from the previous call up the stack it is authenticated and just authorize
+        if 'auth_check' in RequestContext.current:
+            auth_check = RequestContext.current['auth_check']
+        else:
+            if auth_type == 'user':
+                auth_check = self.loadauth.check_authentication(clear_load, auth_type, key=key)
+            else:
+                auth_check = self.loadauth.check_authentication(extra, auth_type)
+
         # Retrieve the minions list
         delimiter = clear_load.get('kwargs', {}).get('delimiter', DEFAULT_TARGET_DELIM)
         _res = self.ckminions.check_minions(
@@ -2041,22 +2108,19 @@ class ClearFuncs(object):
         missing = _res.get('missing', list())
         ssh_minions = _res.get('ssh_minions', False)
 
-        # Check for external auth calls and authenticate
-        auth_type, err_name, key, sensitive_load_keys = self._prep_auth_info(extra)
-        if auth_type == 'user':
-            auth_check = self.loadauth.check_authentication(clear_load, auth_type, key=key)
-        else:
-            auth_check = self.loadauth.check_authentication(extra, auth_type)
-
         # Setup authorization list variable and error information
         auth_list = auth_check.get('auth_list', [])
-        err_msg = 'Authentication failure of type "{0}" occurred.'.format(auth_type)
+
+        if 'user' in clear_load:
+            err_msg = 'Authentication failure of type "{0}" occurred. Is "{1}" authorized to run "{2}" on tgt "{3}"?'.format(auth_type, clear_load['user'], clear_load['fun'], clear_load['tgt'])
+        else:
+            err_msg = 'Authentication failure of type "{0}" occurred.'.format(auth_type)
 
         if auth_check.get('error'):
             # Authentication error occurred: do not continue.
             log.warning(err_msg)
             return {'error': {'name': 'AuthenticationError',
-                              'message': 'Authentication error occurred.'}}
+                              'message': err_msg}}
 
         # All Token, Eauth, and non-root users must pass the authorization check
         if auth_type != 'user' or (auth_type == 'user' and auth_list):
@@ -2078,7 +2142,7 @@ class ClearFuncs(object):
                     log.debug('Auth configuration for eauth "%s" and user "%s" is empty', extra['eauth'], extra['username'])
                 log.warning(err_msg)
                 return {'error': {'name': 'AuthorizationError',
-                                  'message': 'Authorization error occurred.'}}
+                                  'message': err_msg}}
 
             # Perform some specific auth_type tasks after the authorization check
             if auth_type == 'token':
@@ -2102,6 +2166,12 @@ class ClearFuncs(object):
                         'error': 'Master could not resolve minions for target {0}'.format(clear_load['tgt'])
                     }
                 }
+
+        # store auth_check for later nested authorizations from this call
+        # only if auth_list is defined
+        if auth_check.get('auth_list'):
+            RequestContext.current['auth_check'] = auth_check
+
         jid = self._prep_jid(clear_load, extra)
         if jid is None:
             return {'enc': 'clear',
@@ -2317,6 +2387,11 @@ class ClearFuncs(object):
                 clear_load['user'], clear_load['fun'], clear_load['jid']
             )
             load['user'] = clear_load['user']
+
+        # if there is an active auth_check in current context, pass it down
+        if 'auth_check' in RequestContext.current:
+            load['auth_check'] = RequestContext.current['auth_check']
+
         else:
             log.info(
                 'Published command %s with jid %s',
