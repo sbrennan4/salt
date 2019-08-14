@@ -30,7 +30,8 @@ import salt.transport.client
 import salt.transport.server
 import salt.transport.mixins.auth
 from salt.ext import six
-from salt.exceptions import SaltReqTimeoutError
+from salt.exceptions import SaltReqTimeoutError, SaltException
+from salt._compat import ipaddress
 
 from salt.utils.zeromq import zmq, ZMQDefaultLoop, install_zmq, ZMQ_VERSION_INFO, LIBZMQ_VERSION_INFO
 import zmq.error
@@ -191,9 +192,9 @@ class AsyncZeroMQReqChannel(salt.transport.client.ReqChannel):
         if self.crypt != 'clear':
             # we don't need to worry about auth as a kwarg, since its a singleton
             self.auth = salt.crypt.AsyncAuth(self.opts, io_loop=self._io_loop)
-        log.debug('Connecting the Minion to the Master URI (for the return server): %s', self.master_uri)
+        log.debug('Connecting the Minion to the Master URI (for the return server): %s', self.opts['master_uri'])
         self.message_client = AsyncReqMessageClientPool(self.opts,
-                                                        args=(self.opts, self.master_uri,),
+                                                        args=(self.opts, self.opts['master_uri'],),
                                                         kwargs={'io_loop': self._io_loop})
 
     def __del__(self):
@@ -208,12 +209,18 @@ class AsyncZeroMQReqChannel(salt.transport.client.ReqChannel):
 
     @property
     def master_uri(self):
+        if 'master_uri' in self.opts:
+            return self.opts['master_uri']
+
+        # if by chance master_uri is not there..
         if 'master_ip' in self.opts:
             return _get_master_uri(self.opts['master_ip'],
                                    self.opts['master_port'],
                                    source_ip=self.opts.get('source_ip'),
                                    source_port=self.opts.get('source_ret_port'))
-        return self.opts['master_uri']
+
+        # if we've reached here something is very abnormal
+        raise SaltException('ReqChannel: missing master_uri/master_ip in self.opts')
 
     def _package_load(self, load):
         return {
@@ -433,7 +440,14 @@ class AsyncZeroMQPubChannel(salt.transport.mixins.auth.AESPubClientMixin, salt.t
     def connect(self):
         if not self.auth.authenticated:
             yield self.auth.authenticate()
-        self.publish_port = self.auth.creds['publish_port']
+
+        # if this is changed from the default, we assume it was intentional
+        if int(self.opts.get('publish_port', 4506)) != 4506:
+            self.publish_port = self.opts.get('publish_port')
+        # else take the relayed publish_port master reports
+        else:
+            self.publish_port = self.auth.creds['publish_port']
+
         log.debug('Connecting the Minion to the Master publish port, using the URI: %s', self.master_pub)
         self._socket.connect(self.master_pub)
 

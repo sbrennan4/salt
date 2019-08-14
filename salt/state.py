@@ -70,6 +70,7 @@ STATE_REQUISITE_KEYWORDS = frozenset([
     'onchanges_any',
     'onfail',
     'onfail_any',
+    'onfail_all',
     'onfail_stop',
     'prereq',
     'prerequired',
@@ -924,7 +925,7 @@ class State(object):
             self.states = salt.loader.thorium(self.opts, self.functions, {})  # TODO: Add runners, proxy?
         else:
             self.states = salt.loader.states(self.opts, self.functions, self.utils,
-                                             self.serializers, proxy=self.proxy)
+                                             self.serializers, context=self.state_con, proxy=self.proxy)
 
     def load_modules(self, data=None, proxy=None):
         '''
@@ -958,7 +959,7 @@ class State(object):
         self.serializers = salt.loader.serializers(self.opts)
         self._load_states()
         self.rend = salt.loader.render(self.opts, self.functions,
-                                       states=self.states, proxy=self.proxy)
+                                       states=self.states, proxy=self.proxy, context=self.state_con)
 
     def module_refresh(self):
         '''
@@ -2259,6 +2260,8 @@ class State(object):
             present = True
         if 'onfail_any' in low:
             present = True
+        if 'onfail_all' in low:
+            present = True
         if 'onchanges' in low:
             present = True
         if 'onchanges_any' in low:
@@ -2274,6 +2277,7 @@ class State(object):
                 'prereq': [],
                 'onfail': [],
                 'onfail_any': [],
+                'onfail_all': [],
                 'onchanges': [],
                 'onchanges_any': []}
         if pre:
@@ -2362,7 +2366,7 @@ class State(object):
                 else:
                     if run_dict[tag].get('__state_ran__', True):
                         req_stats.add('met')
-            if r_state.endswith('_any'):
+            if r_state.endswith('_any') or r_state == 'onfail':
                 if 'met' in req_stats or 'change' in req_stats:
                     if 'fail' in req_stats:
                         req_stats.remove('fail')
@@ -2372,8 +2376,14 @@ class State(object):
                     if 'fail' in req_stats:
                         req_stats.remove('fail')
                 if 'onfail' in req_stats:
-                    if 'fail' in req_stats:
+                    # a met requisite in this case implies a success
+                    if 'met' in req_stats:
                         req_stats.remove('onfail')
+            if r_state.endswith('_all'):
+                if 'onfail' in req_stats:
+                    # a met requisite in this case implies a failure
+                    if 'met' in req_stats:
+                        req_stats.remove('met')
             fun_stats.update(req_stats)
 
         if 'unmet' in fun_stats:
@@ -2385,8 +2395,8 @@ class State(object):
                 status = 'met'
             else:
                 status = 'pre'
-        elif 'onfail' in fun_stats and 'met' not in fun_stats:
-            status = 'onfail'  # all onfail states are OK
+        elif 'onfail' in fun_stats and 'onchangesmet' not in fun_stats:
+            status = 'onfail'
         elif 'onchanges' in fun_stats and 'onchangesmet' not in fun_stats:
             status = 'onchanges'
         elif 'change' in fun_stats:
@@ -4110,7 +4120,7 @@ class MasterState(State):
         self.utils = salt.loader.utils(self.opts)
         self.serializers = salt.loader.serializers(self.opts)
         self.states = salt.loader.states(self.opts, self.functions, self.utils, self.serializers)
-        self.rend = salt.loader.render(self.opts, self.functions, states=self.states)
+        self.rend = salt.loader.render(self.opts, self.functions, states=self.states, context=self.state_con)
 
 
 class MasterHighState(HighState):

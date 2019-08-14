@@ -158,7 +158,8 @@ def resolve_dns(opts, fallback=True):
                 opts['master'],
                 int(opts['master_port']),
                 True,
-                opts['ipv6'])
+                opts['ipv6'],
+                attempt_connect=False)
         except SaltClientError:
             if opts['retry_dns']:
                 while True:
@@ -175,7 +176,8 @@ def resolve_dns(opts, fallback=True):
                             opts['master'],
                             int(opts['master_port']),
                             True,
-                            opts['ipv6'])
+                            opts['ipv6'],
+                            attempt_connect=False)
                         break
                     except SaltClientError:
                         pass
@@ -227,7 +229,8 @@ def resolve_dns(opts, fallback=True):
             opts['source_address'],
             int(opts['source_ret_port']),
             True,
-            opts['ipv6'])
+            opts['ipv6'],
+            attempt_connect=False)
         log.debug('Using %s as source IP address', ret['source_ip'])
     if opts['source_ret_port']:
         ret['source_ret_port'] = int(opts['source_ret_port'])
@@ -581,25 +584,35 @@ class MinionBase(object):
         tries = opts.get('master_tries', 1)
         attempts = 0
 
+        # This sits outside of the connection loop below because it needs to set
+        # up a list of master URIs regardless of which masters are available
+        # to connect _to_. This is primarily used for masterless mode, when
+        # we need a list of master URIs to fire calls back to.
+        opts['master_uri_list'] = []
+        if 'master_list' not in opts:
+            if isinstance(opts['master'], list):
+                opts['master_list'] = copy.copy(opts['master'])
+            else:
+                opts['master_list'] = [opts['master']]
+
+        for master in opts['master_list']:
+            opts['master'] = master
+            opts.update(prep_ip_port(opts))
+            opts['master_uri_list'].append(resolve_dns(opts)['master_uri'])
+
         # if we have a list of masters, loop through them and be
         # happy with the first one that allows us to connect
         if isinstance(opts['master'], list):
             conn = False
+            last_exc = None
+            opts['local_masters'] = copy.copy(opts['master'])
+
             # shuffle the masters and then loop through them
             opts['local_masters'] = copy.copy(opts['master'])
             if opts['random_master']:
                 shuffle(opts['local_masters'])
             last_exc = None
             opts['master_uri_list'] = list()
-
-            # This sits outside of the connection loop below because it needs to set
-            # up a list of master URIs regardless of which masters are available
-            # to connect _to_. This is primarily used for masterless mode, when
-            # we need a list of master URIs to fire calls back to.
-            for master in opts['local_masters']:
-                opts['master'] = master
-                opts.update(prep_ip_port(opts))
-                opts['master_uri_list'].append(resolve_dns(opts)['master_uri'])
 
             while True:
                 if attempts != 0:
@@ -988,6 +1001,17 @@ class MinionManager(MinionBase):
         masters = self.opts['master']
         if (self.opts['master_type'] in ('failover', 'distributed')) or not isinstance(self.opts['master'], list):
             masters = [masters]
+
+        # This sits outside of the connection loop below because it needs to set
+        # up a list of master URIs regardless of which masters are available
+        # to connect _to_. This is primarily used for masterless and multimaster mode,
+        # when we need a list of master URIs to fire calls back to.
+        self.opts['master_uri_list'] = []
+        for master in masters:
+            s_opts = copy.deepcopy(self.opts)
+            s_opts['master'] = master
+            s_opts.update(prep_ip_port(s_opts))
+            self.opts['master_uri_list'].append(resolve_dns(s_opts)['master_uri'])
 
         for master in masters:
             s_opts = copy.deepcopy(self.opts)
@@ -1422,6 +1446,8 @@ class Minion(MinionBase):
                 self._send_req_sync(load, timeout)
             except salt.exceptions.SaltReqTimeoutError:
                 log.info('fire_master failed: master could not be contacted. Request timed out.')
+                # very likely one of the masters is dead, status.master will flush it
+                self.functions['status.master'](self.opts['master'])
                 return False
             except Exception:
                 log.info('fire_master failed: %s', traceback.format_exc())
@@ -1430,6 +1456,9 @@ class Minion(MinionBase):
             if timeout_handler is None:
                 def handle_timeout(*_):
                     log.info('fire_master failed: master could not be contacted. Request timed out.')
+                    # very likely one of the masters is dead, status.master will flush it
+
+                    self.functions['status.master'](self.opts['master'])
                     return True
                 timeout_handler = handle_timeout
 
@@ -2338,12 +2367,17 @@ class Minion(MinionBase):
                 self.connected = False
                 log.info('Connection to master %s lost', self.opts['master'])
 
+                # we can't use the config default here because the default '0' value is overloaded
+                # to mean 'if 0 disable the job', but when salt detects a timeout it also sets up
+                # these jobs
+                master_alive_interval = self.opts['master_alive_interval'] or 60
+
                 if self.opts['master_type'] != 'failover':
                     # modify the scheduled job to fire on reconnect
                     if self.opts['transport'] != 'tcp':
                         schedule = {
                            'function': 'status.master',
-                           'seconds': self.opts['master_alive_interval'],
+                           'seconds': master_alive_interval,
                            'jid_include': True,
                            'maxrunning': 1,
                            'return_job': False,
@@ -2398,7 +2432,7 @@ class Minion(MinionBase):
                         if self.opts['transport'] != 'tcp':
                             schedule = {
                                'function': 'status.master',
-                               'seconds': self.opts['master_alive_interval'],
+                               'seconds': master_alive_interval,
                                'jid_include': True,
                                'maxrunning': 1,
                                'return_job': False,
@@ -2437,18 +2471,22 @@ class Minion(MinionBase):
                 # modify the __master_alive job to only fire,
                 # if the connection is lost again
                 if self.opts['transport'] != 'tcp':
-                    schedule = {
-                       'function': 'status.master',
-                       'seconds': self.opts['master_alive_interval'],
-                       'jid_include': True,
-                       'maxrunning': 1,
-                       'return_job': False,
-                       'kwargs': {'master': self.opts['master'],
-                                   'connected': True}
-                    }
+                    if self.opts['master_alive_interval'] > 0:
+                        schedule = {
+                           'function': 'status.master',
+                           'seconds': self.opts['master_alive_interval'],
+                           'jid_include': True,
+                           'maxrunning': 1,
+                           'return_job': False,
+                           'kwargs': {'master': self.opts['master'],
+                                       'connected': True}
+                        }
 
-                    self.schedule.modify_job(name=master_event(type='alive', master=self.opts['master']),
-                                             schedule=schedule)
+                        self.schedule.modify_job(name=master_event(type='alive', master=self.opts['master']),
+                                                 schedule=schedule)
+                    else:
+                        self.schedule.delete_job(name=master_event(type='alive', master=self.opts['master']), persist=True)
+
         elif tag.startswith('__schedule_return'):
             # reporting current connection with master
             if data['schedule'].startswith(master_event(type='alive', master='')):

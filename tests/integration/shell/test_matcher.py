@@ -95,14 +95,25 @@ class MatchTest(ShellCase, ShellCaseCommonTestsMixin):
     @flaky
     def test_compound_pillar(self):
         data = self.run_salt("-C 'I%@companions%three%sarah*' test.ping")
-        assert minion_in_returns('minion', data) is True
-        assert minion_in_returns('sub_minion', data) is True
-
-    @flaky
-    def test_coumpound_pillar_pcre(self):
+        self.assertTrue(minion_in_returns('minion', data))
+        self.assertTrue(minion_in_returns('sub_minion', data))
+        time.sleep(2)
         data = self.run_salt("-C 'J%@knights%^(Lancelot|Galahad)$' test.ping")
-        assert minion_in_returns('minion', data) is True
-        assert minion_in_returns('sub_minion', data) is True
+        self.assertTrue(minion_in_returns('minion', data))
+        self.assertTrue(minion_in_returns('sub_minion', data))
+        time.sleep(2)
+        data = self.run_salt("-C 'N@multiline_nodegroup' test.ping")
+        self.assertTrue(minion_in_returns('minion', data))
+        self.assertTrue(minion_in_returns('sub_minion', data))
+        time.sleep(2)
+        data = self.run_salt("-C 'N@multiline_nodegroup not sub_minion' test.ping")
+        self.assertTrue(minion_in_returns('minion', data))
+        self.assertFalse(minion_in_returns('sub_minion', data))
+        data = self.run_salt("-C 'N@multiline_nodegroup not @fakenodegroup not sub_minion' test.ping")
+        self.assertTrue(minion_in_returns('minion', data))
+        self.assertFalse(minion_in_returns('sub_minion', data))
+
+
 
     def test_nodegroup(self):
         '''

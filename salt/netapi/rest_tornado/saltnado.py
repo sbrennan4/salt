@@ -746,15 +746,21 @@ class SaltAuthHandler(BaseSaltAPIHandler):  # pylint: disable=W0223
         try:
             eauth = self.application.opts['external_auth'][token['eauth']]
             # Get sum of '*' perms, user-specific perms, and group-specific perms
-            perms = eauth.get(token['name'], [])
-            perms.extend(eauth.get('*', []))
+            _perms = eauth.get(token['name'], [])
+            _perms.extend(eauth.get('*', []))
 
             if 'groups' in token and token['groups']:
                 user_groups = set(token['groups'])
                 eauth_groups = set([i.rstrip('%') for i in eauth.keys() if i.endswith('%')])
 
                 for group in user_groups & eauth_groups:
-                    perms.extend(eauth['{0}%'.format(group)])
+                    _perms.extend(eauth['{0}%'.format(group)])
+
+            # dedup. perm can be a complex dict, so we cant use set
+            perms = []
+            for perm in _perms:
+                if perm not in perms:
+                    perms.append(perm)
 
         # If we can't find the creds, then they aren't authorized
         except KeyError:
@@ -779,6 +785,10 @@ class SaltAuthHandler(BaseSaltAPIHandler):  # pylint: disable=W0223
             'eauth': token['eauth'],
             'perms': perms,
             }]}
+
+        # to provide cherrypy backcompat, the /token return is slightly different
+        if self.request.path == '/token':
+            ret = ret['return']
 
         self.write(self.serialize(ret))
 
@@ -953,6 +963,8 @@ class SaltAPIHandler(BaseSaltAPIHandler):  # pylint: disable=W0223
         '''
         # Generate jid and find all minions before triggering a job to subscribe all returns from minions
         full_return = chunk.pop('full_return', False)
+        timeout_length = chunk.get('timeout', self.application.opts['gather_job_timeout'])
+
         chunk['jid'] = salt.utils.jid.gen_jid(self.application.opts) if not chunk.get('jid', None) else chunk['jid']
         self._log_req_id_jid(chunk)
         minions = set(self.ckminions.check_minions(chunk['tgt'], chunk.get('tgt_type', 'glob')))
@@ -1008,7 +1020,7 @@ class SaltAPIHandler(BaseSaltAPIHandler):  # pylint: disable=W0223
             min_wait_time = tornado.gen.sleep(self.application.opts['syndic_wait'])
 
         # To ensure job_not_running and all_return are terminated by each other, communicate using a future
-        is_timed_out = tornado.gen.sleep(self.application.opts['gather_job_timeout'])
+        is_timed_out = tornado.gen.sleep(timeout_length)
         is_finished = Future()
 
         # ping until the job is not running, while doing so, if we see new minions returning
@@ -1036,7 +1048,7 @@ class SaltAPIHandler(BaseSaltAPIHandler):  # pylint: disable=W0223
 
             def cancel_inflight_futures():
                 for event in to_wait:
-                    if not event.done() and not event is is_timed_out:
+                    if not event.done() and event is not is_timed_out:
                         event.set_result(None)
             f = yield Any(to_wait)
             try:
@@ -1105,7 +1117,7 @@ class SaltAPIHandler(BaseSaltAPIHandler):  # pylint: disable=W0223
                 if not event.done():
                     event.set_result(None)
 
-                if not minion_running or is_finished.done():
+                if not minion_running:
                     raise tornado.gen.Return(True)
 
 
@@ -1127,12 +1139,18 @@ class SaltAPIHandler(BaseSaltAPIHandler):  # pylint: disable=W0223
         '''
         chunk_dup = deepcopy(chunk)
         full_return = chunk.pop('full_return', False)
+
+        # pre-generate a jid so we can subscribe before publish
+        chunk['jid'] = salt.utils.jid.gen_jid(self.application.opts) if not chunk.get('jid', None) else chunk['jid']
+        future = self.application.event_listener.get_event(self, tag='salt/run/{}/ret'.format(chunk['jid']))
+
+        # fire it off
         pub_data = self.saltclients['runner'](chunk)
         chunk_dup['jid'] = pub_data['jid']
         self._log_req_id_jid(chunk_dup)
-        tag = pub_data['tag'] + '/ret'
+
         try:
-            event = yield self.application.event_listener.get_event(self, tag=tag)
+            event = yield future
 
             # only return the return data
             ret = event if full_return else event['data']['return']

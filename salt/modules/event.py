@@ -66,7 +66,7 @@ def fire_master(data, tag, preload=None, timeout=60):
                     port=__opts__.get('ret_port', '4506')  # TODO, no fallback
                     )
         masters = list()
-        ret = True
+        ret = None
         if 'master_uri_list' in __opts__:
             for master_uri in __opts__['master_uri_list']:
                 masters.append(master_uri)
@@ -90,13 +90,15 @@ def fire_master(data, tag, preload=None, timeout=60):
                 # Ensure ret is True.
                 ret = True
             except Exception:
-                ret = False
+                # only set a False ret if it hasn't been sent atleast once
+                if ret is None:
+                    ret = False
         return ret
     else:
         # Usually, we can send the event via the minion, which is faster
         # because it is already authenticated
         try:
-            return salt.utils.event.MinionEvent(__opts__, listen=False).fire_event(
+            return salt.utils.event.MinionEvent(__opts__, listen=False, keep_loop=True).fire_event(
                 {'data': data, 'tag': tag, 'events': None, 'pretag': None}, 'fire_master')
         except Exception:
             exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -120,7 +122,7 @@ def fire(data, tag, timeout=None):
     else:
         timeout = timeout * 1000
     try:
-        event = salt.utils.event.get_event(__opts__.get('__role', 'minion'),
+        event = salt.utils.event.get_event(__opts__['__role'],
                                            sock_dir=__opts__['sock_dir'],
                                            transport=__opts__['transport'],
                                            opts=__opts__,
@@ -187,7 +189,7 @@ def send(tag,
         ``pillarenv`` values or ``False`` to omit them.
 
     :param timeout: maximum duration to wait to connect to Salt's
-        IPCMessageServer in seconds. defaults to 60s
+        IPCMessageServer in seconds. Defaults to 60s
 
     :param kwargs: Any additional keyword arguments passed to this function
         will be interpreted as key-value pairs and included in the event data.
