@@ -1013,6 +1013,7 @@ class SaltAPIHandler(BaseSaltAPIHandler):  # pylint: disable=W0223
 
         # To ensure job_not_running and all_return are terminated by each other, communicate using a future
         is_timed_out = tornado.gen.sleep(timeout_length)
+        is_finished = Future()
 
         # ping until the job is not running, while doing so, if we see new minions returning
         # that they are running the job, add them to the list
