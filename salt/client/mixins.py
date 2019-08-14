@@ -28,15 +28,9 @@ import salt.utils.process
 import salt.utils.state
 import salt.utils.user
 import salt.utils.versions
-<<<<<<< HEAD
 import salt.transport
 import salt.utils.files
 import salt.serializers.json
-=======
-import salt.utils.files
-import salt.serializers.json
-import salt.transport.client
->>>>>>> Track jid in proc file for runners
 import salt.log.setup
 from salt.ext import six
 
