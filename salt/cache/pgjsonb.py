@@ -276,13 +276,13 @@ def clean_expired(bank):
             'Could not clean up expired tokens with postgres cache: {}'.format(err))
 
 
-def query(sql, bind=None):
+def query(sql, bind=None, autocommit=True):
     '''
     execute a sql/bind and return results
     todo: named cursor/scroll?
     '''
     try:
-        with _exec_pg(autocommit=True) as cur:
+        with _exec_pg(autocommit=autocommit) as cur:
             cur.execute(sql, bind)
             return cur.fetchall()
     except salt.exceptions.SaltMasterError as err:
