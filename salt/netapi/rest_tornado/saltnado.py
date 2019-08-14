@@ -1010,6 +1010,15 @@ class SaltAPIHandler(BaseSaltAPIHandler):  # pylint: disable=W0223
         # Map of minion_id -> returned for all minions we think we need to wait on
         minions = {m: False for m in pub_data['minions']}
 
+        # minimum time required for return to complete. By default no waiting, if
+        # we are a syndic then we must wait syndic_wait at a minimum
+        min_wait_time = Future()
+        min_wait_time.set_result(True)
+
+        # wait syndic a while to avoid missing published events
+        if self.application.opts['order_masters']:
+            min_wait_time = tornado.gen.sleep(self.application.opts['syndic_wait'])
+
         # To ensure job_not_running and all_return are terminated by each other, communicate using a future
         is_timed_out = tornado.gen.sleep(timeout_length)
         is_finished = Future()
@@ -1019,48 +1028,29 @@ class SaltAPIHandler(BaseSaltAPIHandler):  # pylint: disable=W0223
         tornado.ioloop.IOLoop.current().spawn_callback(self.job_not_running, pub_data['jid'],
                                                       chunk['tgt'],
                                                       f_call['kwargs']['tgt_type'],
-                                                      is_finished,
-                                                      minions_remaining=list(minions_remaining),
-                                                      )
+                                                      minions,
+                                                      is_finished)
 
-        all_return_future = self.all_returns(pub_data['jid'],
-                                             is_finished,
-                                             minions_remaining=list(minions_remaining),
-                                             )
-        yield job_not_running_future
-        raise tornado.gen.Return((yield all_return_future))
+        def more_todo():
+            '''Check if there are any more minions we are waiting on returns from
+            '''
+            return any(x is False for x in six.itervalues(minions))
 
-    @tornado.gen.coroutine
-    def all_returns(self,
-                    jid,
-                    is_finished,
-                    minions_remaining=None,
-                    ):
-        '''
-        Return a future which will complete once all returns are completed
-        (according to minions_remaining), or one of the passed in "is_finished" completes
-        '''
-        if minions_remaining is None:
-            minions_remaining = []
-
+        # here we want to follow the behavior of LocalClient.get_iter_returns
+        # namely we want to wait at least syndic_wait (assuming we are a syndic)
+        # and that there are no more jobs running on minions. We are allowed to exit
+        # early if gather_job_timeout has been exceeded
         chunk_ret = {}
-
-        minion_events = {}
-
-        syndic_min_wait = 0
-        if self.application.opts['order_masters']:
-            syndic_min_wait = self.application.opts['syndic_wait']
-
-        for minion in minions_remaining:
-            tag = tagify([jid, 'ret', minion], 'job')
-            minion_event = self.application.event_listener.get_event(self,
-                                                                     tag=tag,
-                                                                     matcher=EventListener.exact_matcher,
-                                                                     timeout=self.application.opts['timeout'] + syndic_min_wait)
-            minion_events[minion_event] = minion
-
         while True:
-            f = yield Any(list(minion_events.keys()) + [is_finished])
+            to_wait = events+[is_finished, is_timed_out]
+            if not min_wait_time.done():
+                to_wait += [min_wait_time]
+
+            def cancel_inflight_futures():
+                for event in to_wait:
+                    if not event.done() and event is not is_timed_out:
+                        event.set_result(None)
+            f = yield Any(to_wait)
             try:
                 # When finished entire routine, cleanup other futures and return result
                 if f is is_finished or f is is_timed_out:
