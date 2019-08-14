@@ -118,7 +118,7 @@ def targets(tgt, tgt_type='glob', **kwargs):  # pylint: disable=W0613
 
     The resulting roster can be configured using ``roster_order`` and ``roster_default``.
     '''
-    minions = salt.utils.minions.CkMinions(__opts__)
+    minions = salt.utils.minions.CkMinions.factory(__opts__)
     _res = minions.check_minions(tgt, tgt_type)
     minions = _res['minions']
 
@@ -199,7 +199,7 @@ def _load_minion(minion_id, cache):
         6: sorted([ipaddress.IPv6Address(addr) for addr in grains.get('ipv6', [])])
     }
 
-    mine = cache.fetch('minions/{0}'.format(minion_id), 'mine')
+    mine = cache.fetch('mine', minion_id)
 
     return grains, pillar, addrs, mine
 

@@ -80,15 +80,14 @@ def get_minion_data(minion, opts):
     if opts.get('minion_data_cache', False):
         cache = salt.cache.factory(opts)
         if minion is None:
-            for id_ in cache.list('minions'):
-                data = cache.fetch('minions/{0}'.format(id_), 'data')
-                if data is None:
+            for id_ in cache.list('grains'):
+                grains = cache.fetch('grains', id_)
+                pillar = cache.fetch('pillar', id_)
+                if grains is None:
                     continue
         else:
-            data = cache.fetch('minions/{0}'.format(minion), 'data')
-        if data is not None:
-            grains = data.get('grains', None)
-            pillar = data.get('pillar', None)
+            grains = cache.fetch('grains', minion)
+            pillar = cache.fetch('pillar', minion)
     return minion if minion else None, grains, pillar
 
 
@@ -197,7 +196,7 @@ def mine_get(tgt, fun, tgt_type='glob', opts=None):
     minions = _res['minions']
     cache = salt.cache.factory(opts)
     for minion in minions:
-        mdata = cache.fetch('minions/{0}'.format(minion), 'mine')
+        mdata = cache.fetch('mine', minion)
         if mdata is None:
             continue
         fdata = mdata.get(fun)
@@ -230,7 +229,10 @@ class CkMinions(object):
         if opts['__role'] == 'minion':
             return RemoteCkMinions(opts)
         else:
-            return CkMinions(opts)
+            if opts['cache'] == 'pgjsonb':
+                return PgJsonbCkMinions(opts)
+            else:
+                return CkMinions(opts)
 
     def _check_nodegroup_minions(self, expr, greedy):  # pylint: disable=unused-argument
         '''
@@ -265,13 +267,19 @@ class CkMinions(object):
         return {'minions': [m for m in self._pki_minions() if reg.match(m)],
                 'missing': []}
 
+    def _all_minions(self, expr=None):
+        '''
+        Return a list of all minions that have auth'd
+        '''
+        return {'minions': self._pki_minions(), 'missing': []}
+
     def _pki_minions(self):
         '''
-        Retreive complete minion list from PKI dir.
+        Retrieve complete minion list from PKI dir.
         Respects cache if configured
         '''
         # we include self.opts['id'] here as a special case to pick up the masterminion _master id
-        minions = [self.opts['id']]
+        minions = []
         pki_cache_fn = os.path.join(self.opts['pki_dir'], self.acc, '.key_cache')
         try:
             os.makedirs(os.path.dirname(pki_cache_fn))
@@ -307,19 +315,17 @@ class CkMinions(object):
                              exact_match=False):
         '''
         Helper function to search for minions in master caches
-        If 'greedy' return accepted minions that matched by the condition or absend in the cache.
+        If 'greedy' return accepted minions that matched by the condition or absent in the cache.
         If not 'greedy' return the only minions have cache data and matched by the condition.
         '''
         cache_enabled = self.opts.get('minion_data_cache', False)
 
         def list_cached_minions():
-            return self.cache.list('minions')
+            # we use grains as a equivalent for minion list
+            return self.cache.list('grains')
 
         if greedy:
-            minions = []
-            for fn_ in salt.utils.data.sorted_ignorecase(os.listdir(os.path.join(self.opts['pki_dir'], self.acc))):
-                if not fn_.startswith('.') and os.path.isfile(os.path.join(self.opts['pki_dir'], self.acc, fn_)):
-                    minions.append(fn_)
+            minions = self._pki_minions()
         elif cache_enabled:
             minions = list_cached_minions()
         else:
@@ -331,20 +337,21 @@ class CkMinions(object):
                 cminions = list_cached_minions()
             else:
                 cminions = minions
+
             if not cminions:
                 return {'minions': minions,
                         'missing': []}
             minions = set(minions)
             for id_ in cminions:
+
                 if greedy and id_ not in minions:
                     continue
-                mdata = self.cache.fetch('minions/{0}'.format(id_), 'data')
+                mdata = self.cache.fetch(search_type, id_)
                 if mdata is None:
                     if not greedy:
                         minions.remove(id_)
                     continue
-                search_results = mdata.get(search_type)
-                if not salt.utils.data.subdict_match(search_results,
+                if not salt.utils.data.subdict_match(mdata,
                                                      expr,
                                                      delimiter=delimiter,
                                                      regex_match=regex_match,
@@ -405,14 +412,14 @@ class CkMinions(object):
         if greedy:
             minions = self._pki_minions()
         elif cache_enabled:
-            minions = self.cache.list('minions')
+            minions = self.cache.list('grains')
         else:
             return {'minions': [],
                     'missing': []}
 
         if cache_enabled:
             if greedy:
-                cminions = self.cache.list('minions')
+                cminions = self.cache.list('grains')
             else:
                 cminions = minions
             if cminions is None:
@@ -435,12 +442,11 @@ class CkMinions(object):
 
             minions = set(minions)
             for id_ in cminions:
-                mdata = self.cache.fetch('minions/{0}'.format(id_), 'data')
-                if mdata is None:
+                grains = self.cache.fetch('grains', id_)
+                if grains is None:
                     if not greedy:
                         minions.remove(id_)
                     continue
-                grains = mdata.get('grains')
                 if grains is None or proto not in grains:
                     match = False
                 elif isinstance(tgt, (ipaddress.IPv4Address, ipaddress.IPv6Address)):
@@ -473,14 +479,9 @@ class CkMinions(object):
             )
             cache_enabled = self.opts.get('minion_data_cache', False)
             if greedy:
-                mlist = []
-                for fn_ in salt.utils.data.sorted_ignorecase(os.listdir(os.path.join(self.opts['pki_dir'], self.acc))):
-                    if not fn_.startswith('.') and os.path.isfile(os.path.join(self.opts['pki_dir'], self.acc, fn_)):
-                        mlist.append(fn_)
-                return {'minions': mlist,
-                        'missing': []}
+                return self._all_minions()
             elif cache_enabled:
-                return {'minions': self.cache.list('minions'),
+                return {'minions': self.cache.list('grains'),
                         'missing': []}
             else:
                 return {'minions': [],
@@ -655,7 +656,7 @@ class CkMinions(object):
         '''
         minions = set()
         if self.opts.get('minion_data_cache', False):
-            search = self.cache.list('minions')
+            search = self.cache.list('grains')
             if search is None:
                 return minions
             addrs = salt.utils.network.local_port_tcp(int(self.opts['publish_port']))
@@ -667,16 +668,15 @@ class CkMinions(object):
                 search = subset
             for id_ in search:
                 try:
-                    mdata = self.cache.fetch('minions/{0}'.format(id_), 'data')
+                    grains = self.cache.fetch('grains', id_)
                 except SaltCacheError:
                     # If a SaltCacheError is explicitly raised during the fetch operation,
                     # permission was denied to open the cached data.p file. Continue on as
                     # in the releases <= 2016.3. (An explicit error raise was added in PR
                     # #35388. See issue #36867 for more information.
                     continue
-                if mdata is None:
+                if grains is None:
                     continue
-                grains = mdata.get('grains', {})
                 for ipv4 in grains.get('ipv4', []):
                     if ipv4 == '127.0.0.1' and not include_localhost:
                         continue
@@ -689,16 +689,6 @@ class CkMinions(object):
                             minions.add(id_)
                         break
         return minions
-
-    def _all_minions(self, expr=None):
-        '''
-        Return a list of all minions that have auth'd
-        '''
-        mlist = []
-        for fn_ in salt.utils.data.sorted_ignorecase(os.listdir(os.path.join(self.opts['pki_dir'], self.acc))):
-            if not fn_.startswith('.') and os.path.isfile(os.path.join(self.opts['pki_dir'], self.acc, fn_)):
-                mlist.append(fn_)
-        return {'minions': mlist, 'missing': []}
 
     def check_minions(self,
                       expr,
@@ -1002,7 +992,6 @@ class CkMinions(object):
                             continue
                         valid = next(six.iterkeys(ind))
                         # Check if minions are allowed
-                        log.debug('validate_tgt valid: %s tgt: %s tgt_type: %s minions: %s', valid, tgt, tgt_type, minions)
                         if self.validate_tgt(
                             valid,
                             tgt,
@@ -1220,3 +1209,173 @@ class RemoteCkMinions(CkMinions):
         return {'minions': minions,
                 'missing': []}
 
+
+class PgJsonbCkMinions(CkMinions):
+    '''
+    A jsonb optimized subclass of CkMinions to leverage postgres speed.
+    '''
+    def __init__(self, opts):
+        super(PgJsonbCkMinions, self).__init__(opts)
+
+    def _check_cache_minions(self,
+                             expr,
+                             delimiter,
+                             greedy,
+                             search_type,
+                             regex_match=False,
+                             exact_match=False):
+        '''
+        Helper function to search for minions in master caches
+        If 'greedy' return accepted minions that matched by the condition or absend in the cache.
+        If not 'greedy' return the only minions have cache data and matched by the condition.
+        '''
+        # we can convert the first N non-glob/non-regex tokens into a set of contains queries
+        # if a glob or regex exists its simpler to fetch the data first then use subdict_match
+        # rather than deconstruct and re-implement inside pg. This could have a pathological worst
+        # case but generally I expect 99% of queries to be exact match foo:bar:baz queries.
+        # we have to generate many contains for a given set of tokens because subdict_match
+        # looks into arrays
+        # something more intelligent will probably be possible in pg12 but thats not on the table
+        # at the moment
+        def _gen_query(tokens=None, fetch_value=False):
+            from psycopg2 import sql
+            from psycopg2.extras import Json
+
+            assert isinstance(tokens, list) and len(tokens) >= 1
+
+            # contains
+            fragments = _recurse_contains(tokens=tokens)
+
+            if fetch_value:
+                columns = sql.SQL(', ').join([sql.Identifier('key'),sql.Identifier('data')])
+            else:
+                columns = sql.Identifier('key')
+
+            # we use pg_hint_plan to force BitMapScan, as a seq scan takes
+            # about 5-10seconds on prod 50gb dataset, and due to lack of
+            # statistics pg isn't always smart enough to know this is going to
+            # be immensely faster
+            query = sql.SQL('/*+ BitmapScan(cache idx_cache_data) */ '
+                          'SELECT {0} FROM {1} WHERE {2} @> '
+                          'ANY(ARRAY[' + (','.join(['%s'] * len(fragments))) + ']::jsonb[])').format(
+                              columns,
+                              sql.Identifier('cache'),
+                              sql.Identifier('data'),
+                          )
+
+            # path check, contains cant test for presence of a key
+            return (query, [Json(fragment) for fragment in fragments])
+
+        # the basic idea here is to generate every contains @> operand we can to approximate
+        # salt.utils.data.subdict_match exact_match behavior, which matches foo:bar
+        # to {foo: bar}, {foo: {bar: true}}, { foo: [{bar: true]}, etc.
+        # the only case that isnt back-compatible is {foo:{bar:$something}}, as ? operator
+        # in pg cannot leverage the gin index at present day so is too slow to run.
+        def _recurse_contains(lhs=None, tokens=None):
+            fragments = []
+
+            if not tokens:
+                return fragments
+
+            tokens = tokens[:]
+
+            if not lhs and len(tokens) == 1:
+                rhs = tokens[0]
+                fragments.append({rhs: True})
+                fragments.append({rhs: {}})
+            elif len(tokens) == 2:
+                lhs = tokens.pop(0)
+                rhs = tokens.pop(0)
+                fragments.append({lhs: rhs})
+                fragments.append({lhs: {rhs: True}})
+                fragments.append({lhs: {rhs: {}}})
+
+                fragments.append({lhs: [rhs] })
+                fragments.append({lhs: [{rhs: True}]})
+                fragments.append({lhs: [{rhs: {}}]})
+            else:
+                lhs = tokens.pop(0)
+                for fragment in _recurse_contains(lhs=lhs, tokens=tokens):
+                    fragments.append({lhs: fragment})
+                    fragments.append({lhs: [fragment]})
+
+            return fragments
+
+        # if its an exact match with no globs, we can just use a rough equivalent
+        # jsonb query and let posgres do the work. if its a regex or glob we
+        # do the work in python instead because pg isn't smart enough
+        raw_tokens = expr.split(delimiter)
+        exact_tokens = []
+        while len(raw_tokens):
+            token = raw_tokens.pop(0)
+            if regex_match and re.escape(token) != token:
+                break
+            if not exact_match and '*' in token:
+                break
+            exact_tokens.append(token)
+
+        if not exact_tokens:
+            log.error('Someone is running a query across the full cache, this is going to be very slow: expr %s, search_type: %s', expr, search_type)
+            raise CommandExecutionError('Too computationally expensive to compute this cache minion check')
+
+        sql, bind = _gen_query(tokens=exact_tokens, fetch_value=len(raw_tokens) > 0)
+        results = self.cache.query(sql, bind)
+
+        pki_minions     = set(self._pki_minions())
+        cache_minions   = set(self.cache.list(search_type))
+        not_in_cache    = pki_minions - cache_minions
+        unknown_minions = cache_minions - pki_minions
+        cache_hits      = set([tup[0] for tup in results])
+
+        # if raw tokens are left over, it means some were glob/regex, so we
+        # do a second pass with subdict_match
+        if raw_tokens:
+            for (id_, mdata) in results:
+                if not salt.utils.data.subdict_match(mdata,
+                                                     expr,
+                                                     delimiter=delimiter,
+                                                     regex_match=regex_match,
+                                                     exact_match=exact_match):
+                    cache_hits.remove(id_)
+
+        if greedy:
+            # minions absent from the cache union results, minus minions unknown to master
+            return {'minions': list((not_in_cache | cache_hits) - unknown_minions),
+                    'missing': []}
+        else:
+            # cache hits that are also in pki list
+            return {'minions': list(pki_minions & cache_hits),
+                    'missing': []}
+
+    def connected_ids(self, subset=None, show_ipv4=False, include_localhost=False):
+        '''
+        Return a set of all connected minion ids, optionally within a subset
+        '''
+        minions = set()
+
+        all_ipv4 = self.cache.query('SELECT key, ipv4 FROM cache_grains_ipv4_view')
+
+        if all_ipv4 is None:
+            return minions
+
+        addrs = salt.utils.network.local_port_tcp(int(self.opts['publish_port']))
+        if '127.0.0.1' in addrs:
+            # Add in the address of a possible locally-connected minion.
+            addrs.discard('127.0.0.1')
+            addrs.update(set(salt.utils.network.ip_addrs(include_loopback=include_localhost)))
+
+        for id_, ipv4_addrs in all_ipv4:
+            if subset and id_ not in subset:
+                continue
+            for ipv4 in ipv4_addrs:
+                if ipv4 == '127.0.0.1' and not include_localhost:
+                    continue
+                if ipv4 == '0.0.0.0':
+                    continue
+                if ipv4 in addrs:
+                    if show_ipv4:
+                        minions.add((id_, ipv4))
+                    else:
+                        minions.add(id_)
+                    break
+        return minions

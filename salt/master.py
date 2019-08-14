@@ -187,7 +187,7 @@ class Maintenance(salt.utils.process.SignalHandlingMultiprocessingProcess):
         self.schedule = salt.utils.schedule.Schedule(self.opts,
                                                      runner_client.functions_dict(),
                                                      returners=self.returners)
-        self.ckminions = salt.utils.minions.CkMinions(self.opts)
+        self.ckminions = salt.utils.minions.CkMinions.factory(self.opts)
         # Make Event bus for firing
         self.event = salt.utils.event.get_master_event(self.opts, self.opts['sock_dir'], listen=False)
         # Init any values needed by the git ext pillar
@@ -1157,7 +1157,7 @@ class AESFuncs(object):
         self.opts = opts
         self.event = salt.utils.event.get_master_event(self.opts, self.opts['sock_dir'], listen=False)
         self.serial = salt.payload.Serial(opts)
-        self.ckminions = salt.utils.minions.CkMinions(opts)
+        self.ckminions = salt.utils.minions.CkMinions.factory(opts)
         # Make a client
         self.local = salt.client.get_local_client(self.opts['conf_file'])
         # Create the master minion to access the external job cache
@@ -1562,10 +1562,8 @@ class AESFuncs(object):
         data = pillar.compile_pillar()
         self.fs_.update_opts()
         if self.opts.get('minion_data_cache', False):
-            self.masterapi.cache.store('minions/{0}'.format(load['id']),
-                                       'data',
-                                       {'grains': load['grains'],
-                                        'pillar': data})
+            self.masterapi.cache.store('grains', load['id'], load['grains'])
+            self.masterapi.cache.store('pillar', load['id'], data)
             if self.opts.get('minion_data_cache_events') is True:
                 self.event.fire_event({'Minion data cache refresh': load['id']}, tagify(load['id'], 'refresh', 'minion'))
         return data
@@ -1898,7 +1896,7 @@ class ClearFuncs(object):
         # Make a client
         self.local = salt.client.get_local_client(self.opts['conf_file'])
         # Make an minion checker object
-        self.ckminions = salt.utils.minions.CkMinions(opts)
+        self.ckminions = salt.utils.minions.CkMinions.factory(opts)
         # Make an Auth object
         self.loadauth = salt.auth.LoadAuth(opts)
         # Stand up the master Minion to access returner data

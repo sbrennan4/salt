@@ -211,7 +211,8 @@ class PersistentFailureCursor(psycopg2.extensions.cursor):
             raise salt.exceptions.SaltMasterError('PersistentFailureCursor instantiated but no config found')
 
         if PersistentFailureCursor.queue is None:
-            PersistentFailureCursor.queue = persistqueue.SQLiteAckQueue(**_options['persistqueue'])
+            pq_options = _options['persistqueue']
+            PersistentFailureCursor.queue = persistqueue.SQLiteAckQueue(**pq_options)
 
         # when we are returning a stub for an already failed connection we dont want
         # to call parent init as the connection is already dead/database down

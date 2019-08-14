@@ -449,7 +449,7 @@ class RemoteFuncs(object):
                 opts=self.opts,
                 listen=False)
         self.serial = salt.payload.Serial(opts)
-        self.ckminions = salt.utils.minions.CkMinions(opts)
+        self.ckminions = salt.utils.minions.CkMinions.factory(opts)
         # Create the tops dict for loading external top data
         self.tops = salt.loader.tops(self.opts)
         # Make a client
@@ -612,7 +612,7 @@ class RemoteFuncs(object):
             match_type = 'pillar_exact'
         if match_type.lower() == 'compound':
             match_type = 'compound_pillar_exact'
-        checker = salt.utils.minions.CkMinions(self.opts)
+        checker = salt.utils.minions.CkMinions.factory(self.opts)
         _res = checker.check_minions(
                 load['tgt'],
                 match_type,
@@ -620,7 +620,7 @@ class RemoteFuncs(object):
                 )
         minions = _res['minions']
         for minion in minions:
-            fdata = self.cache.fetch('minions/{0}'.format(minion), 'mine')
+            fdata = self.cache.fetch('mine', minion)
             if isinstance(fdata, dict):
                 fdata = fdata.get(load['fun'])
                 if fdata:
@@ -635,8 +635,8 @@ class RemoteFuncs(object):
             if 'id' not in load or 'data' not in load:
                 return False
         if self.opts.get('minion_data_cache', False) or self.opts.get('enforce_mine_cache', False):
-            cbank = 'minions/{0}'.format(load['id'])
-            ckey = 'mine'
+            cbank = 'mine'
+            ckey = load['id']
             if not load.get('clear', False):
                 data = self.cache.fetch(cbank, ckey)
                 if isinstance(data, dict):
@@ -652,8 +652,8 @@ class RemoteFuncs(object):
         if 'id' not in load or 'fun' not in load:
             return False
         if self.opts.get('minion_data_cache', False) or self.opts.get('enforce_mine_cache', False):
-            cbank = 'minions/{0}'.format(load['id'])
-            ckey = 'mine'
+            cbank = 'mine'
+            ckey = load['id']
             try:
                 data = self.cache.fetch(cbank, ckey)
                 if not isinstance(data, dict):
@@ -672,7 +672,7 @@ class RemoteFuncs(object):
         if not skip_verify and 'id' not in load:
             return False
         if self.opts.get('minion_data_cache', False) or self.opts.get('enforce_mine_cache', False):
-            return self.cache.flush('minions/{0}'.format(load['id']), 'mine')
+            return self.cache.flush('mine', load['id'])
         return True
 
     def _file_recv(self, load):
@@ -747,9 +747,8 @@ class RemoteFuncs(object):
                 pillar_override=load.get('pillar_override', {}))
         data = pillar.compile_pillar()
         if self.opts.get('minion_data_cache', False):
-            self.cache.store('minions/{0}'.format(load['id']),
-                             'data',
-                             {'grains': load['grains'], 'pillar': data})
+            self.cache.store('pillar', load['id'], data)
+            self.cache.store('grians', load['id'], load['grains'])
             if self.opts.get('minion_data_cache_events') is True:
                 self.event.fire_event({'comment': 'Minion data cache refresh'}, salt.utils.event.tagify(load['id'], 'refresh', 'minion'))
         return data
@@ -1045,7 +1044,7 @@ class LocalFuncs(object):
     # _auth
     def __init__(self, opts, key):
         self.opts = opts
-        self.serial = salt.payload.Serial(opts)
+        self.serial = salt.payload.Serial(self.opts)
         self.key = key
         # Create the event manager
         self.event = salt.utils.event.get_event(
@@ -1057,16 +1056,16 @@ class LocalFuncs(object):
         # Make a client
         self.local = salt.client.get_local_client(mopts=self.opts)
         # Make an minion checker object
-        self.ckminions = salt.utils.minions.CkMinions(opts)
+        self.ckminions = salt.utils.minions.CkMinions.factory(self.opts)
         # Make an Auth object
-        self.loadauth = salt.auth.LoadAuth(opts)
+        self.loadauth = salt.auth.LoadAuth(self.opts)
         # Stand up the master Minion to access returner data
         self.mminion = salt.minion.MasterMinion(
                 self.opts,
                 states=False,
                 rend=False)
         # Make a wheel object
-        self.wheel_ = salt.wheel.Wheel(opts)
+        self.wheel_ = salt.wheel.Wheel(self.opts)
 
     def runner(self, load):
         '''

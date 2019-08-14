@@ -103,7 +103,7 @@ class AESReqServerMixin(object):
         else:
             self.cache_cli = False
             # Make an minion checker object
-            self.ckminions = salt.utils.minions.CkMinions(self.opts)
+            self.ckminions = salt.utils.minions.CkMinions.factory(self.opts)
 
         self.master_key = salt.crypt.MasterKeys(self.opts)
 

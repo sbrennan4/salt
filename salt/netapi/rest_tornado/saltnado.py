@@ -438,7 +438,7 @@ class BaseSaltAPIHandler(tornado.web.RequestHandler):  # pylint: disable=W0223
                 }
 
         if not hasattr(self, 'ckminions'):
-            self.ckminions = salt.utils.minions.CkMinions(self.application.opts)
+            self.ckminions = salt.utils.minions.CkMinions.factory(self.application.opts)
 
     @property
     def token(self):

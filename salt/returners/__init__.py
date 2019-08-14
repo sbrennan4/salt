@@ -182,7 +182,7 @@ def _options_browser(cfg, ret_config, defaults, virtualname, options):
         # Attribute not found, check for a default value
         if defaults:
             if option in defaults:
-                log.debug('Using default for %s %s', virtualname, option)
+                log.trace('Using default for %s %s', virtualname, option)
                 yield option, defaults[option]
                 continue
 

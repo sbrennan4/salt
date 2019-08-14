@@ -2,7 +2,6 @@
 '''
 All salt configuration loading and defaults should be in this module
 '''
-
 # Import python libs
 from __future__ import absolute_import, print_function, unicode_literals, generators
 import os
@@ -14,6 +13,8 @@ import codecs
 import logging
 import types
 from copy import deepcopy
+
+import pprint;
 
 # pylint: disable=import-error,no-name-in-module
 from salt.ext import six
@@ -2445,7 +2446,11 @@ def minion_config(path,
                                minion_id=minion_id)
     opts['__role'] = role
     apply_sdb(opts)
-    _validate_opts(opts)
+
+    if not _validate_opts(opts):
+        log.critical('configuration type errors detected, exiting.')
+        sys.exit(1)
+
     return opts
 
 
@@ -2497,7 +2502,11 @@ def proxy_config(path,
                                cache_minion_id=cache_minion_id,
                                minion_id=minion_id)
     apply_sdb(opts)
-    _validate_opts(opts)
+
+    if not _validate_opts(opts):
+        log.critical('configuration type errors detected, exiting.')
+        sys.exit(1)
+
     return opts
 
 
@@ -3908,7 +3917,11 @@ def master_config(path, env_var='SALT_MASTER_CONFIG', defaults=None, exit_on_con
                      exit_on_config_errors=exit_on_config_errors))
     opts = apply_master_config(overrides, defaults)
     _validate_ssh_minion_opts(opts)
-    _validate_opts(opts)
+
+    if not _validate_opts(opts):
+        log.critical('configuration type errors detected, exiting.')
+        sys.exit(1)
+
     # If 'nodegroups:' is uncommented in the master config file, and there are
     # no nodegroups defined, opts['nodegroups'] will be None. Fix this by
     # reverting this value to the default, as if 'nodegroups:' was commented
@@ -4161,7 +4174,10 @@ def client_config(path, env_var='SALT_CLIENT_CONFIG', defaults=None):
         )
 
     # Return the client options
-    _validate_opts(opts)
+    if not _validate_opts(opts):
+        log.critical('configuration type errors detected, exiting.')
+        sys.exit(1)
+
     return opts
 
 

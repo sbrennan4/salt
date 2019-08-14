@@ -92,7 +92,7 @@ class SaltRaetMaintSetup(ioflo.base.deeding.Deed):
         '''
         self.fileserver.value = salt.fileserver.Fileserver(self.opts.value)
         self.runners.value = salt.loader.runner(self.opts.value)
-        self.ckminions.value = salt.utils.minions.CkMinions(self.opts.value)
+        self.ckminions.value = salt.utils.minions.CkMinions.factory(self.opts.value)
         self.pillargitfs.value = salt.daemons.masterapi.init_git_pillar(
                 self.opts.value)
 

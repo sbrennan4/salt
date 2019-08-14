@@ -1362,7 +1362,7 @@ class TCPPubServerChannel(salt.transport.server.PubServerChannel):
     def __init__(self, opts):
         self.opts = opts
         self.serial = salt.payload.Serial(self.opts)  # TODO: in init?
-        self.ckminions = salt.utils.minions.CkMinions(opts)
+        self.ckminions = salt.utils.minions.CkMinions.factory(opts)
         self.io_loop = None
 
     def __setstate__(self, state):
