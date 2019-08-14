@@ -279,7 +279,7 @@ class CkMinions(object):
         Respects cache if configured
         '''
         # we include self.opts['id'] here as a special case to pick up the masterminion _master id
-        minions = [self.opts['id']]
+        minions = []
         pki_cache_fn = os.path.join(self.opts['pki_dir'], self.acc, '.key_cache')
         try:
             os.makedirs(os.path.dirname(pki_cache_fn))
