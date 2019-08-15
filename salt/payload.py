@@ -16,7 +16,8 @@ import datetime
 import salt.log
 import salt.crypt
 import salt.transport.frame
-import salt.utils.msgpack as msgpack
+import msgpack
+import salt.utils.msgpack
 import salt.utils.immutabletypes as immutabletypes
 import salt.utils.stringutils
 from salt.exceptions import SaltReqTimeoutError
