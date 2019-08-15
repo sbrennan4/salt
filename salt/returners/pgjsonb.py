@@ -180,7 +180,6 @@ try:
     import psycopg2.extras
     import psycopg2.extensions
     import persistqueue
-    import persistqueue.serializers.json
     HAS_PG = True
 except ImportError:
     HAS_PG = False
@@ -202,7 +201,7 @@ class PersistentFailureConn():
 
 
 class PersistentFailureCursor(psycopg2.extensions.cursor):
-    queue = None
+    queue_options = None
 
     def __init__(self, *args, **kwargs):
         # initialize the queue singleton if necessary
@@ -210,9 +209,8 @@ class PersistentFailureCursor(psycopg2.extensions.cursor):
         if not _options.get('persistqueue'):
             raise salt.exceptions.SaltMasterError('PersistentFailureCursor instantiated but no config found')
 
-        if PersistentFailureCursor.queue is None:
-            pq_options = _options['persistqueue']
-            PersistentFailureCursor.queue = persistqueue.SQLiteAckQueue(**pq_options)
+        if PersistentFailureCursor.queue_options is None:
+            PersistentFailureCursor.queue_options = _options['persistqueue']
 
         # when we are returning a stub for an already failed connection we dont want
         # to call parent init as the connection is already dead/database down
@@ -225,7 +223,8 @@ class PersistentFailureCursor(psycopg2.extensions.cursor):
         except (psycopg2.OperationalError, psycopg2.InterfaceError) as exc:
             if re.match('^INSERT|UPDATE', sql, re.I):
                 log.info("PersistentFailureCursor: caught psycopg2.OperationalError/psycopg2.InterfaceError on INSERT, saving for later re-attempt")
-                PersistentFailureCursor.queue.put((sql, args))
+                queue = persistqueue.SQLiteAckQueue(**self.queue_options)
+                queue.put((sql, args))
             elif re.match('^ROLLBACK|COMMIT', sql, re.I):
                 pass
             else:
@@ -234,15 +233,17 @@ class PersistentFailureCursor(psycopg2.extensions.cursor):
             # no exception, meaning the database is healthy again
             while True:
                 try:
+                    queue = persistqueue.SQLiteAckQueue(**self.queue_options)
                     try:
-                        delayed = PersistentFailureCursor.queue.get(block=False)
+                        delayed = queue.get(block=False)
                         psycopg2.extensions.cursor.execute(self, *delayed)
-                        PersistentFailureCursor.queue.ack(delayed)
+                        queue.ack(delayed)
                     except psycopg2.OperationalError as exc:
                         log.error("PersistentFailureCursor: caught psycopg2.OperationalError on re-attempt, nacking for future retry. giving up")
-                        PersistentFailureCursor.queue.nack(delayed)
+                        queue.nack(delayed)
                         break
                 except persistqueue.exceptions.Empty:
+                    queue.clear_acked_data()
                     break
 
 
