@@ -135,9 +135,7 @@ def _check_pkg_version_format(pkg):
             # vcs+URL urls are not properly parsed.
             # The next line is meant to trigger an AttributeError and
             # handle lower pip versions
-            logger.debug(
-                'Installed pip version: {0}'.format(pip.__version__)
-            )
+            log.debug('Installed pip version: %s', pip.__version__)
             install_req = _from_line(pkg)
         except AttributeError:
             log.debug('Installed pip version is lower than 1.2')
