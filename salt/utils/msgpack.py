@@ -60,6 +60,8 @@ if HAS_MSGPACK and not hasattr(msgpack, 'exceptions'):
         UnpackValueError = UnpackValueError()
 
     msgpack.exceptions = exceptions()
+else:
+    exceptions = msgpack.exceptions
 
 # Import Salt libs
 from salt.utils.thread_local_proxy import ThreadLocalProxy
