@@ -53,7 +53,7 @@ import salt.utils.json
 from salt.ext import six
 from boltons.setutils import IndexedSet
 
-__version__ = "0.0.1"
+__version__ = '0.0.1'
 
 try:
     import hostinfo
@@ -98,23 +98,7 @@ if HAS_HOSTINFO:
                 raise HostLookupFailure
 
     # we want to attempt a sor lookup if a node is missing from flat files
-    setattr(hostinfo, "__cache", SorFallbackCache())
-
-
-# TODO import from salt-evap-pond
-def Config():
-    return {
-        "tenancies": [
-            {"environment": "base", "global": True},
-            "saltproxy",
-            "salt-core",
-            "fix",
-            "bas",
-            {"environment": "salt-inf", "group": "foobar"},
-            {"environment": "lifecycle", "group": "lifecycle", "global": True},
-        ],
-        "base_path": "/Users/nsmith269/dev/salt-util-scripts/srv/",
-    }
+    setattr(hostinfo, '__cache', SorFallbackCache())
 
 
 def tenancy_groups_set():
@@ -122,9 +106,9 @@ def tenancy_groups_set():
 
     # assume config is a sane schema
     # scalar = tag, dict = 'tag' key is tag
-    for tenancy in Config()["tenancies"]:
+    for tenancy in __opts__['evaporator']['tenancies']:
         if isinstance(tenancy, dict):
-            groups.add(tenancy["environment"])
+            groups.add(tenancy['environment'])
         else:
             groups.add(tenancy)
 
@@ -136,26 +120,26 @@ def global_tenancy_groups_set():
 
     # assume config is a sane schema
     # scalar = tag, dict = 'tag' key is tag
-    for tenancy in Config()["tenancies"]:
-        if isinstance(tenancy, dict) and tenancy.get("global"):
-            groups.add(tenancy["environment"])
+    for tenancy in __opts__['evaporator']['tenancies']:
+        if isinstance(tenancy, dict) and tenancy.get('global'):
+            groups.add(tenancy['environment'])
 
     return groups
 
 
 # first try node-id if it exists in grains, then try the minion_id
 def resolve_node(minion_id):
-    if __grains__.get("bb", {}).get("node-id"):
+    if __grains__.get('bb', {}).get('node-id'):
         try:
-            return hostinfo.host(__grains__["bb"]["node-id"])
+            return hostinfo.host(__grains__['bb']['node-id'])
         except hostinfo.HostLookupError:
-            log.debug("%s minion not found via node-id.", minion_id)
+            log.debug('%s minion not found via node-id.', minion_id)
 
     # if an exception was caught lets try with minion_id
     try:
         return hostinfo.host(minion_id)
     except hostinfo.HostLookupError:
-        log.debug("%s minion not found via node-id.", minion_id)
+        log.debug('%s minion not found via node-id.', minion_id)
 
     # if we've gotten this far its an unknown node
     return None
