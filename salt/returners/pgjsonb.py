@@ -179,7 +179,7 @@ try:
     import psycopg2
     import psycopg2.extras
     import psycopg2.extensions
-    logging.getLogger('persistqueue.common').propagate = 0
+    logging.getLogger('persistqueue.common').setLevel(logging.ERROR)
     import persistqueue
     HAS_PG = True
 except ImportError:
