@@ -1,24 +1,9 @@
-Jinja2
-# This should be changed to msgpack-python for Packages
-# msgpack-python>0.3,!=0.5.5
-msgpack>=0.5,!=0.5.5
-PyYAML
-MarkupSafe
-requests>=1.0.0
-tornado>=4.2.1,<6.0; python_version < '3'
-tornado>=4.2.1,<5.0; python_version >= '3.4'
-
-# Required by Tornado to handle threads stuff.
-futures>=2.0; python_version < '3.0'
-
-# blp internal
+Jinja2==2.10
+msgpack==0.6.1
+MarkupSafe==1.1.1
+PyYAML==5.1.2
+requests==2.21.0
+tornado==4.5.3
+psutil==5.6.1
 boltons==19.1.0
-setproctitle
-python-ldap
-persist-queue
-bloomberg.dcsi.redfish
-bloomberg.guts.api
-bloomberg.hostinfo
-psycopg2
-psycopg2-binary
-pyOpenSSL
+jmespath
