@@ -79,7 +79,11 @@ from __future__ import absolute_import, print_function, unicode_literals
 # Import python libs
 import logging
 import os
-import pkg_resources
+
+try:
+    import pkg_resources
+except ImportError:
+    pkg_resources = None
 import re
 import shutil
 import sys
@@ -116,7 +120,12 @@ def __virtual__():
     entire filesystem.  If it's not installed in a conventional location, the
     user is required to provide the location of pip each time it is used.
     '''
-    return 'pip'
+    if pkg_resources is None:
+        ret = False, 'Package dependency "pkg_resource" is missing'
+    else:
+        ret = 'pip'
+
+    return ret
 
 
 def _clear_context(bin_env=None):
@@ -303,7 +312,7 @@ def _process_requirements(requirements, cmd, cwd, saltenv, user):
                 # In Windows, just being owner of a file isn't enough. You also
                 # need permissions
                 if salt.utils.platform.is_windows():
-                    __utils__['win_dacl.set_permissions'](
+                    __utils__['dacl.set_permissions'](
                         obj_name=treq,
                         principal=user,
                         permissions='read_execute')
@@ -433,8 +442,10 @@ def install(pkgs=None,  # pylint: disable=R0912,R0913,R0914
             no_cache_dir=False,
             cache_dir=None,
             no_binary=None,
+            user_install=False,
+            extra_args=None,
             **kwargs):
-    '''
+    r'''
     Install packages with pip
 
     Install packages individually or from a pip requirements file. Install
@@ -604,6 +615,28 @@ def install(pkgs=None,  # pylint: disable=R0912,R0913,R0914
     no_cache_dir
         Disable the cache.
 
+    user_install
+        Enable install to occur inside the user base's (site.USER_BASE) binary directory,
+        typically ~/.local/, or %APPDATA%\Python on Windows
+
+    extra_args
+        pip keyword and positional arguments not yet implemented in salt
+
+        .. code-block:: yaml
+
+            salt '*' pip.install pandas extra_args="[{'--latest-pip-kwarg':'param'}, '--latest-pip-arg']"
+
+        .. warning::
+
+            If unsupported options are passed here that are not supported in a
+            minion's version of pip, a `No such option error` will be thrown.
+
+    Will be translated into the following pip command:
+
+    .. code-block:: bash
+
+        pip install pandas --latest-pip-kwarg param --latest-pip-arg
+
     CLI Example:
 
     .. code-block:: bash
@@ -619,12 +652,6 @@ def install(pkgs=None,  # pylint: disable=R0912,R0913,R0914
                 editable=git+https://github.com/worldcompany/djangoembed.git#egg=djangoembed upgrade=True no_deps=True
 
     '''
-    if 'no_chown' in kwargs:
-        salt.utils.versions.warn_until(
-            'Fluorine',
-            'The no_chown argument has been deprecated and is no longer used. '
-            'Its functionality was removed in Boron.')
-        kwargs.pop('no_chown')
     cmd = _get_pip_bin(bin_env)
     cmd.append('install')
 
@@ -779,6 +806,9 @@ def install(pkgs=None,  # pylint: disable=R0912,R0913,R0914
     if source:
         cmd.extend(['--source', source])
 
+    if user_install:
+        cmd.append('--user')
+
     if upgrade:
         cmd.append('--upgrade')
 
@@ -892,6 +922,24 @@ def install(pkgs=None,  # pylint: disable=R0912,R0913,R0914
 
     if trusted_host:
         cmd.extend(['--trusted-host', trusted_host])
+
+    if extra_args:
+        # These are arguments from the latest version of pip that
+        # have not yet been implemented in salt
+        for arg in extra_args:
+            # It is a keyword argument
+            if isinstance(arg, dict):
+                # There will only ever be one item in this dictionary
+                key, val = arg.popitem()
+                # Don't allow any recursion into keyword arg definitions
+                # Don't allow multiple definitions of a keyword
+                if isinstance(val, (dict, list)):
+                    raise TypeError("Too many levels in: {}".format(key))
+                # This is a a normal one-to-one keyword argument
+                cmd.extend([key, val])
+            # It is a positional argument, append it to the list
+            else:
+                cmd.append(arg)
 
     cmd_kwargs = dict(saltenv=saltenv, use_vt=use_vt, runas=user)
 
@@ -1051,8 +1099,9 @@ def freeze(bin_env=None,
            cwd=None,
            use_vt=False,
            env_vars=None,
+           user_install=False,
            **kwargs):
-    '''
+    r'''
     Return a list of installed packages either globally or in the specified
     virtualenv
 
@@ -1067,6 +1116,10 @@ def freeze(bin_env=None,
 
     cwd
         Directory from which to run pip
+
+    user_install
+        Enable output to show inside the user base's (site.USER_BASE) binary directory,
+        typically ~/.local/, or %APPDATA%\Python on Windows
 
     .. note::
         If the version of pip available is older than 8.0.3, the list will not
@@ -1094,6 +1147,9 @@ def freeze(bin_env=None,
     else:
         cmd.append('--all')
 
+    if user_install:
+        cmd.append('--user')
+
     cmd_kwargs = dict(runas=user, cwd=cwd, use_vt=use_vt, python_shell=False)
     if kwargs:
         cmd_kwargs.update(**kwargs)
@@ -1114,8 +1170,9 @@ def list_(prefix=None,
           user=None,
           cwd=None,
           env_vars=None,
+          user_install=False,
           **kwargs):
-    '''
+    r'''
     Filter list of installed apps from ``freeze`` and check to see if
     ``prefix`` exists in the list of packages installed.
 
@@ -1126,6 +1183,11 @@ def list_(prefix=None,
         this function even if they are installed. Unlike :py:func:`pip.freeze
         <salt.modules.pip.freeze>`, this function always reports the version of
         pip which is installed.
+
+
+    user_install
+        Enable output to show inside the user base's (site.USER_BASE) binary directory,
+        typically ~/.local/, or %APPDATA%\Python on Windows
 
     CLI Example:
 
@@ -1142,6 +1204,7 @@ def list_(prefix=None,
                        user=user,
                        cwd=cwd,
                        env_vars=env_vars,
+                       user_install=user_install,
                        **kwargs):
         if line.startswith('-f') or line.startswith('#'):
             # ignore -f line as it contains --find-links directory
@@ -1278,7 +1341,7 @@ def list_upgrades(bin_env=None,
             if match:
                 name, version_ = match.groups()
             else:
-                logger.error('Can\'t parse line \'{0}\''.format(line))
+                logger.error('Can\'t parse line \'%s\'', line)
                 continue
             packages[name] = version_
 
@@ -1429,7 +1492,9 @@ def list_all_versions(pkg,
                       include_beta=False,
                       include_rc=False,
                       user=None,
-                      cwd=None):
+                      cwd=None,
+                      index_url=None,
+                      extra_index_url=None):
     '''
     .. versionadded:: 2017.7.3
 
@@ -1459,6 +1524,14 @@ def list_all_versions(pkg,
     cwd
         Directory from which to run pip
 
+    index_url
+        Base URL of Python Package Index
+        .. versionadded:: 2019.2.0
+
+    extra_index_url
+        Additional URL of Python Package Index
+        .. versionadded:: 2019.2.0
+
     CLI Example:
 
     .. code-block:: bash
@@ -1467,6 +1540,20 @@ def list_all_versions(pkg,
     '''
     cmd = _get_pip_bin(bin_env)
     cmd.extend(['install', '{0}==versions'.format(pkg)])
+
+    if index_url:
+        if not salt.utils.url.validate(index_url, VALID_PROTOS):
+            raise CommandExecutionError(
+                '\'{0}\' is not a valid URL'.format(index_url)
+            )
+        cmd.extend(['--index-url', index_url])
+
+    if extra_index_url:
+        if not salt.utils.url.validate(extra_index_url, VALID_PROTOS):
+            raise CommandExecutionError(
+                '\'{0}\' is not a valid URL'.format(extra_index_url)
+            )
+        cmd.extend(['--extra-index-url', extra_index_url])
 
     cmd_kwargs = dict(cwd=cwd, runas=user, output_loglevel='quiet', redirect_stderr=True)
     if bin_env and os.path.isdir(bin_env):
