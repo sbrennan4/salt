@@ -121,6 +121,9 @@ class SaltCMD(salt.utils.parsers.SaltCMDOptionParser):
         if getattr(self.options, 'executor_opts'):
             kwargs['executor_opts'] = yamlify_arg(getattr(self.options, 'executor_opts'))
 
+        if getattr(self.options, 'eauth_opts'):
+            kwargs['eauth_opts'] = yamlify_arg(getattr(self.options, 'eauth_opts'))
+
         if getattr(self.options, 'metadata'):
             kwargs['metadata'] = yamlify_arg(
                     getattr(self.options, 'metadata'))

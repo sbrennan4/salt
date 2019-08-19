@@ -3,11 +3,11 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 import salt.utils.parsers
 import salt.utils.profile
+from salt.utils.args import yamlify_arg
 from salt.utils.verify import check_user, verify_log
 from salt.exceptions import SaltClientError
 from salt.ext import six
 import salt.defaults.exitcodes  # pylint: disable=W0611
-
 
 class SaltRun(salt.utils.parsers.SaltRunOptionParser):
     '''
@@ -25,6 +25,9 @@ class SaltRun(salt.utils.parsers.SaltRunOptionParser):
         self.setup_logfile_logger()
         verify_log(self.config)
         profiling_enabled = self.options.profiling_enabled
+
+        if hasattr(self.options, 'eauth_opts'):
+            self.config['eauth_opts'] = yamlify_arg(getattr(self.options, 'eauth_opts'))
 
         runner = salt.runner.Runner(self.config)
         if self.options.doc:

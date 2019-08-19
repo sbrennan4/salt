@@ -1754,6 +1754,13 @@ class EAuthMixIn(six.with_metaclass(MixInMeta, object)):
             nargs=1,
             help=('Password for external authentication.')
         )
+        group.add_option(
+            '--eauth-opts',
+            dest='eauth_opts',
+            default=None,
+            metavar='EAUTH_OPTS',
+            help=('Set alternate eauth options if supported by specified eauth backend.')
+        )
         self.add_option_group(group)
 
 
