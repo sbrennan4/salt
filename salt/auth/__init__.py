@@ -203,8 +203,9 @@ class LoadAuth(object):
         '''
         Run time_auth and create a token. Return False or the token
         '''
-        if not self.authenticate_eauth(load):
-            return {}
+        ret = self.check_authentication(load, 'eauth')
+        if ret.get('error'):
+            return ret
 
         if self._allow_custom_expire(load):
             token_expire = load.pop('token_expire', self.opts['token_expire'])
@@ -217,15 +218,20 @@ class LoadAuth(object):
                  'name': self.load_name(load),
                  'eauth': load['eauth']}
 
-        if self.opts['keep_acl_in_token']:
-            acl_ret = self.__get_acl(load)
-            tdata['auth_list'] = acl_ret
-
         groups = self.get_groups(load)
         if groups:
             tdata['groups'] = groups
 
-        return self.tokens["{0}.mk_token".format(self.opts['eauth_tokens'])](self.opts, tdata)
+        if self.opts['keep_acl_in_token']:
+            tdata['auth_list'] = ret['auth_list']
+
+        token = self.tokens["{0}.mk_token".format(self.opts['eauth_tokens'])](self.opts, tdata)
+
+        # when keep_acl_in_token is not enabled, we still want to return it
+        # to callers for ie saltnado/cherrypy to avoid reduplicating the work
+        token.setdefault('auth_list', ret['auth_list'])
+
+        return token
 
     def get_tok(self, tok):
         '''
