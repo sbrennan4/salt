@@ -41,7 +41,7 @@ _SkipBuild=$FALSE
 # Define general const
 NS=bloomberg.coreauto
 ADMIN_PY=/opt/python/3.7.3/bin/python3
-ROOT_PATH=`pwd`
+ROOT_PATH=(`pwd`/blp_build)
 ASSETS_PATH=${ROOT_PATH}/assets
 BUILD_PATH=${ROOT_PATH}/build
 BUILD_LOG=${BUILD_PATH}/build.log
@@ -164,7 +164,7 @@ function setup_build_env {
     # if build path is present, determine if we want to clean house
     # or keep it. Otherwise just create the build path
     echo 'inside setup_build_env func'
-    return
+    echo "build_path: $BUILD_PATH"
     if [[ -d $BUILD_PATH ]]; then
 
         if [[ "$_KeepBuildDir" -eq "$FALSE" ]]; then
