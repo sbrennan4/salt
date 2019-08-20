@@ -23,7 +23,6 @@ FALSE=0
 _LibName=salt
 _LibVer=2018.3.3
 _LibVerArr=(${_LibVer//./ })
-#_LibUrl=git@bbgithub.dev.bloomberg.com:saltstack/salt.git
 _LibUrl=@bbgithub.dev.bloomberg.com/saltstack/salt.git
 _LibBranch=v${_LibVer}-ca
 _LibTag=v${_LibVer}
@@ -41,7 +40,6 @@ _SkipBuild=$FALSE
 # Define general const
 NS=bloomberg.coreauto
 ADMIN_PY=/opt/python/3.7.3/bin/python3
-#ROOT_PATH=(`pwd`/blp_build)
 ROOT_PATH=`pwd`
 BUILD_PATH=${ROOT_PATH}/build
 ASSETS_PATH=${BUILD_PATH}/assets
@@ -51,8 +49,7 @@ RELEASE_URL=https://bbgithub.dev.bloomberg.com/api/v3/repos/saltstack/salt/relea
 
 # Define lib const
 LIB_NAME_VER=${_LibName}-${_LibVer}
-#LIB_PATH=${BUILD_PATH}/${LIB_NAME_VER}
-LIB_PATH=`pwd`
+LIB_PATH=${ROOT_PATH}
 LIB_DIST_PATH=${LIB_PATH}/dist
 LIB_PATCHES_PATH=${LIB_PATH}/patches
 
@@ -73,10 +70,7 @@ usage() {
         If multiple builds on the same date are necessary, just add the next
         available number such as '201904031'. (Default: '')
     -B  Specify a build branch from the salt repo (Default: $_LibBranch)
-    -k  Don't delete the build dir if its present. Useful if you are
-        debugging or testing the build and you don't want to keep recreating
-        the build dir. (Default: False)
-    -K  Don't delete the python virtual env. Useful if you don't want to
+    -k  Don't delete the python virtual env. Useful if you don't want to
         keep building a new virtual env every time. (Default: False)
     -p  Upload the wheel to the production pypi repo. (Default: False)
     -s  Skip build steps. Useful if you built the artifacts earlier and 
@@ -87,7 +81,7 @@ usage() {
 EOT
 }
 
-while getopts ':ha:b:B:kKpsuvt:' opt
+while getopts ':ha:b:B:kpsuvt:' opt
 do
   case "${opt}" in
     h ) usage; exit 0                               ;;
@@ -95,8 +89,7 @@ do
     b ) _PostBuildTag=$OPTARG                       ;;
     B ) _BuildBranch=$OPTARG                        ;;
     t ) _BbghToken=$OPTARG                          ;;
-    k ) _KeepBuildDir=$TRUE                         ;;
-    K ) _KeepVirtEnv=$TRUE                          ;;
+    k ) _KeepVirtEnv=$TRUE                          ;;
     p ) _Prod=$TRUE                                 ;;
     s ) _SkipBuild=$TRUE                            ;;
     u ) _Upload=$TRUE                               ;;
@@ -132,18 +125,14 @@ if  ($_AdminPythonLocation -V); then
     echo "able to run admin python"
 else
     echo "Unable to run admin python. Check that it's installed and permissioned properly"
-    echo "`ls -l $_AdminPythonLocation`"
-    echo "`groups`"
     exit 1
 fi
 
-#if [[ -z $_BbghToken && $_Upload == 1 ]]; then
-if [[ -z $_BbghToken ]]; then
+if [[ -z $_BbghToken && $_Upload == 1 ]]; then
     if [[ -z $BBGH_TOKEN ]]; then
-        echo "BBGH token is necessary to create a release. Please use -t or set BBGH_TOKEN"
+        echo "BBGH token is necessary to create a release. Please use -t or set BBGH_TOKEN_PSW"
         exit 1
     fi
-    #_BbghToken=$BBGH_TOKEN
     _BbghToken=$BBGH_TOKEN_PSW
 fi
 _TokenUrl="https://${_BbghToken}:$_LibUrl"
@@ -163,26 +152,6 @@ fi
 # --------------------------------------------------------
 
 function setup_build_env {
-    # if build path is present, determine if we want to clean house
-    # or keep it. Otherwise just create the build path
-    echo 'inside setup_build_env func'
-    echo "build_path: $BUILD_PATH"
-    if [[ -d $BUILD_PATH ]]; then
-
-        if [[ "$_KeepBuildDir" -eq "$FALSE" ]]; then
-            echo "Found old build dir... deleting"
-            rm -rf $BUILD_PATH
-            mkdir -p $BUILD_PATH
-        else
-            echo "KeepBuildDir enabled... skipping build dir removal"
-        fi
-
-    else
-        # build not present so create it
-        mkdir -p $BUILD_PATH
-    fi
-
-
     # if virtenv path is present, determine if we want to clean house
     # or keep it. Otherwise just create the virtenv path
     if [[ -d $VIRTENV_PATH ]]; then
@@ -204,23 +173,15 @@ function setup_build_env {
 
     # activate virtenv and install build deps
     . $VIRTENV_PATH/bin/activate
-    if [ $? -eq 0 ]; then
-        echo "venv activated successfully"
-    else
-        echo "unable to activate venv"
+    if [ $? -ne 0 ]; then
+        echo "Unable to activate venv"
         exit 1
     fi
-    #. $VIRTENV_PATH/bin/activate
-    which pip
-    echo "before"
-    pip list
     pip install --upgrade -r $ASSETS_PATH/requirements.txt
-    echo "after"
-    pip list
 }
 
 function pull_salt {
-    echo 'inside pull_salt func'
+    # no longer needed with single repo
     return
 
     cd $BUILD_PATH
@@ -261,7 +222,6 @@ function pull_salt {
 }
 
 function build_salt {
-    echo 'inside build func'
     cd $LIB_PATH
 
     # copy in our requirements files as we need to use specific libs
@@ -305,7 +265,6 @@ EOF
 }
 
 function publish_salt {
-    echo 'inside publish func'
 
     # This needs to align with aliases defined in
     # assets/pypirc
@@ -314,10 +273,8 @@ function publish_salt {
         _PypiEnv="prod"
     fi
     echo "Uploading ${_SrcFile} to ${_PypiEnv} pypi ..."
-    echo "srcpath: ${_SrcPath}"
-    #exit 1
 
-    TWINE_EDITED=$(echo $TWINE_PASSWORD_1_PSW | tr -d '\\')
+    TWINE_EDITED=$(echo $TWINE_PASSWORD_PSW | tr -d '\\')
     twine upload --config-file ${BUILD_PATH}/assets/pypirc -p $TWINE_EDITED -r $_PypiEnv $_SrcPath 2>&1 | tee -a ${BUILD_LOG}
 
     if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
@@ -380,7 +337,6 @@ fi
 # publish
 if [[ "$_Upload" -eq "$TRUE" ]]; then
     if [[ $_Prod -eq $TRUE ]];then
-        exit 1
         # Only create a release if publishing to prod
         create_release
     fi
@@ -389,13 +345,4 @@ else
     echo "Will not upload wheel to ${_PypiEnv} pypi. File is available at:"
     echo ${_SrcPath}
 fi
-echo "buildpath: ${BUILD_PATH}"
-echo "_srcfile: ${_SrcFile}"
-echo "_Srcpath: ${_SrcPath}"
-echo "_PostBuildTag: ${_PostBuildTag}"
-echo "lib_path: ${LIB_PATH}"
-ls -l ${LIB_PATH}
-echo "rootPath: ${ROOT_PATH}"
-echo "lib_dist_path: ${LIB_DIST_PATH}"
-ls -l ${LIB_DIST_PATH}
 exit 0
