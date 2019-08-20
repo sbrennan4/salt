@@ -1,0 +1,11 @@
+[distutils]
+index-servers = dev
+                prod
+
+[dev]
+repository = https://artprod.dev.bloomberg.com/artifactory/api/pypi/bloomberg-pypi-dev
+username = salt_jenkins
+
+[prod]
+repository = https://artprod.dev.bloomberg.com/artifactory/api/pypi/bloomberg-pypi-ose
+username = salt_jenkins

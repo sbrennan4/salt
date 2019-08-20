@@ -3,17 +3,20 @@ pipeline {
     environment {
         TEST_VAR1 = 'true'
         TEST_VAR2 = 'sqlite'
+        BBGH_TOKEN = credentials('bbgithub_token')
+        TWINE_PASSWORD_1 = credentials('salt_jenkins_ad_user_pass_escaped')
     }
     stages {
         stage('build') {
             steps {
                 sh 'echo ========================'
                 sh 'echo running Build Stage'
+                sh 'whoami'
                 sh 'python --version'
                 sh 'hostname'
                 sh 'pwd'
                 sh 'printenv'
-                sh 'echo ========================'
+                sh './blp_build/dev-build.sh -b 20190819003'
                 // sh 'curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python'
             }
         }
