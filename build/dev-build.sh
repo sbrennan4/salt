@@ -41,16 +41,18 @@ _SkipBuild=$FALSE
 # Define general const
 NS=bloomberg.coreauto
 ADMIN_PY=/opt/python/3.7.3/bin/python3
-ROOT_PATH=(`pwd`/blp_build)
-ASSETS_PATH=${ROOT_PATH}/assets
+#ROOT_PATH=(`pwd`/blp_build)
+ROOT_PATH=`pwd`
 BUILD_PATH=${ROOT_PATH}/build
+ASSETS_PATH=${BUILD_PATH}/assets
 BUILD_LOG=${BUILD_PATH}/build.log
-VIRTENV_PATH=${ROOT_PATH}/buildenv
+VIRTENV_PATH=${BUILD_PATH}/buildenv
 RELEASE_URL=https://bbgithub.dev.bloomberg.com/api/v3/repos/saltstack/salt/releases
 
 # Define lib const
 LIB_NAME_VER=${_LibName}-${_LibVer}
-LIB_PATH=${BUILD_PATH}/${LIB_NAME_VER}
+#LIB_PATH=${BUILD_PATH}/${LIB_NAME_VER}
+LIB_PATH=`pwd`
 LIB_DIST_PATH=${LIB_PATH}/dist
 LIB_PATCHES_PATH=${LIB_PATH}/patches
 
@@ -260,7 +262,6 @@ function pull_salt {
 
 function build_salt {
     echo 'inside build func'
-    return
     cd $LIB_PATH
 
     # copy in our requirements files as we need to use specific libs
@@ -305,7 +306,6 @@ EOF
 
 function publish_salt {
     echo 'inside publish func'
-    return
 
     # This needs to align with aliases defined in
     # assets/pypirc
@@ -318,7 +318,7 @@ function publish_salt {
     #exit 1
 
     TWINE_EDITED=$(echo $TWINE_PASSWORD_1_PSW | tr -d '\\')
-    twine upload --config-file ${ROOT_PATH}/assets/pypirc -p $TWINE_EDITED -r $_PypiEnv $_SrcPath 2>&1 | tee -a ${BUILD_LOG}
+    twine upload --config-file ${BUILD_PATH}/assets/pypirc -p $TWINE_EDITED -r $_PypiEnv $_SrcPath 2>&1 | tee -a ${BUILD_LOG}
 
     if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
         echo "Attempt to publish the wheel failed with rc: $?. Please check build.log for details"
@@ -389,6 +389,7 @@ else
     echo "Will not upload wheel to ${_PypiEnv} pypi. File is available at:"
     echo ${_SrcPath}
 fi
+echo "buildpath: ${BUILD_PATH}"
 echo "_srcfile: ${_SrcFile}"
 echo "_Srcpath: ${_SrcPath}"
 echo "_PostBuildTag: ${_PostBuildTag}"
