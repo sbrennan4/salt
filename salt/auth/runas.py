@@ -16,7 +16,7 @@ from salt.exceptions import CommandExecutionError, SaltInvocationError
 
 log = logging.getLogger(__name__)
 
-def acl(eauth_opts=None):
+def acl(eauth_opts=None, username=None):
     '''
     given euath_opts specifying another user to run privileges under, return that acl
     IMPORTANT NOTE: this eauth lives within the token system built into salt,
@@ -37,13 +37,16 @@ def acl(eauth_opts=None):
     # fetch the proxied auth_list
     try:
         auth_check = RequestContext.current.get('auth_check', {})
-        username = auth_check.get('username', 'UNKONWN')
         auth_list = loadauth.get_auth_list(eauth_opts)
-        log.debug('runas: user: %s, auth_list: %s', username, auth_list)
+
+        calling_user = username or auth_check.get('username', 'UNKONWN')
+        target_user = eauth_opts.get('username') + ':' + eauth_opts.get('eauth')
+
+        log.info('runas: calling user: %s, target user: %s', calling_user, target_user)
+        log.debug('runas: auth_list: %s', auth_list)
     except Exception as exc:
         log.error(exc)
         return None
-
 
     return auth_list
 
@@ -51,7 +54,6 @@ def auth(key=None, auth_type=None):
     '''
     acts as master aes key authentication for implicit calls
     '''
-
     auth_check = RequestContext.current.get('auth_check', {})
     # user_auth can be either from a nested call, or from the immediate call
     user_auth = auth_type == 'user' or auth_check.get('auth_type') == 'user'

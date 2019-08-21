@@ -435,7 +435,7 @@ j       Returns None if eauth doesn't provide any for the user. I. e. None means
         auth_list = []
         username = load.get('username', 'UNKNOWN')
 
-        if 'username' in load.get('eauth_opts', {}):
+        if 'username' in (load.get('eauth_opts') or {}):
             username = load['eauth_opts']['username']
 
         ret = {'auth_list': auth_list,
@@ -455,6 +455,7 @@ j       Returns None if eauth doesn't provide any for the user. I. e. None means
             # Update username for token
             username = token['name']
             ret['username'] = username
+            load['username'] = username
             auth_list = self.get_auth_list(load, token=token)
         elif auth_type == 'eauth':
             if not self.authenticate_eauth(load):
