@@ -16,7 +16,7 @@ pipeline {
                 sh 'hostname'
                 sh 'pwd'
                 sh 'printenv'
-                sh 'bash ./build/dev-build.sh -v -b 20190821001'
+                sh 'bash ./build/dev-build.sh -v'
                 // sh 'curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python'
             }
         }
@@ -30,8 +30,8 @@ pipeline {
             steps {
                 sh 'echo ========================='
                 sh 'echo running Deploy Stage'
-                sh 'skipping the publish to pypi step for now'
-                // sh 'bash ./build/dev-build.sh -b 20190821001 -K -s -u'
+                sh 'echo skipping the publish to pypi step for now'
+                // sh 'bash ./build/dev-build.sh -b 20190821001 -k -s -u'
             }
         }
     }
