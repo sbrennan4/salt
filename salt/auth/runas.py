@@ -44,7 +44,7 @@ def acl(eauth_opts=None, username=None):
         auth_list = loadauth.get_auth_list(eauth_opts)
 
         auth_check = RequestContext.current.setdefault('auth_check', {})
-        calling_user = username or auth_check.get('username', 'UNKONWN')
+        calling_user = username or auth_check.get('username', 'UNKNOWN')
         target_user = eauth_opts.get('username') + ':' + eauth_opts.get('eauth')
 
         log.info('runas: calling user: %s, target user: %s', calling_user, target_user)

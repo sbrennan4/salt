@@ -126,7 +126,7 @@ class LoadAuth(object):
     def __get_acl(self, load):
         '''
         Returns ACL for a specific user.
-j       Returns None if eauth doesn't provide any for the user. I. e. None means: use acl declared
+        Returns None if eauth doesn't provide any for the user. I. e. None means: use acl declared
         in master config.
         '''
         if 'eauth' not in load:

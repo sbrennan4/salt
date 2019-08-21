@@ -1873,12 +1873,6 @@ class Login(LowDataAdapter):
         cherrypy.session['token'] = token['token']
         cherrypy.session['timeout'] = (token['expire'] - token['start']) / 60
 
-        except Exception:
-            logger.debug("Configuration for external_auth malformed for "
-                "eauth '{0}', and user '{1}'."
-                .format(token.get('eauth'), token.get('name')), exc_info=True)
-            perms = None
-
         return {'return': [{
             'token': cherrypy.session.id,
             'expire': token['expire'],
