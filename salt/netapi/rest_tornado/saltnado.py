@@ -899,6 +899,12 @@ class SaltAPIHandler(BaseSaltAPIHandler):  # pylint: disable=W0223
                 ret.append('Failed to authenticate')
                 break
 
+            # it is critical that auth_check cannot be manually specified, as it is
+            # controlled by the salt eauth system within executions
+            if 'auth_check' in low:
+                ret.append('auth_check in low, this is not allowed.')
+                break
+
             # disbatch to the correct handler
             try:
                 chunk_ret = yield getattr(self, '_disbatch_{0}'.format(low['client']))(low)

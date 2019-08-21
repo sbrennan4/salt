@@ -1182,6 +1182,11 @@ class LowDataAdapter(object):
             if 'arg' in chunk and not isinstance(chunk['arg'], list):
                 chunk['arg'] = [chunk['arg']]
 
+            # it is critical that auth_check cannot be manually specified, as it is
+            # controlled by the salt eauth system within executions
+            if 'auth_check' in chunk:
+                raise cherrypy.HTTPError(401, 'auth_check in low, this is not allowed.')
+
             ret = self.api.run(chunk)
 
             # Sometimes Salt gives us a return and sometimes an iterator
