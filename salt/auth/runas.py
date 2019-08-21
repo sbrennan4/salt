@@ -36,9 +36,14 @@ def acl(eauth_opts=None, username=None):
 
     # fetch the proxied auth_list
     try:
-        auth_check = RequestContext.current.get('auth_check', {})
+
+        # persist these in the current context for other salt systems ito interact with
+        RequestContext.current['eauth_opts'] = eauth_opts
+        RequestContext.current['eauth'] = 'runas'
+
         auth_list = loadauth.get_auth_list(eauth_opts)
 
+        auth_check = RequestContext.current.setdefault('auth_check', {})
         calling_user = username or auth_check.get('username', 'UNKONWN')
         target_user = eauth_opts.get('username') + ':' + eauth_opts.get('eauth')
 

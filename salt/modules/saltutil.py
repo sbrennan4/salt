@@ -1454,6 +1454,12 @@ def cmd(tgt,
         log.debug('RequestContext.current auth_check: %s', RequestContext.current['auth_check'])
         kwargs['auth_check'] = RequestContext.current['auth_check']
 
+    if RequestContext.current.get('eauth') == 'runas':
+        if not RequestContext.current.get('eauth_opts'):
+            raise CommandExecutionError('runas requires eauth_opts in RequestContext to function. Something has gone wrong')
+        kwargs['module_executors'] = ['runas']
+        kwargs['executor_opts'] = RequestContext.current['eauth_opts']
+
     cfgfile = __opts__['conf_file']
     client = _get_ssh_or_api_client(cfgfile, ssh)
     fcn_ret = _exec(
