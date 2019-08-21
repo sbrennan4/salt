@@ -254,9 +254,8 @@ class Runner(RunnerClient):
                 low['key'] = master_key
 
             # Run the runner!
-            ret = self.cmd_sync(low)
-
             if self.opts.get('async', False):
+                async_pub = self.cmd_async(low)
                 # by default: info will be not enough to be printed out !
                 log.warning(
                     'Running in asynchronous mode. Results of this execution may '
@@ -265,6 +264,8 @@ class Runner(RunnerClient):
                     'This execution is running under tag %s', async_pub['tag']
                 )
                 return async_pub['jid']  # return the jid
+            else:
+                ret = self.cmd_sync(low)
 
             if isinstance(ret, dict) and set(ret) == {'data', 'outputter', 'retcode'}:
                 outputter = ret['outputter']
