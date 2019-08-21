@@ -248,16 +248,15 @@ class Runner(RunnerClient):
             if low['fun'] in ['state.orchestrate', 'state.orch', 'state.sls']:
                 low['kwarg']['orchestration_jid'] = async_pub['jid']
 
-            # Run the runner!
-            if self.opts.get('async', False):
-                if self.opts.get('eauth'):
-                    async_pub = self.cmd_async(low)
-                else:
-                    async_pub = self.asynchronous(self.opts['fun'],
-                                                  low,
-                                                  user=user,
-                                                  pub=async_pub)
+            # for user authentication we must seed the low with the master aes key
+            if not self.opts.get('eauth'):
+                master_key = salt.utils.master.get_master_key('root', self.opts)
+                low['key'] = master_key
 
+            # Run the runner!
+            ret = self.cmd_sync(low)
+
+            if self.opts.get('async', False):
                 # by default: info will be not enough to be printed out !
                 log.warning(
                     'Running in asynchronous mode. Results of this execution may '
@@ -266,13 +265,6 @@ class Runner(RunnerClient):
                     'This execution is running under tag %s', async_pub['tag']
                 )
                 return async_pub['jid']  # return the jid
-
-            if self.opts.get('eauth'):
-                ret = self.cmd_sync(low)
-            else:
-                master_key = salt.utils.master.get_master_key('root', self.opts)
-                low['key'] = master_key
-                ret = self.cmd_sync(low)
 
             if isinstance(ret, dict) and set(ret) == {'data', 'outputter', 'retcode'}:
                 outputter = ret['outputter']
