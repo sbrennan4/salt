@@ -36,12 +36,17 @@ class Authorize(object):
     def __call__(self, f):
         @wraps(f)
         def wrapper(*args, **kwargs):
-                # if an auth_check is present, enforce it
+            # if an auth_check is present, enforce it
             if 'auth_check' not in RequestContext.current:
                 log.trace('auth_check not in RequestContext. no-op')
                 return f(*args, **kwargs)
 
             auth_check = RequestContext.current['auth_check']
+
+            # a user auth type is implicitly root as such is not held to a auth_list
+            if auth_check.get('auth_type') == 'user':
+                log.trace('auth_type of user, permitting')
+                return f(*args, **kwargs)
 
             if not self.ckminions:
                 # late import to avoid circular dependencies
@@ -60,7 +65,6 @@ class Authorize(object):
                     self.item,
                     {'arg': args, 'kwargs': kwargs},
                 )
-
                 if not runner_check or isinstance(runner_check, dict) and 'error' in runner_check:
                     log.error("current auth_check profile: %s", auth_check)
                     raise AuthorizationError('User \'{0}\' is not permissioned to execute runner \'{1}\''.format(auth_check.get('username', 'UNKNOWN'), self.item))
@@ -81,7 +85,6 @@ class Authorize(object):
                 # is strictly equivalent to opts['id']. for saltutil.cmd we do not duplicate the work done by the master,
                 # if a user is authorized to run saltutil.cmd he/she must still meet the equivalent acl work being done
                 # in done in salt.master.Master.publish to successfully publish to those minions
-
                 minion_check = self.ckminions.auth_check(
                     auth_check.get('auth_list', []),
                     self.item,
@@ -92,6 +95,7 @@ class Authorize(object):
                     # always accept find_job
                     whitelist=['saltutil.find_job', 'saltutil.is_running', 'grains.get', 'config.get', 'config.option'],
                 )
+
                 if not minion_check or isinstance(minion_check, dict) and 'error' in minion_check:
                     # Authorization error occurred. Do not continue.
                     if auth_check == 'eauth' and not auth_list and 'username' in extra and 'eauth' in extra:

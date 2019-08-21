@@ -42,6 +42,8 @@ AUTH_INTERNAL_KEYWORDS = frozenset([
     'client',
     'cmd',
     'eauth',
+    'eauth_opts',
+    'key',
     'fun',
     'kwarg',
     'match'
@@ -124,7 +126,7 @@ class LoadAuth(object):
     def __get_acl(self, load):
         '''
         Returns ACL for a specific user.
-        Returns None if eauth doesn't provide any for the user. I. e. None means: use acl declared
+j       Returns None if eauth doesn't provide any for the user. I. e. None means: use acl declared
         in master config.
         '''
         if 'eauth' not in load:
@@ -432,12 +434,15 @@ class LoadAuth(object):
         '''
         auth_list = []
         username = load.get('username', 'UNKNOWN')
-        ret = {'auth_list': auth_list,
-               'username': username,
-               'error': {}}
 
-        if self.opts.get('loader_acl', True):
-            ret['tags'] = self.opts.get('loader_acl', ['module', 'runners', 'wheel'])
+        if 'username' in load.get('eauth_opts', {}):
+            username = load['eauth_opts']['username']
+
+        ret = {'auth_list': auth_list,
+               'auth_type': auth_type,
+               'username': username,
+               'tags': self.opts.get('loader_acl', []),
+               'error': {}}
 
         # Authenticate
         if auth_type == 'token':
@@ -455,7 +460,7 @@ class LoadAuth(object):
             if not self.authenticate_eauth(load):
                 ret['error'] = {'name': 'EauthAuthenticationError',
                                 'message': 'Authentication failure of type "eauth" occurred for '
-                                           'user {0}.'.format(username)}
+                                           'user "{0}".'.format(username)}
                 return ret
 
             auth_list = self.get_auth_list(load)

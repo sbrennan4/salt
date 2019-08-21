@@ -1919,7 +1919,11 @@ class ClearFuncs(object):
         auth_type, err_name, key, sensitive_load_keys = self._prep_auth_info(clear_load)
 
         # Authenticate
-        auth_check = self.loadauth.check_authentication(clear_load, auth_type, key=key)
+        if 'auth_check' in RequestContext.current and 'eauth' not in clear_load:
+            auth_check = RequestContext.current['auth_check']
+        else:
+            auth_check = self.loadauth.check_authentication(clear_load, auth_type, key=key)
+
         error = auth_check.get('error')
 
         if error:
@@ -1928,6 +1932,7 @@ class ClearFuncs(object):
 
         # Authorize
         username = auth_check.get('username')
+
         if auth_type != 'user':
             runner_check = self.ckminions.runner_check(
                 auth_check.get('auth_list', []),
@@ -1937,7 +1942,7 @@ class ClearFuncs(object):
             if not runner_check:
                 return {'error': {'name': err_name,
                                    'message': 'Authentication failure of type "{0}" occurred for '
-                                             'user {1}.'.format(auth_type, username)}}
+                                             'user "{1}".'.format(auth_type, username)}}
             elif isinstance(runner_check, dict) and 'error' in runner_check:
                 # A dictionary with an error name/message was handled by ckminions.runner_check
                 return runner_check
@@ -2096,12 +2101,14 @@ class ClearFuncs(object):
 
         # if auth_check is already in the request ctx, we don't re-authenticate, we assume
         # from the previous call up the stack it is authenticated and just authorize
-        if 'auth_check' in RequestContext.current:
+        if 'auth_check' in RequestContext.current and 'eauth' not in clear_load and 'eauth' not in clear_load.get('kwargs'):
             auth_check = RequestContext.current['auth_check']
         else:
             if auth_type == 'user':
                 auth_check = self.loadauth.check_authentication(clear_load, auth_type, key=key)
             else:
+                if 'key' in clear_load:
+                    extra['key'] = clear_load['key']
                 auth_check = self.loadauth.check_authentication(extra, auth_type)
 
         # Retrieve the minions list
@@ -2198,7 +2205,9 @@ class ClearFuncs(object):
             }
         }
 
-    def _prep_auth_info(self, clear_load):
+    def _prep_auth_info(self, clear_load, kwargs=None):
+        if kwargs is None:
+            kwargs = {}
         sensitive_load_keys = []
         key = None
         if 'token' in clear_load:

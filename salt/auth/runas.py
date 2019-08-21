@@ -11,54 +11,69 @@ import logging
 
 # Import salt libs
 import salt.auth
+from salt.utils.ctx import RequestContext
 from salt.exceptions import CommandExecutionError, SaltInvocationError
 
 log = logging.getLogger(__name__)
 
-def acl(username=None, eauth_opts=None):
+def acl(eauth_opts=None):
     '''
-    given load, assert that the given username is in eauth_runas_allowed, if so
-    respect runas auth kwarg as replacement user to load
+    given euath_opts specifying another user to run privileges under, return that acl
     IMPORTANT NOTE: this eauth lives within the token system built into salt,
     as such any token minted by it is cast as the runas user, and will not
     change. You must not use a cached token with runas and expect it to be
     recast as a different user.
-    :return: None
+    :return: auth_list or None
     '''
-    if not eauth_opts or not username:
+    if not eauth_opts:
         return None
 
-    # we can assume if we are being executed via salt.auth.__get_acl we are
-    # already authenticated, so we just need to assert that user is allowed
-    # to proxy auth as someone/_anyone_ else
-    eauth = __opts__.get('external_auth', {}).get('runas',{}).get(username, [])
+    if eauth_opts.get('eauth') == 'runas':
+        log.error('runas: recursion detected.')
+        return None
 
-    if '@runas' in eauth:
-        log.debug('user %s granted for runas', username)
+    loadauth = salt.auth.LoadAuth(__opts__)
 
-        loadauth = salt.auth.LoadAuth(__opts__)
-
-        # fetch the proxied auth_list
+    # fetch the proxied auth_list
+    try:
+        auth_check = RequestContext.current.get('auth_check', {})
+        username = auth_check.get('username', 'UNKONWN')
         auth_list = loadauth.get_auth_list(eauth_opts)
-        log.error(auth_list)
-        return auth_list
-    else:
-        # if we've reached here the auth failed, return nothing
-        log.debug('user %s not in runas external_auth approval list, passing', username)
+        log.debug('runas: user: %s, auth_list: %s', username, auth_list)
+    except Exception as exc:
+        log.error(exc)
         return None
 
 
-def auth(username, password):
-    '''
-    ensure noone calls this directly
-    '''
-    log.error('You should be not using runas as an eauth provider directly')
-    return False
-
-def groups(username):
-    ''' no-op '''
-    return None
-
-def process_acl(auth_list):
-    ''' no-op '''
     return auth_list
+
+def auth(key=None, auth_type=None):
+    '''
+    acts as master aes key authentication for implicit calls
+    '''
+
+    auth_check = RequestContext.current.get('auth_check', {})
+    # user_auth can be either from a nested call, or from the immediate call
+    user_auth = auth_type == 'user' or auth_check.get('auth_type') == 'user'
+
+    # case 1: cli based non eauth calls; will always have valid aes key
+    master_key = salt.utils.master.get_master_key('root', __opts__)
+    if user_auth and master_key == key:
+        log.debug('runas: cli/non-eauth root user granted')
+        return True
+
+    # case 2: eauth codepath. When auth() is called, we can only return true
+    # when there is _already_ an authorized auth_check in the current context
+    try:
+        username = auth_check['username']
+        eauth = __opts__['external_auth']['runas'][username]
+
+        if '@runas' in eauth:
+            log.debug('runas.auth: user %s granted', username)
+            return True
+    except Exception:
+        username = 'UNKNOWN'
+        pass
+
+    log.debug('user %s not in runas external_auth approval list, passing', username)
+    return False
