@@ -750,6 +750,12 @@ class CkMinions(object):
 
         _res = self.check_minions(v_expr, v_matcher)
         log.debug('_expand_matching v_expr: %s v_matcher: %s', v_expr, v_matcher)
+
+        # special case: permit opts['id'] to be valid in list context, it
+        # maps to the master minion for orch eauth
+        if v_matcher == 'compound' and v_expr == self.opts['id']:
+            return set([self.opts['id']])
+
         return set(_res['minions'])
 
     def validate_tgt(self, valid, expr, tgt_type, minions=None, expr_form=None):
