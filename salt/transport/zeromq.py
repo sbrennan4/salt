@@ -184,6 +184,9 @@ class AsyncZeroMQReqChannel(salt.transport.client.ReqChannel):
         if 'master_uri' in kwargs:
             self.opts['master_uri'] = kwargs['master_uri']
 
+        if 'master_uri' not in self.opts:
+            self.opts['master_uri'] = self.master_uri
+
         self._io_loop = kwargs.get('io_loop')
         if self._io_loop is None:
             install_zmq()
@@ -215,6 +218,12 @@ class AsyncZeroMQReqChannel(salt.transport.client.ReqChannel):
         # if by chance master_uri is not there..
         if 'master_ip' in self.opts:
             return _get_master_uri(self.opts['master_ip'],
+                                   self.opts['master_port'],
+                                   source_ip=self.opts.get('source_ip'),
+                                   source_port=self.opts.get('source_ret_port'))
+
+        if self.opts['__role'] == 'master':
+            return _get_master_uri('127.0.0.1',
                                    self.opts['master_port'],
                                    source_ip=self.opts.get('source_ip'),
                                    source_port=self.opts.get('source_ret_port'))
