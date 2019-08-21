@@ -499,7 +499,7 @@ class Pillar(object):
         Pull the file server environments out of the master options
         '''
         # environments ext_pillar takes priority always if enabled
-        if any('environments' in ext for ext in self.opts['ext_pillar']):
+        if any('environments' in ext for ext in self.opts.get('ext_pillar', [])):
             return self.ext_pillars['environments'](self.minion_id, {})
 
         envs = set(['base'])
