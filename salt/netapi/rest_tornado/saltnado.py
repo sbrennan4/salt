@@ -728,6 +728,7 @@ class SaltAuthHandler(BaseSaltAPIHandler):  # pylint: disable=W0223
             creds = {'username': self.request_payload['username'],
                      'password': self.request_payload['password'],
                      'eauth': self.request_payload['eauth'],
+                     'eauth_opts': self.request_payload.get('eauth_opts'),
                      }
         # if any of the args are missing, its a bad request
         except KeyError:
@@ -735,46 +736,11 @@ class SaltAuthHandler(BaseSaltAPIHandler):  # pylint: disable=W0223
             return
 
         token = self.application.auth.mk_token(creds)
-        if 'token' not in token:
-            # TODO: nicer error message
-            # 'Could not authenticate using provided credentials')
+
+        if 'token' not in token or 'error' in token:
+            self.write(self.serialize(token))
             self.send_error(401)
             # return since we don't want to execute any more
-            return
-
-        # Grab eauth config for the current backend for the current user
-        try:
-            eauth = self.application.opts['external_auth'][token['eauth']]
-            # Get sum of '*' perms, user-specific perms, and group-specific perms
-            _perms = eauth.get(token['name'], [])
-            _perms.extend(eauth.get('*', []))
-
-            if 'groups' in token and token['groups']:
-                user_groups = set(token['groups'])
-                eauth_groups = set([i.rstrip('%') for i in eauth.keys() if i.endswith('%')])
-
-                for group in user_groups & eauth_groups:
-                    _perms.extend(eauth['{0}%'.format(group)])
-
-            # dedup. perm can be a complex dict, so we cant use set
-            perms = []
-            for perm in _perms:
-                if perm not in perms:
-                    perms.append(perm)
-
-        # If we can't find the creds, then they aren't authorized
-        except KeyError:
-            self.send_error(401)
-            return
-
-        except (AttributeError, IndexError):
-            log.debug(
-                "Configuration for external_auth malformed for eauth '%s', "
-                "and user '%s'.", token.get('eauth'), token.get('name'),
-                exc_info=True
-            )
-            # TODO better error -- 'Configuration for external_auth could not be read.'
-            self.send_error(500)
             return
 
         ret = {'return': [{
@@ -783,7 +749,7 @@ class SaltAuthHandler(BaseSaltAPIHandler):  # pylint: disable=W0223
             'start': token['start'],
             'user': token['name'],
             'eauth': token['eauth'],
-            'perms': perms,
+            'perms': token['auth_list'],
             }]}
 
         # to provide cherrypy backcompat, the /token return is slightly different
@@ -931,6 +897,12 @@ class SaltAPIHandler(BaseSaltAPIHandler):  # pylint: disable=W0223
             if not (('token' in low)
                     or ('username' in low and 'password' in low and 'eauth' in low)):
                 ret.append('Failed to authenticate')
+                break
+
+            # it is critical that auth_check cannot be manually specified, as it is
+            # controlled by the salt eauth system within executions
+            if 'auth_check' in low:
+                ret.append('auth_check in low, this is not allowed.')
                 break
 
             # disbatch to the correct handler

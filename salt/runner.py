@@ -15,6 +15,7 @@ import salt.minion
 import salt.utils.args
 import salt.utils.event
 import salt.utils.files
+import salt.utils.master
 import salt.utils.user
 import salt.defaults.exitcodes
 from salt.client import mixins
@@ -78,7 +79,7 @@ class RunnerClient(mixins.SyncClientMixin, mixins.AsyncClientMixin, object):
         verify_fun(self.functions, fun)
 
         eauth_creds = dict([(i, low.pop(i)) for i in [
-            'username', 'password', 'eauth', 'token', 'client', 'user', 'key', 'timeout', 'jid',
+            'username', 'password', 'eauth', 'token', 'client', 'user', 'key', 'timeout', 'jid', 'eauth_opts', 'auth_check',
         ] if i in low])
 
         # Run name=value args through parse_input. We don't need to run kwargs
@@ -238,22 +239,23 @@ class Runner(RunnerClient):
                         return ret
                     low.update(res)
                     low['eauth'] = self.opts['eauth']
+
+                    if hasattr(self.opts, 'eauth_opts'):
+                        low['eauth_opts'] = self.opts['eauth_opts']
             else:
                 user = salt.utils.user.get_specific_user()
 
             if low['fun'] in ['state.orchestrate', 'state.orch', 'state.sls']:
                 low['kwarg']['orchestration_jid'] = async_pub['jid']
 
+            # for user authentication we must seed the low with the master aes key
+            if not self.opts.get('eauth'):
+                master_key = salt.utils.master.get_master_key('root', self.opts)
+                low['key'] = master_key
+
             # Run the runner!
             if self.opts.get('async', False):
-                if self.opts.get('eauth'):
-                    async_pub = self.cmd_async(low)
-                else:
-                    async_pub = self.asynchronous(self.opts['fun'],
-                                                  low,
-                                                  user=user,
-                                                  pub=async_pub)
-
+                async_pub = self.cmd_async(low)
                 # by default: info will be not enough to be printed out !
                 log.warning(
                     'Running in asynchronous mode. Results of this execution may '
@@ -262,23 +264,16 @@ class Runner(RunnerClient):
                     'This execution is running under tag %s', async_pub['tag']
                 )
                 return async_pub['jid']  # return the jid
-
-            # otherwise run it in the main process
-            if self.opts.get('eauth'):
-                ret = self.cmd_sync(low)
-                if isinstance(ret, dict) and set(ret) == {'data', 'outputter', 'retcode'}:
-                    outputter = ret['outputter']
-                    ret = ret['data']
-                else:
-                    outputter = None
-                display_output(ret, outputter, self.opts)
             else:
-                ret = self._proc_function(self.opts['fun'],
-                                          low,
-                                          user,
-                                          async_pub['tag'],
-                                          async_pub['jid'],
-                                          daemonize=False)
+                ret = self.cmd_sync(low)
+
+            if isinstance(ret, dict) and set(ret) == {'data', 'outputter', 'retcode'}:
+                outputter = ret['outputter']
+                ret = ret['data']
+            else:
+                outputter = None
+            display_output(ret, outputter, self.opts)
+
         except salt.exceptions.SaltException as exc:
             with salt.utils.event.get_event('master', opts=self.opts) as evt:
                 evt.fire_event({'success': False,

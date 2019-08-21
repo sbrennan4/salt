@@ -69,15 +69,15 @@ def execute(opts, data, func, args, kwargs):
     '''
     .. code-block:: bash
 
-        salt --module-executors='runas' --executor-opts='{user: op}' '*' pkg.version cowsay
+        salt --module-executors='runas' --executor-opts='{username: op}' '*' pkg.version cowsay
 
     """
 
     executor_opts = data.get("executor_opts", {})
-    if executor_opts.get("user"):
-        user = executor_opts["user"]
+    if executor_opts.get('username'):
+        user = executor_opts["username"]
     else:
-        raise ValueError("user must be specified in executor_opts")
+        raise ValueError("username must be specified in executor_opts")
 
     group = executor_opts.get("group")
     umask = executor_opts.get("umask")

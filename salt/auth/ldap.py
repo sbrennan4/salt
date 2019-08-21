@@ -323,7 +323,13 @@ def groups(username, **kwargs):
 
     '''
     group_list = []
-    bind = auth(username, kwargs.get('password', None))
+    # MATT NOTE: is this safe? seemingly so, why would you need to bind if auth()
+    # already handles said binding. I don't understand LDAP well enough, but
+    # runas needs to be able to retrieve user groups without the users password
+    # seemingly it is based on other salt.auth groups() implementations, they do not
+    # auth
+    # to generate their auth_list
+    bind = _bind_for_search(anonymous=_config('anonymous', mandatory=False))
 
     if bind:
         log.debug('ldap bind to determine group membership succeeded!')

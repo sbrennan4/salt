@@ -1182,6 +1182,11 @@ class LowDataAdapter(object):
             if 'arg' in chunk and not isinstance(chunk['arg'], list):
                 chunk['arg'] = [chunk['arg']]
 
+            # it is critical that auth_check cannot be manually specified, as it is
+            # controlled by the salt eauth system within executions
+            if 'auth_check' in chunk:
+                raise cherrypy.HTTPError(401, 'auth_check in low, this is not allowed.')
+
             ret = self.api.run(chunk)
 
             # Sometimes Salt gives us a return and sometimes an iterator
@@ -1873,39 +1878,13 @@ class Login(LowDataAdapter):
         cherrypy.session['token'] = token['token']
         cherrypy.session['timeout'] = (token['expire'] - token['start']) / 60
 
-        # Grab eauth config for the current backend for the current user
-        try:
-            eauth = self.opts.get('external_auth', {}).get(token['eauth'], {})
-
-            if token['eauth'] == 'django' and '^model' in eauth:
-                perms = token['auth_list']
-            else:
-                # Get sum of '*' perms, user-specific perms, and group-specific perms
-                perms = eauth.get(token['name'], [])
-                perms.extend(eauth.get('*', []))
-
-                if 'groups' in token and token['groups']:
-                    user_groups = set(token['groups'])
-                    eauth_groups = set([i.rstrip('%') for i in eauth.keys() if i.endswith('%')])
-
-                    for group in user_groups & eauth_groups:
-                        perms.extend(eauth['{0}%'.format(group)])
-
-            if not perms:
-                logger.debug("Eauth permission list not found.")
-        except Exception:
-            logger.debug("Configuration for external_auth malformed for "
-                "eauth '{0}', and user '{1}'."
-                .format(token.get('eauth'), token.get('name')), exc_info=True)
-            perms = None
-
         return {'return': [{
             'token': cherrypy.session.id,
             'expire': token['expire'],
             'start': token['start'],
             'user': token['name'],
             'eauth': token['eauth'],
-            'perms': perms or {},
+            'perms': token['auth_list'],
         }]}
 
 

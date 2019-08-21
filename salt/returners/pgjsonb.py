@@ -179,7 +179,7 @@ try:
     import psycopg2
     import psycopg2.extras
     import psycopg2.extensions
-    logging.getLogger('persistqueue.common').propagate = 0
+    logging.getLogger('persistqueue.common').setLevel(logging.ERROR)
     import persistqueue
     HAS_PG = True
 except ImportError:
@@ -333,8 +333,7 @@ def _get_serv(ret=None, commit=False):
         PG_SAVE_LOAD_SQL = '''INSERT INTO jids
                               (jid, load)
                               VALUES (%(jid)s, %(load)s)
-                              ON CONFLICT (jid) DO UPDATE
-                                  SET load=%(load)s'''
+                              ON CONFLICT (jid) DO UPDATE SET load=EXCLUDED.load'''
     try:
         yield cursor
     except psycopg2.DatabaseError as err:

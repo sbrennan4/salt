@@ -42,6 +42,8 @@ AUTH_INTERNAL_KEYWORDS = frozenset([
     'client',
     'cmd',
     'eauth',
+    'eauth_opts',
+    'key',
     'fun',
     'kwarg',
     'match'
@@ -203,8 +205,9 @@ class LoadAuth(object):
         '''
         Run time_auth and create a token. Return False or the token
         '''
-        if not self.authenticate_eauth(load):
-            return {}
+        ret = self.check_authentication(load, 'eauth')
+        if ret.get('error'):
+            return ret
 
         if self._allow_custom_expire(load):
             token_expire = load.pop('token_expire', self.opts['token_expire'])
@@ -217,15 +220,20 @@ class LoadAuth(object):
                  'name': self.load_name(load),
                  'eauth': load['eauth']}
 
-        if self.opts['keep_acl_in_token']:
-            acl_ret = self.__get_acl(load)
-            tdata['auth_list'] = acl_ret
-
         groups = self.get_groups(load)
         if groups:
             tdata['groups'] = groups
 
-        return self.tokens["{0}.mk_token".format(self.opts['eauth_tokens'])](self.opts, tdata)
+        if self.opts['keep_acl_in_token']:
+            tdata['auth_list'] = ret['auth_list']
+
+        token = self.tokens["{0}.mk_token".format(self.opts['eauth_tokens'])](self.opts, tdata)
+
+        # when keep_acl_in_token is not enabled, we still want to return it
+        # to callers for ie saltnado/cherrypy to avoid reduplicating the work
+        token.setdefault('auth_list', ret['auth_list'])
+
+        return token
 
     def get_tok(self, tok):
         '''
@@ -426,12 +434,15 @@ class LoadAuth(object):
         '''
         auth_list = []
         username = load.get('username', 'UNKNOWN')
-        ret = {'auth_list': auth_list,
-               'username': username,
-               'error': {}}
 
-        if self.opts.get('loader_acl', True):
-            ret['tags'] = self.opts.get('loader_acl', ['module', 'runners', 'wheel'])
+        if 'username' in (load.get('eauth_opts') or {}):
+            username = load['eauth_opts']['username']
+
+        ret = {'auth_list': auth_list,
+               'auth_type': auth_type,
+               'username': username,
+               'tags': self.opts.get('loader_acl', []),
+               'error': {}}
 
         # Authenticate
         if auth_type == 'token':
@@ -444,12 +455,13 @@ class LoadAuth(object):
             # Update username for token
             username = token['name']
             ret['username'] = username
+            load['username'] = username
             auth_list = self.get_auth_list(load, token=token)
         elif auth_type == 'eauth':
             if not self.authenticate_eauth(load):
                 ret['error'] = {'name': 'EauthAuthenticationError',
                                 'message': 'Authentication failure of type "eauth" occurred for '
-                                           'user {0}.'.format(username)}
+                                           'user "{0}".'.format(username)}
                 return ret
 
             auth_list = self.get_auth_list(load)

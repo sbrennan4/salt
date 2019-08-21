@@ -118,10 +118,14 @@ def _exec_pg(autocommit=True):
 
     try:
         yield cursor
+
+        # post yield we haven't received an exception, so commit
+        if not autocommit:
+            cursor.execute('COMMIT')
     except psycopg2.DatabaseError as err:
         error = err.args
         log.error(six.text_type(error))
-        cursor.execute("ROLLBACK")
+        cursor.execute('ROLLBACK')
         raise err
     finally:
         conn.close()
@@ -135,7 +139,7 @@ def store(bank, key, data, expires=None):
                  '(bank, key, data, created_at, expires_at) '
                  'VALUES(%s, %s, %s, %s, %s) '
                  'ON CONFLICT (bank, key) DO UPDATE '
-                 'SET data=EXCLUDED.data')
+                 'SET data=EXCLUDED.data, expires_at=EXCLUDED.expires_at')
 
     if expires:
         expires_at = expires
@@ -168,23 +172,6 @@ def store(bank, key, data, expires=None):
             'Could not store cache with postgres cache: {}'.format(err))
 
 
-def fetch(bank, key):
-    '''
-    Fetch a key value.
-    '''
-    fetch_sql = 'SELECT data FROM cache WHERE bank=%s AND key=%s'
-    try:
-        with _exec_pg(autocommit=False) as cur:
-            cur.execute(fetch_sql, (bank, key))
-            data = cur.fetchone()
-            if data:
-                return data[0]
-            return {}
-    except salt.exceptions.SaltMasterError as err:
-        raise salt.exceptions.SaltCacheError(
-            'Could not fetch cache with postgres cache: {}'.format(err))
-
-
 def flush(bank, key=None):
     '''
     Remove the key from the cache bank with all the key content.
@@ -203,6 +190,23 @@ def flush(bank, key=None):
     except salt.exceptions.SaltMasterError as err:
         raise salt.exceptions.SaltCacheError(
             'Could not flush cache with postgres cache: {}'.format(err))
+
+
+def fetch(bank, key):
+    '''
+    Fetch a key value.
+    '''
+    fetch_sql = 'SELECT data FROM cache WHERE bank=%s AND key=%s'
+    try:
+        with _exec_pg(autocommit=True) as cur:
+            cur.execute(fetch_sql, (bank, key))
+            data = cur.fetchone()
+            if data:
+                return data[0]
+            return {}
+    except salt.exceptions.SaltMasterError as err:
+        raise salt.exceptions.SaltCacheError(
+            'Could not fetch cache with postgres cache: {}'.format(err))
 
 
 def list(bank):

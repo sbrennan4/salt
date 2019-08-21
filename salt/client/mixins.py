@@ -43,6 +43,7 @@ CLIENT_INTERNAL_KEYWORDS = frozenset([
     'client',
     'cmd',
     'eauth',
+    'eauth_opts',
     'fun',
     'kwarg',
     'match',
@@ -51,7 +52,7 @@ CLIENT_INTERNAL_KEYWORDS = frozenset([
     '__tag__',
     '__user__',
     'username',
-    'password'
+    'password',
 ])
 
 
