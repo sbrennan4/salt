@@ -316,6 +316,7 @@ if [[ "$_SkipBuild" -ne "$TRUE" ]]; then
     pull_salt
     if [[ -z $_PostBuildTag ]]; then
         cd $LIB_PATH
+        git fetch --tags
         _last_build=$(git describe --abbrev=0 --tags | cut -d - -f2)
         if [[ ! -z $_last_build  && $_last_build =~ ^[0-9]+$ ]]; then
             _PostBuildTag=$(expr $_last_build + 1)
