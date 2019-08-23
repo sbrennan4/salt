@@ -1068,16 +1068,21 @@ class CkMinions(object):
                 del acl['@master']
 
         return auth_list
+    def render_check(self, auth_list, renderer):
+        '''
+        Check special API renderer permissions
+        '''
+        return self.spec_check(auth_list, renderer, {}, 'renderer')
 
     def wheel_check(self, auth_list, fun, args):
         '''
-        Check special API permissions
+        Check special API wheel permissions
         '''
         return self.spec_check(auth_list, fun, args, 'wheel')
 
     def runner_check(self, auth_list, fun, args):
         '''
-        Check special API permissions
+        Check special API runner permissions
         '''
         return self.spec_check(auth_list, fun, args, 'runner')
 
