@@ -42,6 +42,7 @@ class Authorize(object):
                 return f(*args, **kwargs)
 
             auth_check = RequestContext.current['auth_check']
+            auth_list = auth_check.get('auth_list', [])
 
             # a user auth type is implicitly root as such is not held to a auth_list
             if auth_check.get('auth_type') == 'user':
@@ -59,7 +60,7 @@ class Authorize(object):
                 return f(*args, **kwargs)
 
             if self.tag == 'render':
-                render_check = self.ckminions.render_check(auth_check.get('auth_list', []), self.item)
+                render_check = self.ckminions.render_check(auth_list, self.item)
 
                 if not render_check or isinstance(render_check, dict) and 'error' in render_check:
                     log.error("current auth_check profile: %s", auth_check)
@@ -71,7 +72,7 @@ class Authorize(object):
             # borrowed from salt.utils.decorators.Depends
             if self.tag == 'runners':
                 runner_check = self.ckminions.runner_check(
-                    auth_check.get('auth_list', []),
+                    auth_list,
                     self.item,
                     {'arg': args, 'kwargs': kwargs},
                 )
@@ -96,7 +97,7 @@ class Authorize(object):
                 # if a user is authorized to run saltutil.cmd he/she must still meet the equivalent acl work being done
                 # in done in salt.master.Master.publish to successfully publish to those minions
                 minion_check = self.ckminions.auth_check(
-                    auth_check.get('auth_list', []),
+                    auth_list,
                     self.item,
                     [args, kwargs],
                     opts['id'],
