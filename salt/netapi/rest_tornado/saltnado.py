@@ -728,7 +728,7 @@ class SaltAuthHandler(BaseSaltAPIHandler):  # pylint: disable=W0223
             creds = {'username': self.request_payload['username'],
                      'password': self.request_payload['password'],
                      'eauth': self.request_payload['eauth'],
-                     'eauth_opts': self.request_payload.get('eauth_opts'),
+                     'eauth_opts': self.request_payload.get('eauth_opts', {}),
                      }
         # if any of the args are missing, its a bad request
         except KeyError:

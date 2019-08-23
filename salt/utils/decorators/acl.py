@@ -58,7 +58,17 @@ class Authorize(object):
                 log.trace('loader tag %s not in auth_check tags enforcement list. noop', self.tag)
                 return f(*args, **kwargs)
 
-            # borrowed fromalt.utils.decorators.Depends
+            if self.tag == 'render':
+                render_check = self.ckminions.render_check(auth_check.get('auth_list', []), self.item)
+
+                if not render_check or isinstance(render_check, dict) and 'error' in render_check:
+                    log.error("current auth_check profile: %s", auth_check)
+                    raise AuthorizationError('User \'{0}\' is not permissioned to execute renderer \'{1}\''.format(auth_check.get('username', 'UNKNOWN'), self.item))
+
+                # if we've made it here, we are good. call the func
+                return f(*args, **kwargs)
+
+            # borrowed from salt.utils.decorators.Depends
             if self.tag == 'runners':
                 runner_check = self.ckminions.runner_check(
                     auth_check.get('auth_list', []),

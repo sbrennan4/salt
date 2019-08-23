@@ -36,11 +36,6 @@ def acl(eauth_opts=None, username=None):
 
     # fetch the proxied auth_list
     try:
-
-        # persist these in the current context for other salt systems ito interact with
-        RequestContext.current['eauth_opts'] = eauth_opts
-        RequestContext.current['eauth'] = 'runas'
-
         auth_list = loadauth.get_auth_list(eauth_opts)
 
         auth_check = RequestContext.current.setdefault('auth_check', {})
@@ -69,6 +64,7 @@ def auth(key=None, auth_type=None):
         log.debug('runas: cli/non-eauth root user granted')
         return True
 
+    username = 'UNKNOWN'
     # case 2: eauth codepath. When auth() is called, we can only return true
     # when there is _already_ an authorized auth_check in the current context
     try:
@@ -79,7 +75,6 @@ def auth(key=None, auth_type=None):
             log.debug('runas.auth: user %s granted', username)
             return True
     except Exception:
-        username = 'UNKNOWN'
         pass
 
     log.debug('user %s not in runas external_auth approval list, passing', username)

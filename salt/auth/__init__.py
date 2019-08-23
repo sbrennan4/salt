@@ -435,9 +435,6 @@ class LoadAuth(object):
         auth_list = []
         username = load.get('username', 'UNKNOWN')
 
-        if 'username' in (load.get('eauth_opts') or {}):
-            username = load['eauth_opts']['username']
-
         ret = {'auth_list': auth_list,
                'auth_type': auth_type,
                'username': username,
@@ -495,6 +492,10 @@ class LoadAuth(object):
 
         # Authentication checks passed
         ret['auth_list'] = auth_list
+
+        if isinstance(load, dict) and load.get('eauth') == 'runas':
+            ret['username'] = load['eauth_opts']['username']
+
         return ret
 
 
