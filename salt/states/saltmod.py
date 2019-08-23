@@ -295,8 +295,10 @@ def state(name,
     cmd_kw['ssh'] = ssh
     cmd_kw['expect_minions'] = expect_minions
     cmd_kw['asynchronous'] = kwargs.pop('asynchronous', False)
-    cmd_kw['eauth'] = kwargs.pop('eauth', None)
-    cmd_kw['eauth_opts'] = kwargs.pop('eauth_opts', None)
+    if 'eauth' in kwargs:
+        cmd_kw['eauth'] = kwargs.pop('eauth')
+    if 'eauth_opts' in kwargs:
+        cmd_kw['eauth_opts'] = kwargs.pop('eauth_opts')
 
     if highstate:
         fun = 'state.highstate'
@@ -564,8 +566,10 @@ def function(
     cmd_kw['expect_minions'] = expect_minions
     cmd_kw['_cmd_meta'] = True
     cmd_kw['asynchronous'] = kwargs.pop('asynchronous', False)
-    cmd_kw['eauth'] = kwargs.pop('eauth', None)
-    cmd_kw['eauth_opts'] = kwargs.pop('eauth_opts', None)
+    if 'eauth' in kwargs:
+        cmd_kw['eauth'] = kwargs.pop('eauth')
+    if 'eauth_opts' in kwargs:
+        cmd_kw['eauth_opts'] = kwargs.pop('eauth_opts')
 
     if module_executors:
         cmd_kw['module_executors'] = module_executors
