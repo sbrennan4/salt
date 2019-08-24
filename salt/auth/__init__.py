@@ -312,6 +312,11 @@ class LoadAuth(object):
             log.warning('Authentication failure of type "eauth" occurred.')
             return False
 
+        if load['eauth'] == 'default':
+            log.debug('default is not an eauth provider, it is a default template for providers')
+            log.warning('Authentication failure of type "eauth" occurred.')
+            return False
+
         # Perform the actual authentication. If we fail here, do not
         # continue.
         if not self.time_auth(load):
@@ -396,7 +401,15 @@ class LoadAuth(object):
         else:
             name = self.load_name(load)  # The username we are attempting to auth with
             groups = self.get_groups(load)  # The groups this user belongs to
+
+        default_config = self.opts['external_auth'].get('default', [])
         eauth_config = self.opts['external_auth'][eauth]
+
+        # if a default profile was specified, we must merge into each matcher
+        if default_config and eauth_config:
+            for matcher in eauth_config.keys():
+                eauth_config[matcher] = default_config + eauth_config[matcher]
+
         if not eauth_config:
             log.debug('eauth "%s" configuration is empty', eauth)
 
