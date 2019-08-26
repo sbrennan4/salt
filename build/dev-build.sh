@@ -73,6 +73,8 @@ usage() {
     -k  Don't delete the python virtual env. Useful if you don't want to
         keep building a new virtual env every time. (Default: False)
     -p  Upload the wheel to the production pypi repo. (Default: False)
+    -q  credential for uploading to pypi. You can also use PYPI_CREDENTIAL_PSW
+        environment variable or input the cred a the console. 
     -s  Skip build steps. Useful if you built the artifacts earlier and 
         are only interested in uploading them
     -t  bbgithub token for creating a release
@@ -81,7 +83,7 @@ usage() {
 EOT
 }
 
-while getopts ':ha:b:B:kpsuvt:' opt
+while getopts ':ha:b:B:kpq:suvt:' opt
 do
   case "${opt}" in
     h ) usage; exit 0                               ;;
@@ -91,6 +93,7 @@ do
     t ) _BbghToken=$OPTARG                          ;;
     k ) _KeepVirtEnv=$TRUE                          ;;
     p ) _Prod=$TRUE                                 ;;
+    q ) _PypiCredential=$OPTARG                     ;;
     s ) _SkipBuild=$TRUE                            ;;
     u ) _Upload=$TRUE                               ;;
     v ) set -x                                      ;;
@@ -128,14 +131,14 @@ else
     exit 1
 fi
 
-if [[ -z $_BbghToken && $_Upload == 1 ]]; then
-    if [[ -z $BBGH_TOKEN ]]; then
-        echo "BBGH token is necessary to create a release. Please use -t or set BBGH_TOKEN_PSW"
+if [[ -z $_BbghToken && $_Prod == 1 ]]; then
+    if [[ -z $BBGH_TOKEN_PSW ]]; then
+        echo "BBGH token is necessary to create a prod release. Please use -t or set BBGH_TOKEN_PSW"
         exit 1
     fi
     _BbghToken=$BBGH_TOKEN_PSW
 fi
-_TokenUrl="https://${_BbghToken}:$_LibUrl"
+# _TokenUrl="https://${_BbghToken}:$_LibUrl"
 
 # Check post build tag is a number
 if [[ ! -z $_PostBuildTag ]] && [[ ! $_PostBuildTag =~ ^[0-9]+$ ]]; then
@@ -268,14 +271,21 @@ function publish_salt {
 
     # This needs to align with aliases defined in
     # assets/pypirc
-    if [[ $_Prod -eq $TRUE ]];then
+    if [[ $_Prod -eq $TRUE ]]; then
         exit 1
         _PypiEnv="prod"
     fi
     echo "Uploading ${_SrcFile} to ${_PypiEnv} pypi ..."
 
-    TWINE_EDITED=$(echo $TWINE_PASSWORD_PSW | tr -d '\\')
-    twine upload --config-file ${BUILD_PATH}/assets/pypirc -p $TWINE_EDITED -r $_PypiEnv $_SrcPath 2>&1 | tee -a ${BUILD_LOG}
+    if [[ -z $_PypiCredential ]]; then
+        _PypiCredential=$PYPI_CREDENTIAL_PSW
+    fi
+    if [[ -z $_PypiCredential ]]; then
+        twine upload --config-file ${BUILD_PATH}/assets/pypirc -r $_PypiEnv $_SrcPath 2>&1 | tee -a ${BUILD_LOG}
+    else
+        _PypiCredential_modified=$(echo $_PypiCredential | tr -d '\\')
+        twine upload --config-file ${BUILD_PATH}/assets/pypirc -p $_PypiCredential_modified -r $_PypiEnv $_SrcPath 2>&1 | tee -a ${BUILD_LOG}
+    fi
 
     if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
         echo "Attempt to publish the wheel failed with rc: $?. Please check build.log for details"
