@@ -117,7 +117,6 @@ if [[ -z $_AdminPythonLocation ]]; then
     echo 'default admin python location'
     _AdminPythonLocation=$ADMIN_PY
 fi
-echo "python loc: $_AdminPythonLocation"
 
 if [[ ! -f $_AdminPythonLocation ]]; then
     echo "admin python necessary to build ${_Lib}. exiting."
@@ -138,7 +137,6 @@ if [[ -z $_BbghToken && $_Prod == 1 ]]; then
     fi
     _BbghToken=$BBGH_TOKEN_PSW
 fi
-# _TokenUrl="https://${_BbghToken}:$_LibUrl"
 
 # Check post build tag is a number
 if [[ ! -z $_PostBuildTag ]] && [[ ! $_PostBuildTag =~ ^[0-9]+$ ]]; then
@@ -193,12 +191,6 @@ function pull_salt {
     # Otherwise do some house cleaning bc we know we kept the build
     # dir.
     if [[ ! -d $LIB_PATH ]]; then
-        echo $_LibUrl
-        echo $LIB_NAME_VER
-        echo "tokenurl: ${_TokenUrl}"
-        echo '-----'
-        #exit 1
-        #git clone $_LibUrl $LIB_NAME_VER
         git clone $_TokenUrl $LIB_NAME_VER
         if [ $? -eq 0 ]; then
             echo "git clone succeeded"
