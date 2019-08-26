@@ -20,7 +20,7 @@ pipeline {
                 sh 'hostname'
                 sh 'pwd'
                 sh 'printenv'
-                sh 'bash ./build/dev-build.sh -v -b $CHANGE_ID'
+                sh 'bash ./build/build.sh -v -b $CHANGE_ID'
             }
         }
         stage('test') {
@@ -39,7 +39,7 @@ pipeline {
             steps {
                 sh 'echo ========================='
                 sh 'echo running Deploy to dev Stage'
-                sh 'bash ./build/dev-build.sh -b $CHANGE_ID -k -s -u'
+                sh 'bash ./build/build.sh -b $CHANGE_ID -k -s -u'
             }
         }
         stage('deploy to ose pypi') {
@@ -50,7 +50,7 @@ pipeline {
                 sh 'echo ========================='
                 sh 'echo running Deploy to ose pypi Stage'
                 sh 'TODO: add here'
-                // sh 'bash ./build/dev-build.sh -b $CHANGE_ID -k -s -u'
+                // sh 'bash ./build/build.sh -b $CHANGE_ID -k -s -u'
             }
         }
     }
