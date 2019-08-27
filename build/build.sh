@@ -264,7 +264,6 @@ function publish_salt {
     # This needs to align with aliases defined in
     # assets/pypirc
     if [[ $_Prod -eq $TRUE ]]; then
-        exit 1
         _PypiEnv="prod"
     fi
     echo "Uploading ${_SrcFile} to ${_PypiEnv} pypi ..."
@@ -304,7 +303,7 @@ function create_release {
 
     if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
         echo "Attempt to create a release failed with rc: $?. Please check build.log for details"
-        exit ${PIPESTATUS[0]}
+        exit 1
     fi
 }
 

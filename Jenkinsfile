@@ -7,10 +7,7 @@ pipeline {
     stages {
         stage('build') {
             when {
-                anyOf {
-                    changeRequest()
-                    branch 'v2018.3.3-ca'
-                }
+                changeRequest()
             }
             steps {
                 sh 'echo ========================'
@@ -20,7 +17,7 @@ pipeline {
                 sh 'hostname'
                 sh 'pwd'
                 sh 'printenv'
-                sh 'bash ./build/build.sh -v -b $CHANGE_ID'
+                sh 'bash ./build/build.sh -b $CHANGE_ID'
             }
         }
         stage('test') {
@@ -34,7 +31,7 @@ pipeline {
         }        
         stage('deploy to dev pypi') {
             when {
-                branch 'v2018.3.3-ca'
+                changeRequest()
             }
             steps {
                 sh 'echo ========================='
@@ -44,13 +41,15 @@ pipeline {
         }
         stage('deploy to ose pypi') {
             when {
-                tag "v20*"
+                anyOf {
+                    branch 'v2018.3.3-ca'
+                    branch 'voytek_test'
+                }
             }
             steps {
                 sh 'echo ========================='
                 sh 'echo running Deploy to ose pypi Stage'
-                sh 'TODO: add here'
-                // sh 'bash ./build/build.sh -b $CHANGE_ID -k -s -u'
+                sh 'bash ./build/build.sh -u -p -t $BBGH_TOKEN_PSW'
             }
         }
     }
