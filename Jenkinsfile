@@ -43,7 +43,6 @@ pipeline {
             when {
                 anyOf {
                     branch 'v2018.3.3-ca'
-                    branch 'voytek_test'
                 }
             }
             steps {

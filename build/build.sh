@@ -23,9 +23,7 @@ FALSE=0
 _LibName=salt
 _LibVer=2018.3.3
 _LibVerArr=(${_LibVer//./ })
-_LibUrl=@bbgithub.dev.bloomberg.com/saltstack/salt.git
 _LibBranch=v${_LibVer}-ca
-_LibTag=v${_LibVer}
 
 # Define build specific user opts
 _PypiEnv=dev
@@ -66,35 +64,34 @@ usage() {
   Options:
     -h  Display this message
     -a  Admin Python location.
-    -b  Build tag. Typically the build date with out a delimiter such as '20190403'.
-        If multiple builds on the same date are necessary, just add the next
-        available number such as '201904031'. (Default: '')
-    -B  Specify a build branch from the salt repo (Default: $_LibBranch)
+    -b  Build tag. This will be appended to _libVer (2018.3.3) to create a version.
+        For example, -b 777 will create a version 2018.3.3-777
+        If you omit this, the script will find the latest tag in github
+        and increment by one and append to _libVer.
     -k  Don't delete the python virtual env. Useful if you don't want to
         keep building a new virtual env every time. (Default: False)
     -p  Upload the wheel to the production pypi repo. (Default: False)
     -q  credential for uploading to pypi. You can also use PYPI_CREDENTIAL_PSW
-        environment variable or input the cred a the console. 
+        environment variable or, if not speicied at all, be prompted at the console.
     -s  Skip build steps. Useful if you built the artifacts earlier and 
-        are only interested in uploading them
+        are only interested in uploading them. (Default: False)
     -t  bbgithub token for creating a release
     -u  Upload the wheel to Artifactory pypi (Default: False)
     -v  Debug output
 EOT
 }
 
-while getopts ':ha:b:B:kpq:suvt:' opt
+while getopts ':ha:b:kpq:st:uv' opt
 do
   case "${opt}" in
     h ) usage; exit 0                               ;;
     a ) _AdminPythonLocation=$OPTARG                ;;
     b ) _PostBuildTag=$OPTARG                       ;;
-    B ) _BuildBranch=$OPTARG                        ;;
-    t ) _BbghToken=$OPTARG                          ;;
     k ) _KeepVirtEnv=$TRUE                          ;;
     p ) _Prod=$TRUE                                 ;;
     q ) _PypiCredential=$OPTARG                     ;;
     s ) _SkipBuild=$TRUE                            ;;
+    t ) _BbghToken=$OPTARG                          ;;
     u ) _Upload=$TRUE                               ;;
     v ) set -x                                      ;;
     \?)  echo
@@ -111,8 +108,6 @@ shift $((OPTIND-1))
 #           checks
 # --------------------------------------------------------
 
-# TODO
-#   install admin py 37 as i'm sure we'll need this for jenkins
 if [[ -z $_AdminPythonLocation ]]; then
     echo 'default admin python location'
     _AdminPythonLocation=$ADMIN_PY
@@ -153,21 +148,19 @@ fi
 # --------------------------------------------------------
 
 function setup_build_env {
+    # this function creates a venv, activates it and installs dependencies 
+
     # if virtenv path is present, determine if we want to clean house
     # or keep it. Otherwise just create the virtenv path
-    if [[ -d $VIRTENV_PATH ]]; then
+    if [[ "$_KeepVirtEnv" -eq "$FALSE" ]]; then
+        echo "Found old virtenv dir... deleting"
+        rm -rf $VIRTENV_PATH
+    fi
 
-        if [[ "$_KeepVirtEnv" -eq "$FALSE" ]]; then
-            echo "Found old virtenv dir... deleting"
-            rm -rf $VIRTENV_PATH
-            $_AdminPythonLocation -m venv $VIRTENV_PATH
-        else
-            echo "KeepVirtEnv enabled... skipping virtenv dir removal"
-        fi
-
-    else
-        # virtenv not present so create it
+    if [[ ! -d $VIRTENV_PATH ]]; then
         $_AdminPythonLocation -m venv $VIRTENV_PATH
+    else
+        echo "KeepVirtEnv enabled... skipping virtenv dir removal"
     fi
 
     cp $ASSETS_PATH/pip.conf $VIRTENV_PATH
@@ -181,42 +174,9 @@ function setup_build_env {
     pip install --upgrade -r $ASSETS_PATH/requirements.txt
 }
 
-function pull_salt {
-    # no longer needed with single repo
-    return
-
-    cd $BUILD_PATH
-
-    # If not present, clone the repo and checkout the branch
-    # Otherwise do some house cleaning bc we know we kept the build
-    # dir.
-    if [[ ! -d $LIB_PATH ]]; then
-        git clone $_TokenUrl $LIB_NAME_VER
-        if [ $? -eq 0 ]; then
-            echo "git clone succeeded"
-        else
-            echo "git clone failed. Check permissions"
-            exit 1
-        fi
-        cd $LIB_PATH
-        git fetch origin
-        git checkout ${_BuildBranch}
-    else
-        cd $LIB_PATH
-        git clean -f -d
-        git reset --hard origin/develop
-        git checkout develop
-        git pull origin develop
-        git rev-parse --verify ${_BuildBranch} > /dev/null 2>&1
-        if [[ ${PIPESTATUS[0]} -eq 0 ]]; then
-            echo "deleting old ${_BuildBranch} ... "
-            git branch -D ${_BuildBranch}
-        fi
-        git checkout ${_BuildBranch}
-    fi
-}
 
 function build_salt {
+    # this function will use setuptools to build an sdist
     cd $LIB_PATH
 
     # copy in our requirements files as we need to use specific libs
@@ -249,7 +209,7 @@ EOF
     python setup.py sdist 2>&1 | tee -a ${BUILD_LOG}
     if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
         echo "python build exited non-zero: $?. Please check build.log for details"
-        exit ${PIPESTATUS[0]}
+        exit 1
     fi
 
     if [[ ! -f ${_SrcPath} ]]; then
@@ -260,6 +220,7 @@ EOF
 }
 
 function publish_salt {
+    # this function will push the package to pypi
 
     # This needs to align with aliases defined in
     # assets/pypirc
@@ -285,7 +246,8 @@ function publish_salt {
 
 }
 
-function gen_post_data {
+function generate_github_release_data {
+    # this function creates content for a tag that will be later sent to github
     tag=v${_LibVer}-${_PostBuildTag}
     cat <<EOF
 {
@@ -298,8 +260,9 @@ EOF
 }
 
 function create_release {
+    # this function will create a tag via github API
     # TODO: Handle errors by capturing the output
-    curl $RELEASE_URL -H "Authorization: token ${_BbghToken}" -d "$(gen_post_data)"
+    curl $RELEASE_URL -H "Authorization: token ${_BbghToken}" -d "$(generate_github_release_data)" 2>&1 | tee -a ${BUILD_LOG}
 
     if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
         echo "Attempt to create a release failed with rc: $?. Please check build.log for details"
@@ -314,7 +277,6 @@ function create_release {
 # setup
 setup_build_env
 if [[ "$_SkipBuild" -ne "$TRUE" ]]; then
-    pull_salt
     if [[ -z $_PostBuildTag ]]; then
         cd $LIB_PATH
         git fetch --tags
@@ -331,20 +293,19 @@ _SrcPath=${LIB_DIST_PATH}/${_SrcFile}
 
 if [[ "$_SkipBuild" -ne "$TRUE" ]]; then
     echo
-    echo "Building new source distro for sysca salt from branch '${_BuildBranch}' on release ${_PostBuildTag} ..."
+    echo "Building new source distro for sysca salt from branch '${_BuildBranch}' on release '${_PostBuildTag}' ..."
     echo
     build_salt
 fi
 
 # publish
-if [[ "$_Upload" -eq "$TRUE" ]]; then
-    if [[ $_Prod -eq $TRUE ]];then
-        # Only create a release if publishing to prod
-        create_release
-    fi
-    publish_salt
-else
+if [[ "$_Upload" -eq "$FALSE" ]]; then
     echo "Will not upload wheel to ${_PypiEnv} pypi. File is available at:"
     echo ${_SrcPath}
+    exit 0
 fi
-exit 0
+if [[ $_Prod -eq $TRUE ]];then
+    # Only create a release if publishing to prod
+    create_release
+fi
+publish_salt
