@@ -525,6 +525,13 @@ class SaltTestsuiteParser(SaltCoverageTestingParser):
             default=False,
             help='Run utils integration tests'
         )
+        self.test_selection_group.add_option(
+            '--sdb',
+            dest='sdb',
+            action='store_true',
+            default=False,
+            help='Run sdb integration tests'
+        )
 
     def validate_options(self):
         if self.options.cloud_provider or self.options.external_api:
