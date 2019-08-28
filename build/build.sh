@@ -36,6 +36,7 @@ _KeepVirtEnv=$FALSE
 _PostBuildTag=
 _BuildBranch=
 _SkipBuild=$FALSE
+_BbghToken=${BBGH_TOKEN_PSW:-}
 
 # Define general const
 NS=bloomberg.coreauto
@@ -113,11 +114,8 @@ if [[ ! -f $ADMIN_PY ]]; then
 fi
 
 if [[ -z $_BbghToken && $_Prod == 1 ]]; then
-  if [[ -z $BBGH_TOKEN_PSW ]]; then
-      echo "BBGH token is necessary to create a prod release. Please use -t or set BBGH_TOKEN_PSW"
-      exit 1
-  fi
-  _BbghToken=$BBGH_TOKEN_PSW
+  echo "BBGH token is necessary to create a prod release. Please use -t or set BBGH_TOKEN_PSW"
+  exit 1
 fi
 
 # Check post build tag is a number
@@ -154,9 +152,10 @@ function setup_build_env {
 
   # activate virtenv and install build deps
   . $VIRTENV_PATH/bin/activate
-  if [ $? -ne 0 ]; then
+  rc=$?
+  if [ $rc -ne 0 ]; then
     echo "Unable to activate venv"
-    exit 1
+    exit $rc
   fi
   pip install --upgrade -r $ASSETS_PATH/requirements.txt
 }
