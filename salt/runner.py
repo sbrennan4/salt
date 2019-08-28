@@ -277,9 +277,8 @@ class Runner(RunnerClient):
                 if 'data' in ret and 'return' in ret['data']:
                     ret = ret['data']['return']
 
-            if isinstance(ret, dict) and set(ret) == {'data', 'outputter', 'retcode'}:
+            if isinstance(ret, dict) and set(ret) >= {'data', 'outputter'}:
                 outputter = ret['outputter']
-                ret = ret['data']
             else:
                 outputter = None
             display_output(ret, outputter, self.opts)
