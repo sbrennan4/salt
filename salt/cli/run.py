@@ -21,6 +21,14 @@ class SaltRun(salt.utils.parsers.SaltRunOptionParser):
         import salt.runner
         self.parse_args()
 
+        timeout = None
+
+        # we only want to pass in a non-zero timeout if its expliclty specified
+        for option in self.option_list:
+            if option.dest == 'timeout' and hasattr(option, 'explicit'):
+                timeout = getattr(self.options, 'timeout', None)
+                break
+
         # Setup file logging!
         self.setup_logfile_logger()
         verify_log(self.config)
@@ -30,6 +38,7 @@ class SaltRun(salt.utils.parsers.SaltRunOptionParser):
             self.config['eauth_opts'] = yamlify_arg(getattr(self.options, 'eauth_opts'))
 
         runner = salt.runner.Runner(self.config)
+
         if self.options.doc:
             runner.print_docs()
             self.exit(salt.defaults.exitcodes.EX_OK)
@@ -40,7 +49,7 @@ class SaltRun(salt.utils.parsers.SaltRunOptionParser):
             if check_user(self.config['user']):
                 pr = salt.utils.profile.activate_profile(profiling_enabled)
                 try:
-                    ret = runner.run()
+                    ret = runner.run(timeout=timeout)
                     # In older versions ret['data']['retcode'] was used
                     # for signaling the return code. This has been
                     # changed for the orchestrate runner, but external
