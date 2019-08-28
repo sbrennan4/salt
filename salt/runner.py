@@ -272,8 +272,10 @@ class Runner(RunnerClient):
                 # this would be more sane to set to 0/-1 for a timeout,
                 # but salt.utils.parsers does not respect default_timeout. cant
                 # figure out where its picking that default up from
-                ret = self.cmd_sync(low, timeout=timeout)
-
+                ret = self.cmd_sync(low, timeout=timeout, full_return=True)
+                # unwrap a layer of the full_return
+                if 'data' in ret and 'return' in ret['data']:
+                    ret = ret['data']['return']
 
             if isinstance(ret, dict) and set(ret) == {'data', 'outputter', 'retcode'}:
                 outputter = ret['outputter']
