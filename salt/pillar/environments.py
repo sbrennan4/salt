@@ -130,16 +130,17 @@ def global_tenancy_groups_set():
 # first try node-id if it exists in grains, then try the minion_id
 def resolve_node(minion_id):
     if __grains__.get('bb', {}).get('node-id'):
+        node_id = __grains__['bb']['node-id']
         try:
-            return hostinfo.host(__grains__['bb']['node-id'])
+            return hostinfo.host(node_id)
         except hostinfo.HostLookupError:
-            log.debug('%s minion not found via node-id.', minion_id)
+            log.debug('%s minion not found via node-id.', node_id)
 
     # if an exception was caught lets try with minion_id
     try:
         return hostinfo.host(minion_id)
     except hostinfo.HostLookupError:
-        log.debug('%s minion not found via node-id.', minion_id)
+        log.debug('%s minion not found via minion-id.', minion_id)
 
     # if we've gotten this far its an unknown node
     return None
