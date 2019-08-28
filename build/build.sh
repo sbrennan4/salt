@@ -179,14 +179,6 @@ function build_salt {
     # this function will use setuptools to build an sdist
     cd $LIB_PATH
 
-    # copy in our requirements files as we need to use specific libs
-    # and versions
-    cp $ASSETS_PATH/base.txt $LIB_PATH/requirements/base.txt
-    cp $ASSETS_PATH/zeromq.txt $LIB_PATH/requirements/zeromq.txt
-
-    # copy in our setup.py
-    cp $ASSETS_PATH/setup.py $LIB_PATH/setup.py
-
     # Create the post-release tag for this build
     #
     # NOTE:

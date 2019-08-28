@@ -1,4 +1,0 @@
--r base.txt
-
-pyzmq==18.0.1
-pycryptodomex==3.8.1
