@@ -182,7 +182,7 @@ class Runner(RunnerClient):
             print(docs[fun])
 
     # TODO: move to mixin whenever we want a salt-wheel cli
-    def run(self):
+    def run(self, timeout=None):
         '''
         Execute the runner sequence
         '''
@@ -190,9 +190,9 @@ class Runner(RunnerClient):
         if self.opts.get('doc', False):
             self.print_docs()
         else:
-            return self._run_runner()
+            return self._run_runner(timeout)
 
-    def _run_runner(self):
+    def _run_runner(self, timeout=None):
         '''
         Actually execute specific runner
         :return:
@@ -272,10 +272,7 @@ class Runner(RunnerClient):
                 # this would be more sane to set to 0/-1 for a timeout,
                 # but salt.utils.parsers does not respect default_timeout. cant
                 # figure out where its picking that default up from
-                if self.opts['timeout'] != 1:
-                    ret = self.cmd_sync(low, timeout=self.opts['timeout'])
-                else:
-                    ret = self.cmd_sync(low)
+                ret = self.cmd_sync(low, timeout=timeout)
 
 
             if isinstance(ret, dict) and set(ret) == {'data', 'outputter', 'retcode'}:
