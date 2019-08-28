@@ -14,7 +14,7 @@ interface.
 .. code-block:: yaml
 
     eauth_tokens: cache
-    eauth_cache_driver: pg_cache
+    eauth_cache_driver: pgjsonb
 
 If the cache backend needs extra configurations, set them as you would normally for the
 targeted salt.cache interface.
