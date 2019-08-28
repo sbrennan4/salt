@@ -144,6 +144,10 @@ class RunnerClient(mixins.SyncClientMixin, mixins.AsyncClientMixin, object):
             })
         '''
         reformatted_low = self._reformat_low(low)
+
+        # wait forever via an explicit 0 timeout if not explicitly set
+        if timeout is None:
+            timeout = 0
         return mixins.SyncClientMixin.cmd_sync(self, reformatted_low, timeout, full_return)
 
     def cmd(self, fun, arg=None, pub_data=None, kwarg=None, print_event=True, full_return=False):
@@ -265,7 +269,14 @@ class Runner(RunnerClient):
                 )
                 return async_pub['jid']  # return the jid
             else:
-                ret = self.cmd_sync(low)
+                # this would be more sane to set to 0/-1 for a timeout,
+                # but salt.utils.parsers does not respect default_timeout. cant
+                # figure out where its picking that default up from
+                if self.opts['timeout'] != 1:
+                    ret = self.cmd_sync(low, timeout=self.opts['timeout'])
+                else:
+                    ret = self.cmd_sync(low)
+
 
             if isinstance(ret, dict) and set(ret) == {'data', 'outputter', 'retcode'}:
                 outputter = ret['outputter']
