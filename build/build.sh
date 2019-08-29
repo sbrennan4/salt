@@ -37,6 +37,7 @@ _PostBuildTag=
 _BuildBranch=
 _SkipBuild=$FALSE
 _BbghToken=${BBGH_TOKEN_PSW:-}
+_PypiCredential=${PYPI_CREDENTIAL_PSW:-}
 
 # Define general const
 NS=bloomberg.coreauto
@@ -207,9 +208,6 @@ function publish_salt {
   fi
   echo "Uploading ${_SrcFile} to ${_PypiEnv} pypi ..."
 
-  if [[ -z $_PypiCredential ]]; then
-    _PypiCredential=$PYPI_CREDENTIAL_PSW
-  fi
   if [[ -z $_PypiCredential ]]; then
     twine upload --config-file ${BUILD_PATH}/assets/pypirc -r $_PypiEnv $_SrcPath 2>&1 | tee -a ${BUILD_LOG}
   else
