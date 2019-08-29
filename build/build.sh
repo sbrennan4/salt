@@ -1,4 +1,6 @@
 #!/bin/bash
+# vim: softtabstop=2 shiftwidth=2 expandtab
+
 # ================================================
 #
 #   Core Auto build script for
@@ -34,6 +36,8 @@ _KeepVirtEnv=$FALSE
 _PostBuildTag=
 _BuildBranch=
 _SkipBuild=$FALSE
+_BbghToken=${BBGH_TOKEN_PSW:-}
+_PypiCredential=${PYPI_CREDENTIAL_PSW:-}
 
 # Define general const
 NS=bloomberg.coreauto
@@ -51,7 +55,6 @@ LIB_PATH=${ROOT_PATH}
 LIB_DIST_PATH=${LIB_PATH}/dist
 LIB_PATCHES_PATH=${LIB_PATH}/patches
 
-
 # env set
 export https_proxy=http://devproxy.bloomberg.com:82
 export no_proxy=artprod.dev.bloomberg.com,bbgithub.dev.bloomberg.com
@@ -63,7 +66,6 @@ usage() {
 
   Options:
     -h  Display this message
-    -a  Admin Python location.
     -b  Build tag. This will be appended to _libVer (2018.3.3) to create a version.
         For example, -b 777 will create a version 2018.3.3-777
         If you omit this, the script will find the latest tag in github
@@ -81,11 +83,10 @@ usage() {
 EOT
 }
 
-while getopts ':ha:b:kpq:st:uv' opt
+while getopts ':hb:kpq:st:uv' opt
 do
   case "${opt}" in
     h ) usage; exit 0                               ;;
-    a ) _AdminPythonLocation=$OPTARG                ;;
     b ) _PostBuildTag=$OPTARG                       ;;
     k ) _KeepVirtEnv=$TRUE                          ;;
     p ) _Prod=$TRUE                                 ;;
@@ -108,39 +109,24 @@ shift $((OPTIND-1))
 #           checks
 # --------------------------------------------------------
 
-if [[ -z $_AdminPythonLocation ]]; then
-    echo 'default admin python location'
-    _AdminPythonLocation=$ADMIN_PY
-fi
-
-if [[ ! -f $_AdminPythonLocation ]]; then
-    echo "admin python necessary to build ${_Lib}. exiting."
-    exit 1
-fi
-
-if  ($_AdminPythonLocation -V); then
-    echo "able to run admin python"
-else
-    echo "Unable to run admin python. Check that it's installed and permissioned properly"
-    exit 1
+if [[ ! -f $ADMIN_PY ]]; then
+  echo "admin python necessary to build ${_Lib}. exiting."
+  exit 1
 fi
 
 if [[ -z $_BbghToken && $_Prod == 1 ]]; then
-    if [[ -z $BBGH_TOKEN_PSW ]]; then
-        echo "BBGH token is necessary to create a prod release. Please use -t or set BBGH_TOKEN_PSW"
-        exit 1
-    fi
-    _BbghToken=$BBGH_TOKEN_PSW
+  echo "BBGH token is necessary to create a prod release. Please use -t or set BBGH_TOKEN_PSW"
+  exit 1
 fi
 
 # Check post build tag is a number
 if [[ ! -z $_PostBuildTag ]] && [[ ! $_PostBuildTag =~ ^[0-9]+$ ]]; then
-    echo "error: Post build tag is Not a number!" >&2
-    exit 1
+  echo "error: Post build tag is Not a number!" >&2
+  exit 1
 fi
 
 if [[ -z $_BuildBranch ]]; then
-    _BuildBranch=$_LibBranch
+  _BuildBranch=$_LibBranch
 fi
 
 # --------------------------------------------------------
@@ -148,119 +134,119 @@ fi
 # --------------------------------------------------------
 
 function setup_build_env {
-    # this function creates a venv, activates it and installs dependencies 
+  # this function creates a venv, activates it and installs dependencies 
 
-    # if virtenv path is present, determine if we want to clean house
-    # or keep it. Otherwise just create the virtenv path
-    if [[ "$_KeepVirtEnv" -eq "$FALSE" ]]; then
-        echo "Found old virtenv dir... deleting"
-        rm -rf $VIRTENV_PATH
-    fi
+  # if virtenv path is present, determine if we want to clean house
+  # or keep it. Otherwise just create the virtenv path
+  if [[ "$_KeepVirtEnv" -eq "$FALSE" ]]; then
+    echo "Found old virtenv dir... deleting"
+    rm -rf $VIRTENV_PATH
+  fi
 
-    if [[ ! -d $VIRTENV_PATH ]]; then
-        $_AdminPythonLocation -m venv $VIRTENV_PATH
-    else
-        echo "KeepVirtEnv enabled... skipping virtenv dir removal"
-    fi
+  if [[ ! -d $VIRTENV_PATH ]]; then
+    $ADMIN_PY -m venv $VIRTENV_PATH
+  else
+    echo "KeepVirtEnv enabled... skipping virtenv dir removal"
+  fi
 
-    cp $ASSETS_PATH/pip.conf $VIRTENV_PATH
+  cp $ASSETS_PATH/pip.conf $VIRTENV_PATH
 
-    # activate virtenv and install build deps
-    . $VIRTENV_PATH/bin/activate
-    if [ $? -ne 0 ]; then
-        echo "Unable to activate venv"
-        exit 1
-    fi
-    pip install --upgrade -r $ASSETS_PATH/requirements.txt
+  # activate virtenv and install build deps
+  . $VIRTENV_PATH/bin/activate
+  rc=$?
+  if [ $rc -ne 0 ]; then
+    echo "Unable to activate venv"
+    exit $rc
+  fi
+  pip install --upgrade -r $ASSETS_PATH/requirements.txt
 }
 
 
 function build_salt {
-    # this function will use setuptools to build an sdist
-    cd $LIB_PATH
+  # this function will use setuptools to build an sdist
+  cd $LIB_PATH
 
-    # Create the post-release tag for this build
-    #
-    # NOTE:
-    #   --with-salt-version only works when specifically executing `python setup.py build`.
-    #   Since sdist does not build from the build dir, we need to hijack `salt/_version.py` and
-    #   drop in our own version to get a post build release.
-    #
-    #   see https://github.com/saltstack/salt/pull/43955
-    cat <<EOF > ${LIB_PATH}/salt/_version.py
+  # Create the post-release tag for this build
+  #
+  # NOTE:
+  #   --with-salt-version only works when specifically executing `python setup.py build`.
+  #   Since sdist does not build from the build dir, we need to hijack `salt/_version.py` and
+  #   drop in our own version to get a post build release.
+  #
+  #   see https://github.com/saltstack/salt/pull/43955
+  cat <<EOF > ${LIB_PATH}/salt/_version.py
 from salt.version import SaltStackVersion
 __saltstack_version__ = SaltStackVersion(${_LibVerArr[0]}, ${_LibVerArr[1]}, ${_LibVerArr[2]}, None, '_', ${_PostBuildTag}, None, None)
 EOF
 
-    # clean up if told to
-    if [[ "$_KeepBuildDir" -eq "$TRUE" ]];then
-        python setup.py clean --all
-    fi
+  # clean up if told to
+  if [[ "$_KeepBuildDir" -eq "$TRUE" ]];then
+    python setup.py clean --all
+  fi
 
-    # Build the src distro
-    python setup.py sdist 2>&1 | tee -a ${BUILD_LOG}
-    if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
-        echo "python build exited non-zero: $?. Please check build.log for details"
-        exit 1
-    fi
+  # Build the src distro
+  python setup.py sdist 2>&1 | tee -a ${BUILD_LOG}
+  rc=${PIPESTATUS[0]}
+  if [[ $rc -ne 0 ]]; then
+    echo "python build exited non-zero: ${rc}. Please check build.log for details"
+    exit $rc
+  fi
 
-    if [[ ! -f ${_SrcPath} ]]; then
-        echo "Seems ${_SrcPath} is not present. Did it build correctly? Please check build.log"
-        exit 1
-    fi
+  if [[ ! -f ${_SrcPath} ]]; then
+    echo "Seems ${_SrcPath} is not present. Did it build correctly? Please check build.log"
+    exit 1
+  fi
 
 }
 
 function publish_salt {
-    # this function will push the package to pypi
+  # this function will push the package to pypi
 
-    # This needs to align with aliases defined in
-    # assets/pypirc
-    if [[ $_Prod -eq $TRUE ]]; then
-        _PypiEnv="prod"
-    fi
-    echo "Uploading ${_SrcFile} to ${_PypiEnv} pypi ..."
+  # This needs to align with aliases defined in
+  # assets/pypirc
+  if [[ $_Prod -eq $TRUE ]]; then
+    _PypiEnv="prod"
+  fi
+  echo "Uploading ${_SrcFile} to ${_PypiEnv} pypi ..."
 
-    if [[ -z $_PypiCredential ]]; then
-        _PypiCredential=$PYPI_CREDENTIAL_PSW
-    fi
-    if [[ -z $_PypiCredential ]]; then
-        twine upload --config-file ${BUILD_PATH}/assets/pypirc -r $_PypiEnv $_SrcPath 2>&1 | tee -a ${BUILD_LOG}
-    else
-        _PypiCredential_modified=$(echo $_PypiCredential | tr -d '\\')
-        twine upload --config-file ${BUILD_PATH}/assets/pypirc -p $_PypiCredential_modified -r $_PypiEnv $_SrcPath 2>&1 | tee -a ${BUILD_LOG}
-    fi
-
-    if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
-        echo "Attempt to publish the wheel failed with rc: $?. Please check build.log for details"
-        exit 1
-    fi
-
+  if [[ -z $_PypiCredential ]]; then
+    twine upload --config-file ${BUILD_PATH}/assets/pypirc -r $_PypiEnv $_SrcPath 2>&1 | tee -a ${BUILD_LOG}
+  else
+    _PypiCredential_modified=$(echo $_PypiCredential | tr -d '\\')
+    twine upload --config-file ${BUILD_PATH}/assets/pypirc -p $_PypiCredential_modified -r $_PypiEnv $_SrcPath 2>&1 | tee -a ${BUILD_LOG}
+  fi
+  rc=${PIPESTATUS[0]}
+  if [[ $rc -ne 0 ]]; then
+    echo "Attempt to publish the wheel failed with rc: ${rc}. Please check build.log for details"
+    exit $rc
+  fi
 }
 
 function generate_github_release_data {
-    # this function creates content for a tag that will be later sent to github
-    tag=v${_LibVer}-${_PostBuildTag}
-    cat <<EOF
+  # this function creates content for a tag that will be later sent to github
+  tag=v${_LibVer}-${_PostBuildTag}
+  cat <<EOF
 {
-    "name": "$tag",
-    "tag_name": "$tag",
-    "target_commitish": "$_BuildBranch",
-    "body": "NOTICE: This is Bloomberg's patched version of Saltstack and may contain breaking changes or code not available to the upstream repository."
+  "name": "$tag",
+  "tag_name": "$tag",
+  "target_commitish": "$_BuildBranch",
+  "body": "NOTICE: This is Bloomberg's patched version of Saltstack and may contain breaking changes or code not available to the upstream repository."
 }
 EOF
 }
 
 function create_release {
-    # this function will create a tag via github API
-    # TODO: Handle errors by capturing the output
-    curl $RELEASE_URL -H "Authorization: token ${_BbghToken}" -d "$(generate_github_release_data)" 2>&1 | tee -a ${BUILD_LOG}
-
-    if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
-        echo "Attempt to create a release failed with rc: $?. Please check build.log for details"
-        exit 1
-    fi
+  # this function will create a tag via github API
+  # TODO: Handle errors by capturing the output
+  curl $RELEASE_URL -H "Authorization: token ${_BbghToken}" -d "$(generate_github_release_data)" 2>&1 | tee -a ${BUILD_LOG}
+  rc=${PIPESTATUS[0]}
+  if [[ $rc -ne 0 ]]; then
+    echo "Attempt to create a release failed with rc: ${rc}. Please check build.log for details"
+    exit $rc
+  fi
 }
+
+
 
 # --------------------------------------------------------
 #           main
@@ -269,35 +255,35 @@ function create_release {
 # setup
 setup_build_env
 if [[ "$_SkipBuild" -ne "$TRUE" ]]; then
-    if [[ -z $_PostBuildTag ]]; then
-        cd $LIB_PATH
-        git fetch --tags
-        _last_build=$(git describe --abbrev=0 --tags | cut -d - -f2)
-        if [[ ! -z $_last_build  && $_last_build =~ ^[0-9]+$ ]]; then
-            _PostBuildTag=$(expr $_last_build + 1)
-        else
-            _PostBuildTag=0
-        fi
+  if [[ -z $_PostBuildTag ]]; then
+    cd $LIB_PATH
+    git fetch --tags
+    _last_build=$(git describe --abbrev=0 --tags | cut -d - -f2)
+    if [[ ! -z $_last_build  && $_last_build =~ ^[0-9]+$ ]]; then
+      _PostBuildTag=$(expr $_last_build + 1)
+    else
+      _PostBuildTag=0
     fi
+  fi
 fi
 _SrcFile=${NS}.${LIB_NAME_VER}-${_PostBuildTag}.tar.gz
 _SrcPath=${LIB_DIST_PATH}/${_SrcFile}
 
 if [[ "$_SkipBuild" -ne "$TRUE" ]]; then
-    echo
-    echo "Building new source distro for sysca salt from branch '${_BuildBranch}' on release '${_PostBuildTag}' ..."
-    echo
-    build_salt
+  echo
+  echo "Building new source distro for sysca salt from branch '${_BuildBranch}' on release '${_PostBuildTag}' ..."
+  echo
+  build_salt
 fi
 
 # publish
 if [[ "$_Upload" -eq "$FALSE" ]]; then
-    echo "Will not upload wheel to ${_PypiEnv} pypi. File is available at:"
-    echo ${_SrcPath}
-    exit 0
+  echo "Will not upload wheel to ${_PypiEnv} pypi. File is available at:"
+  echo ${_SrcPath}
+  exit 0
 fi
 if [[ $_Prod -eq $TRUE ]];then
-    # Only create a release if publishing to prod
-    create_release
+  # Only create a release if publishing to prod
+  create_release
 fi
 publish_salt
