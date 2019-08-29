@@ -186,9 +186,10 @@ EOF
 
   # Build the src distro
   python setup.py sdist 2>&1 | tee -a ${BUILD_LOG}
-  if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
-    echo "python build exited non-zero: ${PIPESTATUS[0]}. Please check build.log for details"
-    exit ${PIPESTATUS[0]}
+  rc=${PIPESTATUS[0]}
+  if [[ $rc -ne 0 ]]; then
+    echo "python build exited non-zero: ${rc}. Please check build.log for details"
+    exit $rc
   fi
 
   if [[ ! -f ${_SrcPath} ]]; then
@@ -214,9 +215,10 @@ function publish_salt {
     _PypiCredential_modified=$(echo $_PypiCredential | tr -d '\\')
     twine upload --config-file ${BUILD_PATH}/assets/pypirc -p $_PypiCredential_modified -r $_PypiEnv $_SrcPath 2>&1 | tee -a ${BUILD_LOG}
   fi
-  if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
-    echo "Attempt to publish the wheel failed with rc: ${PIPESTATUS[0]}. Please check build.log for details"
-    exit ${PIPESTATUS[0]}
+  rc=${PIPESTATUS[0]}
+  if [[ $rc -ne 0 ]]; then
+    echo "Attempt to publish the wheel failed with rc: ${rc}. Please check build.log for details"
+    exit $rc
   fi
 }
 
@@ -237,9 +239,10 @@ function create_release {
   # this function will create a tag via github API
   # TODO: Handle errors by capturing the output
   curl $RELEASE_URL -H "Authorization: token ${_BbghToken}" -d "$(generate_github_release_data)" 2>&1 | tee -a ${BUILD_LOG}
-  if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
-    echo "Attempt to create a release failed with rc: ${PIPESTATUS[0]}. Please check build.log for details"
-    exit ${PIPESTATUS[0]}
+  rc=${PIPESTATUS[0]}
+  if [[ $rc -ne 0 ]]; then
+    echo "Attempt to create a release failed with rc: ${rc}. Please check build.log for details"
+    exit $rc
   fi
 }
 
