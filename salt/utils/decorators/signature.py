@@ -5,11 +5,8 @@ which is being wrapped.
 '''
 # Import Python libs
 from __future__ import absolute_import, print_function, unicode_literals
-import inspect
 from functools import wraps
-
-# Import Salt libs
-import salt.utils.args
+from inspect import signature
 
 # Import 3rd-party libs
 from salt.ext import six
@@ -21,20 +18,16 @@ def identical_signature_wrapper(original_function, wrapped_function):
     will call the ``wrapped_function``.
     '''
     context = {'__wrapped__': wrapped_function}
+    sig = signature(original_function)
     function_def = compile(
         'def {0}({1}):\n'
         '    return __wrapped__({2})'.format(
             # Keep the original function name
             original_function.__name__,
             # The function signature including defaults, i.e., 'timeout=1'
-            inspect.formatargspec(
-                *salt.utils.args.get_function_argspec(original_function)
-            )[1:-1],
+            str(sig)[1:-1],
             # The function signature without the defaults
-            inspect.formatargspec(
-                formatvalue=lambda val: '',
-                *salt.utils.args.get_function_argspec(original_function)
-            )[1:-1]
+            str(sig.replace(parameters=[p.replace(default=inspect.Parameter.empty) for p in sig.parameters.values()]))[1:-1],
         ),
         '<string>',
         'exec'
