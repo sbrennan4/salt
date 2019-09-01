@@ -2101,7 +2101,7 @@ class ClearFuncs(object):
 
         # if auth_check is already in the request ctx, we don't re-authenticate, we assume
         # from the previous call up the stack it is authenticated and just authorize
-        if 'auth_check' in RequestContext.current and 'eauth' not in clear_load and 'eauth' not in clear_load.get('kwargs'):
+        if 'auth_check' in RequestContext.current and 'eauth' not in clear_load and 'eauth' not in clear_load.get('kwargs', {}):
             auth_check = RequestContext.current['auth_check']
         else:
             if auth_type == 'user':
