@@ -6,6 +6,7 @@ which is being wrapped.
 # Import Python libs
 from __future__ import absolute_import, print_function, unicode_literals
 from functools import wraps
+import inspect
 from inspect import signature
 
 # Import 3rd-party libs
