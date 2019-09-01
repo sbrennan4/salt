@@ -1992,7 +1992,11 @@ class ClearFuncs(object):
         auth_type, err_name, key, sensitive_load_keys = self._prep_auth_info(clear_load)
 
         # Authenticate
-        auth_check = self.loadauth.check_authentication(clear_load, auth_type, key=key)
+        if 'auth_check' in RequestContext.current and 'eauth' not in clear_load:
+            auth_check = RequestContext.current['auth_check']
+        else:
+            auth_check = self.loadauth.check_authentication(clear_load, auth_type, key=key)
+
         error = auth_check.get('error')
 
         if error:

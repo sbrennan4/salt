@@ -1656,10 +1656,6 @@ def wheel(name, *args, **kwargs):
     if 'auth_check' in kwargs:
         raise AuthorizationError('auth_check found in saltutil.cmd kwargs. Someone is trying to be clever and circumvent acl')
 
-    if 'auth_check' in RequestContext.current:
-        log.debug('RequestContext.current auth_check: %s', RequestContext.current['auth_check'])
-        kwargs['auth_check'] = RequestContext.current['auth_check']
-
     jid = kwargs.pop('__orchestration_jid__', None)
     saltenv = kwargs.pop('__env__', 'base')
 
@@ -1699,6 +1695,11 @@ def wheel(name, *args, **kwargs):
 
         master_key = salt.utils.master.get_master_key('root', __opts__)
         low = {'arg': args, 'kwarg': kwargs, 'fun': name, 'key': master_key}
+
+        if 'auth_check' in RequestContext.current:
+            log.debug('RequestContext.current auth_check: %s', RequestContext.current['auth_check'])
+            kwargs['auth_check'] = RequestContext.current['auth_check']
+
         if kwargs.pop('asynchronous', False):
             ret = wheel_client.cmd_async(low)
         else:
