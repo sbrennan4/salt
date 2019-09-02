@@ -1576,10 +1576,11 @@ def runner(name, arg=None, kwarg=None, full_return=False, saltenv='base', jid=No
     if 'master_job_cache' not in __opts__:
         master_config = os.path.join(os.path.dirname(__opts__['conf_file']),
                                      'master')
-        master_opts = salt.config.master_config(master_config)
-        rclient = salt.runner.RunnerClient(master_opts)
+        opts = salt.config.master_config(master_config)
+        rclient = salt.runner.RunnerClient(opts)
     else:
-        rclient = salt.runner.RunnerClient(__opts__)
+        opts = __opts__
+        rclient = salt.runner.RunnerClient(opts)
 
     if name in rclient.functions:
         aspec = salt.utils.args.get_function_argspec(rclient.functions[name])
@@ -1597,7 +1598,7 @@ def runner(name, arg=None, kwarg=None, full_return=False, saltenv='base', jid=No
             prefix='run'
         )
 
-    master_key = salt.utils.master.get_master_key('root', __opts__)
+    master_key = salt.utils.master.get_master_key('root', opts)
     low = {'arg': arg, 'kwarg': kwarg, 'fun': name, 'key': master_key}
     if eauth:
         low['eauth'] = eauth
@@ -1609,8 +1610,7 @@ def runner(name, arg=None, kwarg=None, full_return=False, saltenv='base', jid=No
     if asynchronous:
         return rclient.cmd_async(low)
     else:
-        ret = rclient.cmd_sync(low, full_return=True)
-        return ret.get('data', ret)
+        return rclient.cmd_sync(low, full_return=full_return)
 
 def wheel(name, *args, **kwargs):
     '''
@@ -1662,10 +1662,11 @@ def wheel(name, *args, **kwargs):
     if __opts__['__role'] == 'minion':
         master_config = os.path.join(os.path.dirname(__opts__['conf_file']),
                                      'master')
-        master_opts = salt.config.client_config(master_config)
-        wheel_client = salt.wheel.WheelClient(master_opts)
+        opts = salt.config.client_config(master_config)
+        wheel_client = salt.wheel.WheelClient(opts)
     else:
-        wheel_client = salt.wheel.WheelClient(__opts__)
+        opts = __opts__
+        wheel_client = salt.wheel.WheelClient(opts)
 
     # The WheelClient cmd needs args, kwargs, and pub_data separated out from
     # the "normal" kwargs structure, which at this point contains __pub_x keys.
@@ -1693,7 +1694,7 @@ def wheel(name, *args, **kwargs):
                 prefix='run'
             )
 
-        master_key = salt.utils.master.get_master_key('root', __opts__)
+        master_key = salt.utils.master.get_master_key('root', opts)
         low = {'arg': args, 'kwarg': kwargs, 'fun': name, 'key': master_key}
 
         if 'auth_check' in RequestContext.current:
