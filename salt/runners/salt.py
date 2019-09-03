@@ -87,7 +87,7 @@ def cmd(fun, *args, **kwargs):
 
     opts = copy.deepcopy(__opts__)
     # try to only load grains if we need to, it may already exist from other contexts (e.g., pillar)
-    if 'grains' not in opts:
+    if not opts.get('grains'):
         _, grains, _ = salt.utils.minions.get_minion_data(__opts__['id'], __opts__)
         if grains:
             opts['grains'] = grains
