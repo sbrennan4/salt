@@ -131,6 +131,7 @@ def execute(opts, data, func, args, kwargs):
         return ret
     else:
         parent_conn, child_conn = salt.utils.process.Pipe()
+
         proc = salt.utils.process.MultiprocessingProcess(
             target=_chugid_then_run,
             args=(user, group, umask, child_conn, func, args, kwargs),
