@@ -1699,7 +1699,7 @@ def wheel(name, *args, **kwargs):
 
         if 'auth_check' in RequestContext.current:
             log.debug('RequestContext.current auth_check: %s', RequestContext.current['auth_check'])
-            kwargs['auth_check'] = RequestContext.current['auth_check']
+            low['auth_check'] = RequestContext.current['auth_check']
 
         if kwargs.pop('asynchronous', False):
             ret = wheel_client.cmd_async(low)
