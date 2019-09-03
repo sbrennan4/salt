@@ -246,15 +246,15 @@ def get_function_argspec(func, is_class_method=None):
 
     if six.PY2:
         if is_class_method is True:
-            aspec = inspect.getfullargspec(func)
+            aspec = inspect.getargspec(func)
             del aspec.args[0]  # self
         elif inspect.isfunction(func):
-            aspec = inspect.getfullargspec(func)
+            aspec = inspect.getargspec(func)
         elif inspect.ismethod(func):
-            aspec = inspect.getfullargspec(func)
+            aspec = inspect.getargspec(func)
             del aspec.args[0]  # self
         elif isinstance(func, object):
-            aspec = inspect.getfullargspec(func.__call__)
+            aspec = inspect.getargspec(func.__call__)
             del aspec.args[0]  # self
         else:
             raise TypeError(
