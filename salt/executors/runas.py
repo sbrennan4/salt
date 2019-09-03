@@ -6,7 +6,6 @@ Runas executor module
 from __future__ import absolute_import, print_function, unicode_literals
 import functools
 import logging
-import pdb
 
 # Import salt libs
 import salt.log.setup
@@ -132,9 +131,6 @@ def execute(opts, data, func, args, kwargs):
         return ret
     else:
         parent_conn, child_conn = salt.utils.process.Pipe()
-
-        pdb.set_trace()
-
         proc = salt.utils.process.MultiprocessingProcess(
             target=_chugid_then_run,
             args=(user, group, umask, child_conn, func, args, kwargs),
