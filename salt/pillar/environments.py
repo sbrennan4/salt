@@ -161,6 +161,11 @@ def ext_pillar(minion_id, pillar):
     :return: a dictionary which is included by the salt master in the pillars returned to the minion
     """
 
+    # hostinfo resolving a node that is None will throw an error
+    # Instead lets just return empty array
+    if not minion_id:
+        return []
+
     node = resolve_node(minion_id)
 
     if node is None:
