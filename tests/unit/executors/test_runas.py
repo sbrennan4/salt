@@ -10,11 +10,6 @@ from tests.support.mixins import LoaderModuleMockMixin
 from tests.support.unit import TestCase, skipIf
 from tests.support.mock import NO_MOCK, NO_MOCK_REASON, MagicMock, patch
 
-import tests.support.mock as mock
-import sys
-my_mock2 = mock.MagicMock()
-sys.modules['salt.utils.process'] = my_mock2
-
 # Import file to test
 import salt.executors.runas as runas
 
@@ -42,11 +37,11 @@ class RunasTestCase(TestCase):
            with pytest.raises(ValueError, match=r'group and umask are not supported on windows'):
                runas.execute(opts='', data={'executor_opts':{'username': 'junk', 'umask': '0200'}}, func='', args='', kwargs={})
 
-    def test_windows_without_group_input(self):
-       my_mock = MagicMock()
-       with patch('salt.utils.platform.is_windows', return_value=False):
-           # with patch('salt.utils.process', return_value=my_mock):
-               with patch('salt.utils.user.get_default_group', return_value='salt-junk'):
-                   pdb.set_trace()
-                   runas_obj = runas.execute(opts='', data={'executor_opts':{'username': 'salt', 'umask': '0200'}, 'fun': 'state.sls'}, func='', args='', kwargs={})
-                   # self.assertEqual(runas_obj.group, 'salt-junk')
+    def test_unix_without_group_input(self):
+        my_mock = MagicMock()
+        with patch.object(my_mock, 'Pipe', side_effect=lambda: [MagicMock(),MagicMock()]):
+            with patch('salt.utils.platform.is_windows', return_value=False):
+                with patch('salt.utils.process', my_mock):
+                    with patch('salt.utils.user.get_default_group', return_value='salt-junk'):
+                        pdb.set_trace()
+                        runas_obj = runas.execute(opts='', data={'executor_opts':{'username': 'salt', 'umask': '0200'}, 'fun': 'state.sls'}, func='', args='', kwargs={})
