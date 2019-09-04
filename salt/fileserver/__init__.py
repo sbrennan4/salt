@@ -497,6 +497,7 @@ class Fileserver(object):
         '''
         Return the environments for the named backend or all backends
         '''
+        import pdb; pdb.set_trace()
         back = self.backends(back)
         ret = set()
         if sources:

@@ -77,9 +77,8 @@ class AESFuncsTestCase(TestCase):
         ]
 
         self.aes_funcs = salt.master.AESFuncs(opts)
-        import pdb; pdb.set_trace()
         res = self.aes_funcs._file_envs({"id": "sltdm-rr-005"})
-        self.assertEqual(res, {u'environments': ['salt-native', "sltdm"]})
+        self.assertEqual(res, ["base"])
 
     def test_master_opts(self):
         opts = salt.config.master_config(None)
