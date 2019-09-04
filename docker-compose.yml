@@ -1,3 +1,4 @@
+# This is only for bloomberg, we can make Jenkins run the unit tests inside of a container and remove this later
 version: '2.4'
 services:
   salt-proper-tests:

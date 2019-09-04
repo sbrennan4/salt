@@ -168,11 +168,13 @@ def ext_pillar(minion_id, pillar):
 
     node = resolve_node(minion_id)
 
+    global_tenancy_groups = global_tenancy_groups_set()
+
     if node is None:
-        return []
+        return {'environments': list(global_tenancy_groups)}
 
     # any matching tenancy_group is a 1 to 1 association with environment
     # we use an IndexedSet to ensure global roots are always highest priority
-    environments = IndexedSet(global_tenancy_groups_set() | ( node.groups_set() & tenancy_groups_set()))
+    environments = IndexedSet(global_tenancy_groups | ( node.groups_set() & tenancy_groups_set()))
 
     return {'environments': list(environments)}
