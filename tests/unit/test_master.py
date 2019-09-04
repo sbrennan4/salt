@@ -24,11 +24,9 @@ class AESFuncsTestCase(TestCase):
     def test__file_envs_no_matching_node(self):        
         # Default master opts
         opts = salt.config.master_config(None)
-        opts['ext_pillar'] = {
-            'environments': [
-                'word'
-            ]
-        }        
+        opts['ext_pillar'] = [
+            {'environments': ['word']}
+        ]    
 
         self.aes_funcs = salt.master.AESFuncs(opts)
         res = self.aes_funcs._file_envs({"id": "pytest_minion_1"})
@@ -37,11 +35,9 @@ class AESFuncsTestCase(TestCase):
     def test__file_envs_load_is_none(self):        
         # Default master opts
         opts = salt.config.master_config(None)
-        opts['ext_pillar'] = {
-            'environments': [
-                'word'
-            ]
-        }
+        opts['ext_pillar'] = [
+            {'environments': ['word']}
+        ]
 
         self.aes_funcs = salt.master.AESFuncs(opts)
         res = self.aes_funcs._file_envs()
@@ -50,11 +46,9 @@ class AESFuncsTestCase(TestCase):
     def test__file_envs_node_is_found(self):        
         # Default master opts
         opts = salt.config.master_config(None)
-        opts['ext_pillar'] = {
-            'environments': [
-                'word'
-            ]
-        }
+        opts['ext_pillar'] = [
+            {'environments': ['word']}
+        ]
         opts['evaporator'] = {}
         opts['evaporator']['tenancies'] = [
             {"environment": "sltdm", "global": False},
@@ -82,11 +76,9 @@ class AESFuncsTestCase(TestCase):
 
     def test_master_opts(self):
         opts = salt.config.master_config(None)
-        opts['ext_pillar'] = {
-            'environments': [
-                'word'
-            ]
-        }
+        opts['ext_pillar'] = [
+            {'environments': ['word']}
+        ]
         opts['evaporator'] = {}
         opts['evaporator']['tenancies'] = [
             {"environment": "sltdm", "global": False},
@@ -95,7 +87,12 @@ class AESFuncsTestCase(TestCase):
         ]
 
         self.aes_funcs = salt.master.AESFuncs(opts)
-        res = self.aes_funcs._master_opts()
+        
+        res = self.aes_funcs._master_opts({
+            "id": "sltdm-rr-005",
+            "env_only": True,
+        })
+        self.assertEqual(res, {u'default_top': u'base', u'env_order': [], u'ext_pillar': [{'environments': ['word']}], u'top_file_merging_strategy': u'merge', u'file_roots': {}})
 
 class ClearFuncsTestCase(TestCase):
     '''
@@ -412,4 +409,5 @@ class ClearFuncsTestCase(TestCase):
                 patch('salt.utils.master.get_values_of_matching_keys', MagicMock(return_value=['test'])), \
                 patch('salt.utils.minions.CkMinions.auth_check', MagicMock(return_value=False)):
             self.assertEqual(mock_ret, self.clear_funcs.publish(load))
+
 
