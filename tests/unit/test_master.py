@@ -15,6 +15,8 @@ from tests.support.mock import (
 )
 
 
+# These tests require a working /bb/bin/bbcpu.lst/alias.
+# I ran them inside a docker container using the docker-compose.yml in root
 class AESFuncsTestCase(TestCase):
     '''
     TestCase for salt.master.AESFuncs class
@@ -26,12 +28,10 @@ class AESFuncsTestCase(TestCase):
             'environments': [
                 'word'
             ]
-        }
+        }        
 
         self.aes_funcs = salt.master.AESFuncs(opts)
-        res = self.aes_funcs._file_envs({
-            "id": "pytest_minion_1"
-        })
+        res = self.aes_funcs._file_envs({"id": "pytest_minion_1"})
         self.assertEqual(res, [])
 
     def test__file_envs_load_is_none(self):        
@@ -46,6 +46,57 @@ class AESFuncsTestCase(TestCase):
         self.aes_funcs = salt.master.AESFuncs(opts)
         res = self.aes_funcs._file_envs()
         self.assertEqual(res, [])
+
+    def test__file_envs_node_is_found(self):        
+        # Default master opts
+        opts = salt.config.master_config(None)
+        opts['ext_pillar'] = {
+            'environments': [
+                'word'
+            ]
+        }
+        opts['evaporator'] = {}
+        opts['evaporator']['tenancies'] = [
+            {"environment": "sltdm", "global": False},
+            {"environment": "salt-native", "global": True},
+            {"environment": "salt-water", "global": False},
+        ]
+
+        self.aes_funcs = salt.master.AESFuncs(opts)
+        res = self.aes_funcs._file_envs({"id": "sltdm-rr-005"})
+        self.assertEqual(res, {u'environments': ['salt-native', "sltdm"]})
+
+    def test__file_envs_node_no_environment(self):        
+        # Default master opts
+        opts = salt.config.master_config(None)
+        opts['evaporator'] = {}
+        opts['evaporator']['tenancies'] = [
+            {"environment": "sltdm", "global": False},
+            {"environment": "salt-native", "global": True},
+            {"environment": "salt-water", "global": False},
+        ]
+
+        self.aes_funcs = salt.master.AESFuncs(opts)
+        import pdb; pdb.set_trace()
+        res = self.aes_funcs._file_envs({"id": "sltdm-rr-005"})
+        self.assertEqual(res, {u'environments': ['salt-native', "sltdm"]})
+
+    def test_master_opts(self):
+        opts = salt.config.master_config(None)
+        opts['ext_pillar'] = {
+            'environments': [
+                'word'
+            ]
+        }
+        opts['evaporator'] = {}
+        opts['evaporator']['tenancies'] = [
+            {"environment": "sltdm", "global": False},
+            {"environment": "salt-native", "global": True},
+            {"environment": "salt-water", "global": False},
+        ]
+
+        self.aes_funcs = salt.master.AESFuncs(opts)
+        res = self.aes_funcs._master_opts()
 
 class ClearFuncsTestCase(TestCase):
     '''
@@ -362,3 +413,4 @@ class ClearFuncsTestCase(TestCase):
                 patch('salt.utils.master.get_values_of_matching_keys', MagicMock(return_value=['test'])), \
                 patch('salt.utils.minions.CkMinions.auth_check', MagicMock(return_value=False)):
             self.assertEqual(mock_ret, self.clear_funcs.publish(load))
+

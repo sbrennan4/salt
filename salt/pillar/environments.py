@@ -168,6 +168,8 @@ def ext_pillar(minion_id, pillar):
 
     node = resolve_node(minion_id)
 
+    import pdb; pdb.set_trace()
+
     if node is None:
         return []
 
