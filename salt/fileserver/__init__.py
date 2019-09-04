@@ -493,11 +493,10 @@ class Fileserver(object):
                 ret[fsb] = self.servers[fstr]()
         return ret
 
-    def envs(self, back=None, sources=False):
+    def envs(self, back=None, sources=False, **kwargs):
         '''
         Return the environments for the named backend or all backends
         '''
-        import pdb; pdb.set_trace()
         back = self.backends(back)
         ret = set()
         if sources:

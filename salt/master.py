@@ -1201,7 +1201,7 @@ class AESFuncs(object):
         if any('environments' in ext for ext in self.opts['ext_pillar']):
             return self.pillars['environments'](load.get('id'), {})
         else:
-            return self.fs_.envs()
+            return self.fs_.envs(**load)
 
     def __verify_minion(self, id_, token):
         '''

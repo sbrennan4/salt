@@ -74,7 +74,7 @@ class AESFuncsTestCase(TestCase):
         res = self.aes_funcs._file_envs({"id": "sltdm-rr-005"})
         self.assertEqual(res, ["base"])
 
-    def test_master_opts(self):
+    def test_master_opts_ext_pillar_environments(self):
         opts = salt.config.master_config(None)
         opts['ext_pillar'] = [
             {'environments': ['word']}
@@ -92,7 +92,7 @@ class AESFuncsTestCase(TestCase):
             "id": "sltdm-rr-005",
             "env_only": True,
         })
-        self.assertEqual(res, {u'default_top': u'base', u'env_order': [], u'ext_pillar': [{'environments': ['word']}], u'top_file_merging_strategy': u'merge', u'file_roots': {}})
+        self.assertEqual(res, {u'default_top': u'base', u'env_order': [], u'ext_pillar': [{'environments': ['word']}], u'top_file_merging_strategy': u'merge', u'file_roots': {u'environments': []},})
 
 class ClearFuncsTestCase(TestCase):
     '''
