@@ -1,0 +1,7 @@
+version: '2.4'
+services:
+  salt-proper-tests:
+    image: "artprod.dev.bloomberg.com/bb-inf/salt-minion:2018.3.3"
+    volumes:
+      - .:/srv/sysca-salt
+      - ./tests/bbcpu/:/bb/bin/

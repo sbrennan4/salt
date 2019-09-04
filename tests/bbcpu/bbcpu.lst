@@ -1,0 +1,15 @@
+thishost 100 lnxdev sn2 sn2e brdev bbcpu ridge bass dvmn mini nano lnxsa bpkg rtcpux pdcld zjobdv prcchk zjob notrst bbrc ctm20 ctmna nohost obtoff bccvm utc prnt clsrt me
+thathost 101 linux lnxdev sn2 orange sn2b west brdev bbcpu bass dvmn mini nano lnxsa bpkg rtcpux pdcld zjobdv prcchk zjob notrst bbrc ctm20 ctmna nohost obtoff bccvm utc prnt clstr me
+sltdm-ob-127 19036 linux orange pacld west s4 bbcpu bass mini nano lnxsa bpkg rtcpux prcchk notrst bbrc s4p nohost obtoff salt bccvm sltdm vkrudysz
+sltdm-ob-189 24391 linux orange pacld west s4 bbcpu bass mini nano lnxsa bpkg rtcpux prcchk notrst bbrc s4k nohost obtoff salt sltdm vkrudysz
+sltdm-ob-618 19161 linux orange pacld s2e west s2 bbcpu bass mini nano lnxsa bpkg rtcpux prcchk notrst bbrc nohost obtoff salt bccvm sltdm vkrudysz
+sltdm-rr-005 24393 linux pacld s4n s4 bbcpu ridge bass mini nano lnxsa bpkg rtcpux prcchk notrst bbrc nohost obtoff salt sltdm vkrudysz
+sltdm-rr-129 19162 linux pacld s2c s2 bbcpu ridge bass mini nano lnxsa bpkg rtcpux prcchk notrst bbrc nohost obtoff salt bccvm sltdm vkrudysz
+sltdm-rr-889 19037 linux pacld s4m s4 bbcpu ridge bass mini nano lnxsa bpkg rtcpux prcchk notrst bbrc nohost obtoff salt bccvm sltdm vkrudysz
+bluehost 102 lnxdev sn2 sn2e brdev bbcpu ridge bass dvmn mini nano lnxsa bpkg rtcpux pdcld zjobdv prcchk zjob notrst bbrc ctm20 ctmna nohost obtoff bccvm utc prnt clsrt me
+redhost 103 linux lnxdev sn2 orange sn2b west brdev bbcpu bass dvmn mini nano lnxsa bpkg rtcpux pdcld zjobdv prcchk zjob notrst bbrc ctm20 ctmna nohost obtoff bccvm utc prnt clstr me
+sltpm-ob-394 29137 linux orange pacld west s4 bbcpu bass mini nano lnxsa bpkg rtcpux prcchk notrst bbrc s4k nohost obtoff salt bccvm sltpm apapp
+sltpm-ob-749 29136 linux orange pacld s3e west s3 bbcpu bass mini nano lnxsa bpkg rtcpux prcchk notrst bbrc nohost obtoff salt bccvm sltpm apapp
+sltpm-rr-533 29170 linux pacld s4m s4 bbcpu ridge bass mini nano lnxsa bpkg rtcpux prcchk notrst bbrc nohost obtoff salt bccvm sltpm apapp
+sltpm-rr-730 17141 linux pacld s2a s2 bbcpu ridge bass mini nano lnxsa bpkg rtcpux prcchk notrst bbrc nohost obtoff salt sltpm apapp
+sltpm-rr-941 29169 linux pacld s3h s3 bbcpu ridge bass mini nano lnxsa bpkg rtcpux prcchk notrst bbrc nohost obtoff salt bccvm sltpm apapp
