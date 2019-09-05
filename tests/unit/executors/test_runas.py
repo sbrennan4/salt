@@ -19,8 +19,13 @@ from boltons.setutils import IndexedSet
 
 class RunasTestCase(TestCase):
     '''
-    Test cases for salt.executors.runas
+    Test cases for salt.exexcutors.runas
     '''
+
+    def test_virtual_name(self):
+        ret = runas.__virtual__()
+        self.assertEqual(ret, 'runas')
+
     def test_username_missing(self):
         with pytest.raises(ValueError, match=r'username must be specified in executor_opts'):
             runas.execute(opts='', data={}, func='', args='', kwargs={})
@@ -30,12 +35,12 @@ class RunasTestCase(TestCase):
             runas.execute(opts='', data={'executor_opts':{'username': 'junk', 'strategy': 'salt-walk'}}, func='', args='', kwargs={})
 
     def test_windows_with_group_input(self):
-       with patch('salt.utils.platform.is_windows', return_value=True):
-           with pytest.raises(ValueError, match=r'group and umask are not supported on windows'):
-               runas.execute(opts='', data={'executor_opts':{'username': 'junk', 'group': 'junk'}}, func='', args='', kwargs={})
+        with patch('salt.utils.platform.is_windows', return_value=True):
+            with pytest.raises(ValueError, match=r'group and umask are not supported on windows'):
+                runas.execute(opts='', data={'executor_opts':{'username': 'junk', 'group': 'junk'}}, func='', args='', kwargs={})
 
-           with pytest.raises(ValueError, match=r'group and umask are not supported on windows'):
-               runas.execute(opts='', data={'executor_opts':{'username': 'junk', 'umask': '0200'}}, func='', args='', kwargs={})
+            with pytest.raises(ValueError, match=r'group and umask are not supported on windows'):
+                runas.execute(opts='', data={'executor_opts':{'username': 'junk', 'umask': '0200'}}, func='', args='', kwargs={})
 
     def test_unix_without_group_input(self):
         my_mock = MagicMock()
@@ -43,5 +48,15 @@ class RunasTestCase(TestCase):
             with patch('salt.utils.platform.is_windows', return_value=False):
                 with patch('salt.utils.process', my_mock):
                     with patch('salt.utils.user.get_default_group', return_value='salt-junk'):
-                        pdb.set_trace()
                         runas_obj = runas.execute(opts='', data={'executor_opts':{'username': 'salt', 'umask': '0200'}, 'fun': 'state.sls'}, func='', args='', kwargs={})
+                        self.assertEqual(my_mock.MultiprocessingProcess.call_args_list[0][1]['args'][1], 'salt-junk')
+
+                        self.assertEqual(my_mock.MultiprocessingProcess.call_args_list[0][1]['args'][-1]['concurrent'], True)
+
+    def test_windows_cmd_run_all_good(self):
+        my_mock = MagicMock()
+        with patch('salt.utils.platform.is_windows', return_value=True):
+            pdb.set_trace()
+            with patch.dict(runas.__salt__, {'cmd.run_all': my_mock}):
+                pdb.set_trace()
+                runas_obj = runas.execute(opts='', data={'executor_opts':{'username': 'salt', 'umask': '0200'}, 'fun': 'state.sls'}, func='', args='', kwargs={})
