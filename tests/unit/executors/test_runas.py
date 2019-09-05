@@ -9,6 +9,7 @@ import pdb
 from tests.support.mixins import LoaderModuleMockMixin
 from tests.support.unit import TestCase, skipIf
 from tests.support.mock import NO_MOCK, NO_MOCK_REASON, MagicMock, patch
+from tests.support.mixins import LoaderModuleMockMixin
 
 # Import file to test
 import salt.executors.runas as runas
@@ -17,10 +18,30 @@ import salt.executors.runas as runas
 from salt.ext import six
 from boltons.setutils import IndexedSet
 
-class RunasTestCase(TestCase):
+def cmd_run_all_good_return():
+    return {
+        'retcode': 0,
+        'stdout': {
+            'local': {
+                'return': 'Good cmd return',
+                'retcode': 0,
+            }
+        }
+    }
+
+def cmd_run_all_bad_return():
+    return {
+        'retcode': 2,
+        'stderr': 'Bad cmd return',
+    }
+
+class RunasTestCase(TestCase, LoaderModuleMockMixin):
     '''
     Test cases for salt.exexcutors.runas
     '''
+
+    def setup_loader_modules(self):
+        return { runas: {} }
 
     def test_virtual_name(self):
         ret = runas.__virtual__()
@@ -56,7 +77,9 @@ class RunasTestCase(TestCase):
     def test_windows_cmd_run_all_good(self):
         my_mock = MagicMock()
         with patch('salt.utils.platform.is_windows', return_value=True):
-            pdb.set_trace()
-            with patch.dict(runas.__salt__, {'cmd.run_all': my_mock}):
+            with patch.dict(runas.__salt__, {'cmd.run_all': my_mock(return_value=cmd_run_all_good_return())}):
+                runas_obj = runas.execute(opts={'config_dir': '/junk'}, data={'executor_opts':{'username': 'salt'}, 'fun': 'state.sls'}, func='', args='', kwargs={})
+                command = ['salt-call', '--out', 'json', '--metadata', '-c', '/junk', '--', 'state.sls', 'concurrent=True']
+                runas.__salt__['cmd.run_all'].assert_called_with(command, python_shell=False, runas='salt')
                 pdb.set_trace()
-                runas_obj = runas.execute(opts='', data={'executor_opts':{'username': 'salt', 'umask': '0200'}, 'fun': 'state.sls'}, func='', args='', kwargs={})
+                self.assertEqual(runas_obj, 'Good cmd return')
