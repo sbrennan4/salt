@@ -1598,6 +1598,9 @@ def runner(name, arg=None, kwarg=None, full_return=False, saltenv='base', jid=No
             prefix='run'
         )
 
+    masterless = __opts__['__role'] == 'minion' and \
+             __opts__['file_client'] == 'local'
+
     master_key = salt.utils.master.get_master_key('root', opts)
     low = {'arg': arg, 'kwarg': kwarg, 'fun': name, 'key': master_key}
     if eauth:
@@ -1607,7 +1610,14 @@ def runner(name, arg=None, kwarg=None, full_return=False, saltenv='base', jid=No
     if 'auth_check' in RequestContext.current:
         log.debug('RequestContext.current auth_check: %s', RequestContext.current['auth_check'])
         low['auth_check'] = RequestContext.current['auth_check']
-    if asynchronous:
+
+    if masterless:
+        return rclient.cmd(name,
+                           arg=arg,
+                           kwarg=kwarg,
+                           print_event=False,
+                           full_return=full_return)
+    elif asynchronous:
         return rclient.cmd_async(low)
     else:
         return rclient.cmd_sync(low, full_return=full_return)
