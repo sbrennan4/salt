@@ -188,6 +188,7 @@ class Maintenance(salt.utils.process.SignalHandlingMultiprocessingProcess):
                                                      runner_client.functions_dict(),
                                                      returners=self.returners)
         self.ckminions = salt.utils.minions.CkMinions.factory(self.opts)
+        self.cache = salt.cache.factory(self.opts)
         # Make Event bus for firing
         self.event = salt.utils.event.get_master_event(self.opts, self.opts['sock_dir'], listen=False)
         # Init any values needed by the git ext pillar
@@ -233,9 +234,16 @@ class Maintenance(salt.utils.process.SignalHandlingMultiprocessingProcess):
             self.handle_key_cache()
             self.handle_presence(old_present)
             self.handle_key_rotate(now)
+            self.handle_cache_maintenance()
             salt.utils.verify.check_max_open_files(self.opts)
             last = now
             time.sleep(self.loop_interval)
+
+
+    # will be a noop if backend does not support maintenance operation
+    def handle_cache_maintenance(self):
+        self.cache.maintenance()
+
 
     def handle_key_cache(self):
         '''
