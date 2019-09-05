@@ -218,13 +218,13 @@ class AsyncZeroMQReqChannel(salt.transport.client.ReqChannel):
         # if by chance master_uri is not there..
         if 'master_ip' in self.opts:
             return _get_master_uri(self.opts['master_ip'],
-                                   self.opts['master_port'],
+                                   self.opts.get('master_port', self.opts.get('ret_port')),
                                    source_ip=self.opts.get('source_ip'),
                                    source_port=self.opts.get('source_ret_port'))
 
         if self.opts['__role'] == 'master':
             return _get_master_uri('127.0.0.1',
-                                   self.opts['master_port'],
+                                   self.opts.get('master_port', self.opts.get('ret_port')),
                                    source_ip=self.opts.get('source_ip'),
                                    source_port=self.opts.get('source_ret_port'))
 

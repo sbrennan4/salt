@@ -308,6 +308,14 @@ class Cache(object):
         query = '{0}.query'.format(self.driver)
         return self.modules[query](*args, **kwargs)
 
+    def maintenance(self, *args, **kwargs):
+        '''
+        if backend is configured for such, trigger maintenance
+        '''
+        maintenance = '{0}.maintenance'.format(self.driver)
+        if maintenance in self.modules:
+            return self.modules[maintenance](*args, **kwargs)
+
 class MemCache(Cache):
     '''
     Short-lived in-memory cache store keeping values on time and/or size (count)
