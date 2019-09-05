@@ -469,7 +469,7 @@ class AsyncClientMixin(object):
     client = None
     tag_prefix = None
 
-    def _proc_function(self, fun, low, user, tag, jid, daemonize=True):
+    def _proc_function(self, fun, low, user, tag, jid, daemonize=True, print_event=True):
         '''
         Run this method in a multiprocess target to execute the function in a
         multiprocess and fire the return data on the event bus
@@ -488,7 +488,7 @@ class AsyncClientMixin(object):
         low['__user__'] = user
         low['__tag__'] = tag
 
-        return self.low(fun, low, full_return=False)
+        return self.low(fun, low, full_return=False, print_event=print_event)
 
     def cmd_async(self, low):
         '''
