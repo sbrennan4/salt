@@ -32,7 +32,7 @@ pipeline {
                     }
                     // Jenkins docker integration is confusing wrapper and doesn't seem to work as expected
                     sh "docker run --name ${unique_container_name} -d -v `pwd`:`pwd` -w `pwd` ${image_name}"
-                    sh "docker exec ${unique_container_name} docker exec test pip install -r requirements/dev_bloomberg.txt"
+                    sh "docker exec ${unique_container_name} pip install -r requirements/dev_bloomberg.txt"
                     sh "docker exec ${unique_container_name} ./tests/runtests.py -n unit.test_master.AESFuncsTestCase -n unit.test_pillar.Pillar -n unit.utils.test_state.UtilStateGetSlsOptsTestcase"
                 }
             } 
