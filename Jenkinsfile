@@ -31,7 +31,7 @@ pipeline {
                         sh "docker pull ${image_name}"
                     }
                     // Jenkins docker integration is confusing wrapper and doesn't seem to work as expected
-                    sh "docker run --name ${unique_container_name} -d -v `pwd`:`pwd` -w `pwd` ${image_name}"
+                    sh "docker run --name ${unique_container_name} -d -v `pwd`:`pwd`:ro -w `pwd` ${image_name}"
                     sh "docker exec ${unique_container_name} pip install -r requirements/dev_bloomberg.txt"
 
                     // Run whatever tests you want here for now. All tests takes like an hour.
@@ -43,6 +43,8 @@ pipeline {
                 cleanup {
                     node("syscore-salt") {
                         script {                            
+                            deleteDir() /* clean up our workspace */
+                            
                             try {
                                 sh "docker stop ${unique_container_name}"
                             } catch(Exception e) {
