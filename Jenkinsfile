@@ -17,7 +17,9 @@ pipeline {
                 sh '''
                     /usr/local/bin/tox -e pylint-tests --notest
                     source .tox/pylint-tests/bin/activate
-                    python tests/runtests.py --unit
+                    ./tests/runtests.py -n unit.test_master.AESFuncsTestCase
+                    ./tests/runtests.py -n unit.test_pillar.Pillar
+                    ./tests/runtests.py -n unit.test_state.UtilStateGetSlsOptsTestcase
                 '''
             }
         }        
