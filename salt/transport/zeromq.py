@@ -538,6 +538,17 @@ class ZeroMQReqServerChannel(salt.transport.mixins.auth.AESReqServerMixin,
         # Prepare the zeromq sockets
         self.uri = 'tcp://{interface}:{ret_port}'.format(**self.opts)
         self.clients = self.context.socket(zmq.ROUTER)
+
+        # if 2.1 >= zmq < 3.0, we only have one HWM setting
+        try:
+            self.clients.setsockopt(zmq.HWM, self.opts.get('router_hwm', 1000))
+        # in zmq >= 3.0, there are separate send and receive HWM settings
+        except AttributeError:
+            # Set the High Water Marks. For more information on HWM, see:
+            # http://api.zeromq.org/4-1:zmq-setsockopt
+            self.clients.setsockopt(zmq.SNDHWM, self.opts.get('router_hwm', 1000))
+            self.clients.setsockopt(zmq.RCVHWM, self.opts.get('router_hwm', 1000))
+
         if self.opts['ipv6'] is True and hasattr(zmq, 'IPV4ONLY'):
             # IPv6 sockets work for both IPv6 and IPv4 addresses
             self.clients.setsockopt(zmq.IPV4ONLY, 0)
