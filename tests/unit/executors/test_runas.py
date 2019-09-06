@@ -7,16 +7,11 @@ import pdb
 
 # Import Salt Testing Libs
 from tests.support.mixins import LoaderModuleMockMixin
-from tests.support.unit import TestCase, skipIf
-from tests.support.mock import NO_MOCK, NO_MOCK_REASON, MagicMock, patch
-from tests.support.mixins import LoaderModuleMockMixin
+from tests.support.unit import TestCase
+from tests.support.mock import MagicMock, patch
 
 # Import file to test
 import salt.executors.runas as runas
-
-# Import 3rd-party libs
-from salt.ext import six
-from boltons.setutils import IndexedSet
 
 CMD_RUN_ALL_GOOD_RETURN = {
     "retcode": 0,
