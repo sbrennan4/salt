@@ -11,7 +11,7 @@ import textwrap
 import uuid
 
 # Import Salt Testing libs
-from tests.support.unit import TestCase
+from tests.support.unit import TestCase, skipIf
 
 # Import Salt libs
 import tests.integration as integration

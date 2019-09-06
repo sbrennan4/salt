@@ -14,7 +14,7 @@ import tempfile
 import shutil
 
 # Import Salt Testing libs
-from tests.support.unit import TestCase
+from tests.support.unit import TestCase, skipIf
 
 # Import salt libs
 import salt.config
