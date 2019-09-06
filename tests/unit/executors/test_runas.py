@@ -65,14 +65,10 @@ class RunasTestCase(TestCase, LoaderModuleMockMixin):
         my_mock = MagicMock()
         my_mock_2 = MagicMock()
         with patch.object(my_mock_2, 'recv', side_effect=lambda: ['apple']):
-        # with patch.object(my_mock_2, 'recv', side_effect=lambda: [Exception, 'BAD cmd return']):
             with patch.object(my_mock, 'Pipe', side_effect=lambda: [my_mock_2, MagicMock()]):
-           
                 with patch('salt.utils.platform.is_windows', return_value=False):
                     with patch('salt.utils.process', my_mock):
                         with patch('salt.utils.user.get_default_group', return_value='salt-junk'):
-                            pdb.set_trace()
-                            
                             runas_obj = runas.execute(opts='', data={'executor_opts':{'username': 'junk', 'umask': '0200'}, 'fun': 'state.sls'}, func='', args='', kwargs={})
                             self.assertEqual(runas_obj, 'apple')
 
@@ -81,6 +77,17 @@ class RunasTestCase(TestCase, LoaderModuleMockMixin):
                             self.assertEqual(my_mock.MultiprocessingProcess.call_args_list[0][1]['args'][1], 'salt-junk')
 
                             self.assertEqual(my_mock.MultiprocessingProcess.call_args_list[0][1]['args'][-1]['concurrent'], True)
+
+    def test_unix_with_group_input_exception(self):
+        my_mock = MagicMock()
+        my_mock_2 = MagicMock()
+        with patch.object(my_mock_2, 'recv', side_effect=lambda: [type(KeyError()), 'BAD cmd']):
+            with patch.object(my_mock, 'Pipe', side_effect=lambda: [my_mock_2, MagicMock()]):
+                with patch('salt.utils.platform.is_windows', return_value=False):
+                    with patch('salt.utils.process', my_mock):
+                        with pytest.raises(KeyError):
+                            runas_obj = runas.execute(opts='', data={'executor_opts':{'username': 'junk', 'group': 'salt-junk', 'umask': '0200'}, 'fun': 'state.sls'}, func='', args='', kwargs={})
+
 
     def test_windows_cmd_run_all_good(self):
         with patch('salt.utils.platform.is_windows', return_value=True):
