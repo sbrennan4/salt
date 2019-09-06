@@ -15,7 +15,7 @@ pipeline {
             when {changeRequest()}
             steps {
                 sh '''
-                    tox -e pylint-tests --notest
+                    /usr/local/bin/tox -e pylint-tests --notest
                     source .tox/pylint-tests/bin/activate
                     ./tests/runtests.py -n unit
                 '''
