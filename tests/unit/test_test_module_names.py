@@ -13,7 +13,7 @@ import os
 import salt.utils.path
 
 # Import Salt Testing libs
-from tests.support.unit import TestCase
+from tests.support.unit import TestCase, skipIf
 from tests.support.paths import CODE_DIR
 
 EXCLUDED_DIRS = [
