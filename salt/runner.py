@@ -283,18 +283,20 @@ class Runner(RunnerClient):
                     # figure out where its picking that default up from
                     ret = self.cmd_sync(low, timeout=timeout, full_return=True)
 
+            outputter = None
             if isinstance(ret, dict):
                 # unwrap a layer of the full_return
                 if 'data' in ret and 'return' in ret['data']:
                     ret = ret['data']['return']
 
-            if set(ret) >= {'data', 'outputter'}:
-                outputter = ret['outputter']
-            else:
-                outputter = None
+            if isinstance(ret, dict):
+                if set(ret) >= {'data', 'outputter'}:
+                    outputter = ret['outputter']
+
             display_output(ret, outputter, self.opts)
 
         except salt.exceptions.SaltException as exc:
+            log.error(exc)
             with salt.utils.event.get_event('master', opts=self.opts) as evt:
                 evt.fire_event({'success': False,
                                 'return': '{0}'.format(exc),
