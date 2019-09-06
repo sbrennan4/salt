@@ -81,7 +81,7 @@ class RunasTestCase(TestCase, LoaderModuleMockMixin):
     def test_unix_with_group_input_exception(self):
         my_mock = MagicMock()
         my_mock_2 = MagicMock()
-        with patch.object(my_mock_2, 'recv', side_effect=lambda: [type(KeyError()), 'BAD cmd']):
+        with patch.object(my_mock_2, 'recv', side_effect=lambda: [KeyError(), 'BAD cmd']):
             with patch.object(my_mock, 'Pipe', side_effect=lambda: [my_mock_2, MagicMock()]):
                 with patch('salt.utils.platform.is_windows', return_value=False):
                     with patch('salt.utils.process', my_mock):
