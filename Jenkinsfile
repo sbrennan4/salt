@@ -1,8 +1,19 @@
+def unique_container_name = "unit-tests-${env.BUILD_ID}${env.JOB_NAME.replace("/", "-")}"
+def image_name = "artprod.dev.bloomberg.com/bb-inf/salt-minion:2018.3.3"
+
 pipeline {
     agent { label 'syscore-salt'}
     environment {
         BBGH_TOKEN = credentials('bbgithub_token')
         PYPI_CREDENTIAL = credentials('salt_jenkins_ad_user_pass_escaped')
+    }
+    options {
+        ansiColor('xterm')
+        // Currently builds take an hour and 30 minutes.
+        // If every executor is used, this will give enough time for the queue to pass and this build to run
+        // timeout(time: 3, unit: 'HOURS')
+        // Keep up to 10 builds (artifacts/console output) from master and each branch retains up to 5 builds of that specific branch
+        buildDiscarder(logRotator(numToKeepStr: env.BRANCH_NAME == 'master' ? '10' : '5'))
     }
     stages {
         stage('Build') {
@@ -14,13 +25,33 @@ pipeline {
         stage('Run Upstream Salt Unit Tests') {
             when {changeRequest()}
             steps {
-                sh '''
-                    /usr/local/bin/tox -e pylint-tests --notest
-                    source .tox/pylint-tests/bin/activate
-                    ./tests/runtests.py -n unit.test_master.AESFuncsTestCase
-                    ./tests/runtests.py -n unit.test_pillar.Pillar
-                    ./tests/runtests.py -n unit.test_state.UtilStateGetSlsOptsTestcase
-                '''
+                script {
+                    docker.withRegistry('https://artprod.dev.bloomberg.com', 'syscore_jenkins_docker_jwt_tuple') {
+                        sh "docker pull ${image_name}"
+                    }
+                    // Jenkins docker integration is confusing wrapper and doesn't seem to work as expected
+                    sh "docker run --name ${unique_container_name} -d -v `pwd`:`pwd` -w `pwd` ${image_name}"
+                    sh "docker exec ${unique_container_name} tox -e pylint-tests --notest"
+                    sh "docker exec ${unique_container_name} source .tox/pylint-tests/bin/activate && \
+                        ./tests/runtests.py -n unit.test_master.AESFuncsTestCase && \
+                        ./tests/runtests.py -n unit.test_pillar.Pillar && \
+                        ./tests/runtests.py -n unit.test_state.UtilStateGetSlsOptsTestcase"
+                }
+            } 
+            post {
+                cleanup {
+                    node("syscore-salt") {
+                        script {
+                            deleteDir() /* clean up our workspace */
+                            
+                            try {
+                                sh "docker stop ${unique_container_name}"
+                            } catch(Exception e) {
+                                // continue
+                            }
+                        }
+                    }
+                }
             }
         }        
         stage('Deploy to dev pypi') {
