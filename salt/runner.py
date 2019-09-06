@@ -269,7 +269,7 @@ class Runner(RunnerClient):
                 )
                 return async_pub['jid']  # return the jid
             else:
-                if self.opts.get('local'):
+                if self.opts.get('local') or low['fun'] == 'state.event':
                     ret = self._proc_function(self.opts['fun'],
                                               low,
                                               user,
@@ -278,7 +278,6 @@ class Runner(RunnerClient):
                                               print_event=False,
                                               daemonize=False)
                 else:
-
                     # this would be more sane to set to 0/-1 for a timeout,
                     # but salt.utils.parsers does not respect default_timeout. cant
                     # figure out where its picking that default up from
@@ -289,10 +288,10 @@ class Runner(RunnerClient):
                 if 'data' in ret and 'return' in ret['data']:
                     ret = ret['data']['return']
 
-                if set(ret) >= {'data', 'outputter'}:
-                    outputter = ret['outputter']
-                else:
-                    outputter = None
+            if set(ret) >= {'data', 'outputter'}:
+                outputter = ret['outputter']
+            else:
+                outputter = None
             display_output(ret, outputter, self.opts)
 
         except salt.exceptions.SaltException as exc:
