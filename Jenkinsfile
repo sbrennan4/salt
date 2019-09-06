@@ -42,9 +42,7 @@ pipeline {
             post {
                 cleanup {
                     node("syscore-salt") {
-                        script {
-                            deleteDir() /* clean up our workspace */
-                            
+                        script {                            
                             try {
                                 sh "docker stop ${unique_container_name}"
                             } catch(Exception e) {
