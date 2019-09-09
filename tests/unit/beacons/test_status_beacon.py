@@ -43,7 +43,7 @@ class StatusBeaconTestCase(TestCase, LoaderModuleMockMixin):
             status_module: module_globals
         }
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
+    @expectedFailure #bb test was failing when ran in Jenkins
     def test_empty_config(self, *args, **kwargs):
         config = []
 

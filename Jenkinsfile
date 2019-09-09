@@ -39,7 +39,7 @@ pipeline {
                     sh "docker exec ${unique_container_name} ./tests/runtests.py --unit"
 
                     // Whatever is failing we can skip with
-                    // @skipIf(True, 'bb test was failing when ran in Jenkins')
+                    // @expectedFailure #bb test was failing when ran in Jenkins
                 }
             } 
             post {

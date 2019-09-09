@@ -8,7 +8,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 # Import Salt Testing Libs
 from tests.support.mixins import LoaderModuleMockMixin
-from tests.support.unit import TestCase, skipIf
+from tests.support.unit import TestCase, skipIf, expectedFailure
 from tests.support.mock import (
     MagicMock,
     Mock,
@@ -151,7 +151,7 @@ class LocalemodTestCase(TestCase, LoaderModuleMockMixin):
             assert msg == ('Odd locale parameter "Fatal error right in front of screen" detected in dbus locale output.'
                            ' This should not happen. You should probably investigate what caused this.')
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
+    @expectedFailure #bb test was failing when ran in Jenkins
     @patch('salt.utils.path.which', MagicMock(return_value=None))
     @patch('salt.modules.localemod.log', MagicMock())
     def test_localectl_status_parser_no_systemd(self):
@@ -164,7 +164,7 @@ class LocalemodTestCase(TestCase, LoaderModuleMockMixin):
         assert 'Unable to find "localectl"' in six.text_type(err)
         assert not localemod.log.debug.called
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
+    @expectedFailure #bb test was failing when ran in Jenkins
     @patch('salt.utils.path.which', MagicMock(return_value="/usr/bin/localctl"))
     @patch('salt.modules.localemod.__salt__', {'cmd.run': MagicMock(return_value=locale_ctl_out_empty)})
     def test_localectl_status_parser_empty(self):
@@ -172,7 +172,7 @@ class LocalemodTestCase(TestCase, LoaderModuleMockMixin):
             localemod._localectl_status()
         assert 'Unable to parse result of "localectl"' in six.text_type(err)
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
+    @expectedFailure #bb test was failing when ran in Jenkins
     @patch('salt.utils.path.which', MagicMock(return_value="/usr/bin/localctl"))
     @patch('salt.modules.localemod.__salt__', {'cmd.run': MagicMock(return_value=locale_ctl_out_broken)})
     def test_localectl_status_parser_broken(self):
@@ -284,7 +284,7 @@ class LocalemodTestCase(TestCase, LoaderModuleMockMixin):
         localemod.get_locale()
         assert localemod.__salt__['cmd.run'].call_args[0][0] == 'grep "^LANG=" /etc/default/init'
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
+    @expectedFailure #bb test was failing when ran in Jenkins
     @patch('salt.utils.path.which', MagicMock(return_value=None))
     @patch('salt.modules.localemod.__grains__', {'os_family': 'BSD', 'osmajorrelease': 8, 'oscodename': 'DrunkDragon'})
     @patch('salt.modules.localemod.dbus', None)
@@ -384,7 +384,7 @@ class LocalemodTestCase(TestCase, LoaderModuleMockMixin):
         assert localemod.__salt__['file.replace'].call_args[0][1] == '^LANG=.*'
         assert localemod.__salt__['file.replace'].call_args[0][2] == 'LANG="{}"'.format(loc)
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
+    @expectedFailure #bb test was failing when ran in Jenkins
     @patch('salt.utils.path.which', MagicMock(return_value=None))
     @patch('salt.utils.path.which', MagicMock(return_value=None))
     @patch('salt.modules.localemod.__grains__', {'os_family': 'Debian', 'osmajorrelease': 42})
@@ -465,7 +465,7 @@ class LocalemodTestCase(TestCase, LoaderModuleMockMixin):
                                                'file.replace': MagicMock()})
     @patch('salt.modules.localemod._localectl_set', MagicMock())
     @patch('salt.utils.systemd.booted', MagicMock(return_value=False))
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
+    @expectedFailure #bb test was failing when ran in Jenkins
     def test_set_locale_with_no_systemd_unknown(self):
         '''
         Test setting current system locale without systemd on unknown system.
@@ -529,7 +529,7 @@ class LocalemodTestCase(TestCase, LoaderModuleMockMixin):
         assert localemod.__salt__['cmd.run_all'].call_args[0][0] == ['localedef', '--force', '-i', 'de_DE',
                                                                      '-f', 'utf8', 'de_DE.utf8', '--quiet']
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
+    @expectedFailure #bb test was failing when ran in Jenkins
     @patch('salt.modules.localemod.log', MagicMock())
     @patch('salt.modules.localemod.__grains__', {'os_family': 'Suse'})
     @patch('salt.modules.localemod.__salt__', {'cmd.run_all': MagicMock(return_value={'retcode': 0})})

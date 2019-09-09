@@ -22,7 +22,7 @@ from salt.utils.versions import LooseVersion
 
 # Import Salt Testing Libs
 from tests.support.mixins import LoaderModuleMockMixin
-from tests.support.unit import TestCase, skipIf
+from tests.support.unit import TestCase, skipIf, expectedFailure
 from tests.support.mock import NO_MOCK, NO_MOCK_REASON, patch, __version__ as mock_version
 
 VM_NAME = 'kings_landing'

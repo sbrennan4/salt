@@ -7,7 +7,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 import salt.utils.iam as iam
 from salt.ext import six
-from tests.support.unit import TestCase, skipIf
+from tests.support.unit import TestCase, skipIf, expectedFailure
 
 
 class IamTestCase(TestCase):

@@ -12,7 +12,7 @@ import salt.utils.data
 import salt.utils.reactor as reactor
 import salt.utils.yaml
 
-from tests.support.unit import TestCase, skipIf
+from tests.support.unit import TestCase, skipIf, expectedFailure
 from tests.support.mixins import AdaptedConfigurationTestCaseMixin
 from tests.support.mock import (
     NO_MOCK,
@@ -380,7 +380,7 @@ log = logging.getLogger(__name__)
 
 
 @skipIf(NO_MOCK, NO_MOCK_REASON)
-@skipIf(True, 'bb test was failing when ran in Jenkins')
+@expectedFailure #bb test was failing when ran in Jenkins
 class TestReactor(TestCase, AdaptedConfigurationTestCaseMixin):
     '''
     Tests for constructing the low chunks to be executed via the Reactor

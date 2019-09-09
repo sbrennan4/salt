@@ -166,7 +166,7 @@ class SaltmodTestCase(TestCase, LoaderModuleMockMixin):
                     self.assertIn(minion, comment)
 
     # 'function' function tests: 1
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
+    @expectedFailure #bb test was failing when ran in Jenkins
     def test_function(self):
         '''
         Test to execute a single module function on a remote
@@ -251,7 +251,7 @@ class SaltmodTestCase(TestCase, LoaderModuleMockMixin):
                                          ret)
 
     # 'runner' function tests: 1
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
+    @expectedFailure #bb test was failing when ran in Jenkins
     def test_runner(self):
         '''
         Test to execute a runner module on the master
@@ -267,7 +267,7 @@ class SaltmodTestCase(TestCase, LoaderModuleMockMixin):
             self.assertDictEqual(saltmod.runner(name), ret)
 
     # 'wheel' function tests: 1
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
+    @expectedFailure #bb test was failing when ran in Jenkins
     def test_wheel(self):
         '''
         Test to execute a wheel module on the master

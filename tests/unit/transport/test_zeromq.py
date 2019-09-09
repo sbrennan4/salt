@@ -35,7 +35,7 @@ from salt.transport.zeromq import AsyncReqMessageClientPool
 
 # Import test support libs
 from tests.support.paths import TMP_CONF_DIR
-from tests.support.unit import TestCase, skipIf
+from tests.support.unit import TestCase, skipIf, expectedFailure
 from tests.support.helpers import flaky, get_unused_localhost_port
 from tests.support.mixins import AdaptedConfigurationTestCaseMixin
 from tests.support.mock import MagicMock, patch

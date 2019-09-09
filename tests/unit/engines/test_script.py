@@ -42,7 +42,7 @@ class EngineScriptTestCase(TestCase, LoaderModuleMockMixin):
              }
         }
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
+    @expectedFailure #bb test was failing when ran in Jenkins
     def test__get_serializer(self):
         '''
         Test known serializer is returned or exception is raised

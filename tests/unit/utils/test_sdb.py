@@ -10,7 +10,7 @@ import os
 # Import Salt Testing Libs
 from tests.support.runtests import RUNTIME_VARS
 from tests.support.mixins import LoaderModuleMockMixin
-from tests.support.unit import TestCase, skipIf
+from tests.support.unit import TestCase, skipIf, expectedFailure
 from tests.support.mock import (
     NO_MOCK,
     NO_MOCK_REASON
@@ -50,7 +50,7 @@ class SdbTestCase(TestCase, LoaderModuleMockMixin):
         return {sdb: {}}
 
     # test with SQLite database key not presest
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
+    @expectedFailure #bb test was failing when ran in Jenkins
     def test_sqlite_get_not_found(self):
         what = sdb.sdb_get(
                 'sdb://test_sdb_data/thisKeyDoesNotExist', SDB_OPTS)
@@ -58,7 +58,7 @@ class SdbTestCase(TestCase, LoaderModuleMockMixin):
 
     # test with SQLite database write and read
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
+    @expectedFailure #bb test was failing when ran in Jenkins
     def test_sqlite_get_found(self):
         expected = {b'name': b'testone', b'number': 46}
         sdb.sdb_set('sdb://test_sdb_data/test1', expected, SDB_OPTS)

@@ -9,7 +9,7 @@ import os
 import shutil
 
 # Import Salt testing libraries
-from tests.support.unit import TestCase, skipIf
+from tests.support.unit import TestCase, skipIf, expectedFailure
 from tests.support.mock import NO_MOCK, NO_MOCK_REASON
 
 # Import Salt libraries

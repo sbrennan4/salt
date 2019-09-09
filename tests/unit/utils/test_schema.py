@@ -8,7 +8,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 import copy
 
 # Import Salt Testing Libs
-from tests.support.unit import TestCase, skipIf
+from tests.support.unit import TestCase, skipIf, expectedFailure
 
 # Import Salt Libs
 import salt.utils.json

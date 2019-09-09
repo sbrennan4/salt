@@ -13,7 +13,7 @@ import os
 import salt.utils.path
 
 # Import Salt Testing libs
-from tests.support.unit import TestCase, skipIf
+from tests.support.unit import TestCase, skipIf, expectedFailure
 from tests.support.paths import CODE_DIR
 
 EXCLUDED_DIRS = [
@@ -61,7 +61,7 @@ class BadTestModuleNamesTestCase(TestCase):
     def _match_dirs(self, reldir, matchdirs):
         return any(fnmatch.fnmatchcase(reldir, mdir) for mdir in matchdirs)
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
+    @expectedFailure #bb test was failing when ran in Jenkins
     def test_module_name(self):
         '''
         Make sure all test modules conform to the test_*.py naming scheme

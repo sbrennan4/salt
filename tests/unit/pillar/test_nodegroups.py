@@ -5,7 +5,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 # Import Salt Testing libs
 from tests.support.mixins import LoaderModuleMockMixin
-from tests.support.unit import TestCase, skipIf
+from tests.support.unit import TestCase, skipIf, expectedFailure
 from tests.support.mock import patch, MagicMock
 
 # Import Salt Libs
@@ -47,7 +47,7 @@ class NodegroupsPillarTestCase(TestCase, LoaderModuleMockMixin):
             actual_ret = nodegroups.ext_pillar(fake_minion_id, fake_pillar, pillar_name=pillar_name)
             self.assertDictEqual(actual_ret, expected_ret)
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
+    @expectedFailure #bb test was failing when ran in Jenkins
     def test_succeeds(self):
         ret = {fake_pillar_name: ['groupA', ]}
         self._runner(ret)

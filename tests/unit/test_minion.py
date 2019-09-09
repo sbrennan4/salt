@@ -9,7 +9,7 @@ import copy
 import os
 
 # Import Salt Testing libs
-from tests.support.unit import TestCase, skipIf
+from tests.support.unit import TestCase, skipIf, expectedFailure
 from tests.support.mock import NO_MOCK, NO_MOCK_REASON, patch, MagicMock
 from tests.support.mixins import AdaptedConfigurationTestCaseMixin
 from tests.support.helpers import skip_if_not_root
@@ -106,7 +106,7 @@ class MinionTestCase(TestCase, AdaptedConfigurationTestCaseMixin):
                                                          'master_ip': '127.0.0.1'}
 
     # Tests for _handle_decoded_payload in the salt.minion.Minion() class: 3
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
+    @expectedFailure #bb test was failing when ran in Jenkins
     def test_handle_decoded_payload_jid_match_in_jid_queue(self):
         '''
         Tests that the _handle_decoded_payload function returns when a jid is given that is already present
@@ -129,7 +129,7 @@ class MinionTestCase(TestCase, AdaptedConfigurationTestCaseMixin):
         finally:
             minion.destroy()
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
+    @expectedFailure #bb test was failing when ran in Jenkins
     def test_handle_decoded_payload_jid_queue_addition(self):
         '''
         Tests that the _handle_decoded_payload function adds a jid to the minion's jid_queue when the new
@@ -159,7 +159,7 @@ class MinionTestCase(TestCase, AdaptedConfigurationTestCaseMixin):
             finally:
                 minion.destroy()
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
+    @expectedFailure #bb test was failing when ran in Jenkins
     def test_handle_decoded_payload_jid_queue_reduced_minion_jid_queue_hwm(self):
         '''
         Tests that the _handle_decoded_payload function removes a jid from the minion's jid_queue when the
@@ -188,7 +188,7 @@ class MinionTestCase(TestCase, AdaptedConfigurationTestCaseMixin):
             finally:
                 minion.destroy()
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
+    @expectedFailure #bb test was failing when ran in Jenkins
     def test_process_count_max(self):
         '''
         Tests that the _handle_decoded_payload function does not spawn more than the configured amount of processes,
@@ -235,7 +235,7 @@ class MinionTestCase(TestCase, AdaptedConfigurationTestCaseMixin):
             finally:
                 minion.destroy()
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
+    @expectedFailure #bb test was failing when ran in Jenkins
     def test_beacons_before_connect(self):
         '''
         Tests that the 'beacons_before_connect' option causes the beacons to be initialized before connect.
@@ -262,7 +262,7 @@ class MinionTestCase(TestCase, AdaptedConfigurationTestCaseMixin):
             finally:
                 minion.destroy()
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
+    @expectedFailure #bb test was failing when ran in Jenkins
     def test_scheduler_before_connect(self):
         '''
         Tests that the 'scheduler_before_connect' option causes the scheduler to be initialized before connect.
@@ -319,7 +319,7 @@ class MinionAsyncTestCase(TestCase, AdaptedConfigurationTestCaseMixin, tornado.t
                 result = False
         self.assertTrue(result)
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
+    @expectedFailure #bb test was failing when ran in Jenkins
     def test_multi_master_uri_list(self):
         '''
         master_uri_list is a generated opts attr used to represent ready to feed uri's

@@ -8,7 +8,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 # Import Salt Testing Libs
 from tests.support.mixins import LoaderModuleMockMixin
-from tests.support.unit import TestCase, skipIf
+from tests.support.unit import TestCase, skipIf, expectedFailure
 from tests.support.mock import (
     MagicMock,
     patch,
@@ -35,7 +35,7 @@ def fake_wait_for_ip(check_for_ip_fn,
 
 
 @skipIf(NO_MOCK, NO_MOCK_REASON)
-@skipIf(True, 'bb test was failing when ran in Jenkins')
+@expectedFailure #bb test was failing when ran in Jenkins
 class JoyentTestCase(TestCase, LoaderModuleMockMixin):
     '''
     Unit TestCase for the salt.cloud.clouds.joyent module

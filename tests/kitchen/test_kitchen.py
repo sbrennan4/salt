@@ -8,7 +8,7 @@ the KitchenTestCase.
 from __future__ import absolute_import
 import os
 
-from tests.support.unit import TestCase, skipIf
+from tests.support.unit import TestCase, skipIf, expectedFailure
 import setup
 
 import salt.utils.path

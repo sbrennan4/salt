@@ -12,7 +12,7 @@ import shutil
 
 # Import Salt Testing libs
 from tests.support.mixins import LoaderModuleMockMixin
-from tests.support.unit import TestCase, skipIf
+from tests.support.unit import TestCase, skipIf, expectedFailure
 from tests.support.mock import NO_MOCK, NO_MOCK_REASON, patch, MagicMock
 from tests.support.paths import TMP
 from tests.support.helpers import TestsLoggingHandler
@@ -95,7 +95,7 @@ class FileTreePillarTestCase(TestCase, LoaderModuleMockMixin):
                 data_file.write(salt.utils.stringutils.to_str(FILE_DATA[filename]))
         return pillar_path
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
+    @expectedFailure #bb test was failing when ran in Jenkins
     def test_absolute_path(self):
         'check file tree is imported correctly with an absolute path'
         absolute_path = os.path.join(self.pillar_path, 'base')
@@ -107,7 +107,7 @@ class FileTreePillarTestCase(TestCase, LoaderModuleMockMixin):
                 mypillar = file_tree.ext_pillar(MINION_ID, None, absolute_path)
                 self.assertEqual(BASE_PILLAR_CONTENT, mypillar)
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
+    @expectedFailure #bb test was failing when ran in Jenkins
     def test_relative_path(self):
         'check file tree is imported correctly with a relative path'
         with patch('salt.utils.minions.CkMinions.check_minions', MagicMock(return_value=_CHECK_MINIONS_RETURN)):
@@ -118,7 +118,7 @@ class FileTreePillarTestCase(TestCase, LoaderModuleMockMixin):
                 mypillar = file_tree.ext_pillar(MINION_ID, None, '.')
                 self.assertEqual(DEV_PILLAR_CONTENT, mypillar)
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
+    @expectedFailure #bb test was failing when ran in Jenkins
     def test_parent_path(self):
         'check if file tree is merged correctly with a .. path'
         with patch('salt.utils.minions.CkMinions.check_minions', MagicMock(return_value=_CHECK_MINIONS_RETURN)):

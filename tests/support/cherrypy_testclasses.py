@@ -17,7 +17,7 @@ if HAS_CHERRYPY:
     from tests.support.cptestcase import BaseCherryPyTestCase
     from salt.netapi.rest_cherrypy import app
 else:
-    from tests.support.unit import TestCase, skipIf
+    from tests.support.unit import TestCase, skipIf, expectedFailure
 
     @skipIf(HAS_CHERRYPY is False, 'The CherryPy python package needs to be installed')
     class BaseCherryPyTestCase(TestCase):

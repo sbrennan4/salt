@@ -7,7 +7,7 @@ import tempfile
 import shutil
 
 # salt testing libs
-from tests.support.unit import TestCase, skipIf
+from tests.support.unit import TestCase, skipIf, expectedFailure
 from tests.support.mock import(
     patch,
     mock_open,

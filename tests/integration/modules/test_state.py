@@ -482,7 +482,7 @@ class StateModuleTest(ModuleCase, SaltReturnAssertsMixin):
                 ret
             )
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
+    @expectedFailure #bb test was failing when ran in Jenkins
     def test_pydsl(self):
         '''
         Test the basics of the pydsl

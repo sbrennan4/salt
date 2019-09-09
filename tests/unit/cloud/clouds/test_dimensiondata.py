@@ -22,7 +22,7 @@ from salt.utils.versions import LooseVersion
 
 # Import Salt Testing Libs
 from tests.support.mixins import LoaderModuleMockMixin
-from tests.support.unit import TestCase, skipIf
+from tests.support.unit import TestCase, skipIf, expectedFailure
 from tests.support.mock import MagicMock, NO_MOCK, NO_MOCK_REASON, patch, __version__ as mock_version
 from tests.unit.cloud.clouds import _preferred_ip
 

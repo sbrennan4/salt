@@ -497,7 +497,7 @@ class ConfigTestCase(TestCase, AdaptedConfigurationTestCaseMixin):
         self.assertEqual(master_config['fileserver_backend'], expected)
         self.assertEqual(minion_config['fileserver_backend'], expected)
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
+    @expectedFailure #bb test was failing when ran in Jenkins
     def test_syndic_config(self):
         syndic_conf_path = self.get_config_file_path('syndic')
         minion_conf_path = self.get_config_file_path('minion')

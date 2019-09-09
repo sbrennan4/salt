@@ -14,7 +14,7 @@ import salt.utils.platform
 
 # Import Salt Testing Libs
 from tests.support.paths import TMP_CONF_DIR
-from tests.support.unit import TestCase, skipIf
+from tests.support.unit import TestCase, skipIf, expectedFailure
 from tests.support.mock import (
     patch,
     MagicMock,
@@ -297,7 +297,7 @@ class LocalFuncsTestCase(TestCase):
 
         self.assertDictEqual(mock_ret, ret)
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
+    @expectedFailure #bb test was failing when ran in Jenkins
     def test_runner_eauth_not_authenticated(self):
         '''
         Asserts that an EauthAuthenticationError is returned when the user can't authenticate.
@@ -383,7 +383,7 @@ class LocalFuncsTestCase(TestCase):
 
         self.assertDictEqual(mock_ret, ret)
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
+    @expectedFailure #bb test was failing when ran in Jenkins
     def test_wheel_eauth_not_authenticated(self):
         '''
         Asserts that an EauthAuthenticationError is returned when the user can't authenticate.
@@ -576,7 +576,7 @@ class RemoteFuncsTestCase(TestCase):
         self.funcs = masterapi.RemoteFuncs(opts)
         self.funcs.cache = FakeCache()
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
+    @expectedFailure #bb test was failing when ran in Jenkins
     def test_mine_get(self, tgt_type_key='tgt_type'):
         '''
         Asserts that ``mine_get`` gives the expected results.
@@ -602,7 +602,7 @@ class RemoteFuncsTestCase(TestCase):
             )
         self.assertDictEqual(ret, dict(webserver='2001:db8::1:3'))
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
+    @expectedFailure #bb test was failing when ran in Jenkins
     def test_mine_get_pre_nitrogen_compat(self):
         '''
         Asserts that pre-Nitrogen API key ``expr_form`` is still accepted.

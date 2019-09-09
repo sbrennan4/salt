@@ -11,7 +11,7 @@ import tempfile
 
 # Import Salt Testing libs
 import tests.integration as integration
-from tests.support.unit import TestCase, skipIf
+from tests.support.unit import TestCase, skipIf, expectedFailure
 from tests.support.mock import (
     NO_MOCK,
     NO_MOCK_REASON,
@@ -52,7 +52,7 @@ class StateCompilerTestCase(TestCase, AdaptedConfigurationTestCaseMixin):
                'result': True}
         salt.state.format_log(ret)
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
+    @expectedFailure #bb test was failing when ran in Jenkins
     def test_render_error_on_invalid_requisite(self):
         '''
         Test that the state compiler correctly deliver a rendering
@@ -101,32 +101,32 @@ class HighStateTestCase(TestCase, AdaptedConfigurationTestCaseMixin):
     def tearDown(self):
         self.highstate.pop_active()
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
+    @expectedFailure #bb test was failing when ran in Jenkins
     def test_top_matches_with_list(self):
         top = {'env': {'match': ['state1', 'state2'], 'nomatch': ['state3']}}
         matches = self.highstate.top_matches(top)
         self.assertEqual(matches, {'env': ['state1', 'state2']})
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
+    @expectedFailure #bb test was failing when ran in Jenkins
     def test_top_matches_with_string(self):
         top = {'env': {'match': 'state1', 'nomatch': 'state2'}}
         matches = self.highstate.top_matches(top)
         self.assertEqual(matches, {'env': ['state1']})
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
+    @expectedFailure #bb test was failing when ran in Jenkins
     def test_matches_whitelist(self):
         matches = {'env': ['state1', 'state2', 'state3']}
         matches = self.highstate.matches_whitelist(matches, ['state2'])
         self.assertEqual(matches, {'env': ['state2']})
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
+    @expectedFailure #bb test was failing when ran in Jenkins
     def test_matches_whitelist_with_string(self):
         matches = {'env': ['state1', 'state2', 'state3']}
         matches = self.highstate.matches_whitelist(matches,
                                                    'state2,state3')
         self.assertEqual(matches, {'env': ['state2', 'state3']})
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
+    @expectedFailure #bb test was failing when ran in Jenkins
     def test_show_state_usage(self):
         # monkey patch sub methods
         self.highstate.avail = {
@@ -155,7 +155,7 @@ class HighStateTestCase(TestCase, AdaptedConfigurationTestCaseMixin):
         self.assertEqual(state_usage_dict['base']['used'], ['state.a', 'state.b'])
         self.assertEqual(state_usage_dict['base']['unused'], ['state.c'])
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
+    @expectedFailure #bb test was failing when ran in Jenkins
     def test_find_sls_ids_with_exclude(self):
         '''
         See https://github.com/saltstack/salt/issues/47182
@@ -270,7 +270,7 @@ class StateFormatSlotsTestCase(TestCase, AdaptedConfigurationTestCaseMixin):
         self.state_obj.format_slots(cdata)
         self.assertEqual(cdata, {'args': ['arg'], 'kwargs': {'key': 'val'}})
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
+    @expectedFailure #bb test was failing when ran in Jenkins
     def test_format_slots_arg(self):
         '''
         Test the format slots is calling a slot specified in args with corresponding arguments.
@@ -289,7 +289,7 @@ class StateFormatSlotsTestCase(TestCase, AdaptedConfigurationTestCaseMixin):
         mock.assert_called_once_with('fun_arg', fun_key='fun_val')
         self.assertEqual(cdata, {'args': ['fun_return'], 'kwargs': {'key': 'val'}})
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
+    @expectedFailure #bb test was failing when ran in Jenkins
     def test_format_slots_kwarg(self):
         '''
         Test the format slots is calling a slot specified in kwargs with corresponding arguments.
@@ -308,7 +308,7 @@ class StateFormatSlotsTestCase(TestCase, AdaptedConfigurationTestCaseMixin):
         mock.assert_called_once_with('fun_arg', fun_key='fun_val')
         self.assertEqual(cdata, {'args': ['arg'], 'kwargs': {'key': 'fun_return'}})
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
+    @expectedFailure #bb test was failing when ran in Jenkins
     def test_format_slots_multi(self):
         '''
         Test the format slots is calling all slots with corresponding arguments when multiple slots

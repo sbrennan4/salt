@@ -14,7 +14,7 @@ from salt.ext import six
 
 # Import Salt Testing libs
 from tests.support.helpers import with_tempdir
-from tests.support.unit import TestCase, skipIf
+from tests.support.unit import TestCase, skipIf, expectedFailure
 from tests.support.mock import (
     patch,
     NO_MOCK,

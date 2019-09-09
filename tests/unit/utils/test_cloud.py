@@ -15,7 +15,7 @@ import os
 import tempfile
 
 # Import Salt Testing libs
-from tests.support.unit import TestCase, skipIf
+from tests.support.unit import TestCase, skipIf, expectedFailure
 from tests.support.paths import TMP, CODE_DIR
 
 # Import salt libs

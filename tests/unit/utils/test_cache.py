@@ -14,7 +14,7 @@ import tempfile
 import shutil
 
 # Import Salt Testing libs
-from tests.support.unit import TestCase, skipIf
+from tests.support.unit import TestCase, skipIf, expectedFailure
 
 # Import salt libs
 import salt.config
@@ -74,7 +74,7 @@ class CacheContextTestCase(TestCase):
 
             self.assertDictEqual({'a': 'b'}, ret)
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
+    @expectedFailure #bb test was failing when ran in Jenkins
     def test_context_wrapper(self):
         '''
         Test to ensure that a module which decorates itself

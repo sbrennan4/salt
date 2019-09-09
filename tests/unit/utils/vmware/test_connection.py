@@ -14,7 +14,7 @@ import sys
 
 # Import Salt testing libraries
 from tests.support.mixins import LoaderModuleMockMixin
-from tests.support.unit import TestCase, skipIf
+from tests.support.unit import TestCase, skipIf, expectedFailure
 from tests.support.mock import NO_MOCK, NO_MOCK_REASON, patch, MagicMock, call, \
         PropertyMock
 import salt.exceptions as excs
