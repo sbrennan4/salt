@@ -11,7 +11,7 @@ import copy
 
 # Import Salt Testing libs
 from tests.support.helpers import with_tempdir
-from tests.support.unit import TestCase
+from tests.support.unit import TestCase, expectedFailure
 from tests.support.paths import TMP
 
 # Import Salt libs
@@ -105,7 +105,7 @@ class PyDSLRendererTestCase(CommonTestCaseBoilerplate):
         result = self.render_sls(textwrap.dedent('''
             state('A').cmd.run('ls -la', cwd='/var/tmp')
             state().file.managed('myfile.txt', source='salt://path/to/file')
-            state('X').cmd('run', 'echo hello world', cwd='/')
+        state('X').cmd('run', 'echo hello world', cwd='/')
 
             a_cmd = state('A').cmd
             a_cmd.run(shell='/bin/bash')
