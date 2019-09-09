@@ -8,7 +8,7 @@ import salt.states.win_dism as dism
 
 # Import Salt Testing Libs
 from tests.support.mixins import LoaderModuleMockMixin
-from tests.support.unit import TestCase
+from tests.support.unit import TestCase, expectedFailure
 from tests.support.mock import (
     MagicMock,
     patch

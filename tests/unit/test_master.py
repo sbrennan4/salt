@@ -8,7 +8,7 @@ import salt.config
 import salt.master
 
 # Import Salt Testing Libs
-from tests.support.unit import TestCase
+from tests.support.unit import TestCase, expectedFailure
 from tests.support.mock import (
     patch,
     MagicMock,

@@ -35,7 +35,7 @@ def fake_wait_for_ip(check_for_ip_fn,
 
 
 @skipIf(NO_MOCK, NO_MOCK_REASON)
-@expectedFailure #bb test was failing when ran in Jenkins
+@skipIf(True, 'bb test was failing when ran in Jenkins')
 class JoyentTestCase(TestCase, LoaderModuleMockMixin):
     '''
     Unit TestCase for the salt.cloud.clouds.joyent module

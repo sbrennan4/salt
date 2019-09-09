@@ -10,7 +10,7 @@ import os
 
 # Import Salt Testing libs
 from tests.support.mock import patch, Mock
-from tests.support.unit import TestCase
+from tests.support.unit import TestCase, expectedFailure
 
 # Import Salt libs
 from salt.ext.six.moves import range
