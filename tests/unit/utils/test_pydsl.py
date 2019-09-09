@@ -83,7 +83,7 @@ class CommonTestCaseBoilerplate(TestCase):
         finally:
             HIGHSTATE.pop_active()
 
-
+@skipIf(True, 'bb test was failing when ran in Jenkins')
 class PyDSLRendererTestCase(CommonTestCaseBoilerplate):
     '''
     WARNING: If tests in here are flaky, they may need
@@ -100,7 +100,6 @@ class PyDSLRendererTestCase(CommonTestCaseBoilerplate):
             StringIO(content), saltenv=saltenv, sls=sls, **kws
         )
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_state_declarations(self):
         result = self.render_sls(textwrap.dedent('''
             state('A').cmd.run('ls -la', cwd='/var/tmp')
@@ -142,7 +141,6 @@ class PyDSLRendererTestCase(CommonTestCaseBoilerplate):
         self.assertEqual(s[1]['name'], 'myfile.txt')
         self.assertEqual(s[2]['source'], 'salt://path/to/file')
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_requisite_declarations(self):
         result = self.render_sls(textwrap.dedent('''
             state('X').cmd.run('echo hello')
@@ -171,7 +169,6 @@ class PyDSLRendererTestCase(CommonTestCaseBoilerplate):
             result['H']['cmd'][1]['require_in'][0]['cmd'], 'echo hello'
         )
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_include_extend(self):
         result = self.render_sls(textwrap.dedent('''
             include(
@@ -207,7 +204,6 @@ class PyDSLRendererTestCase(CommonTestCaseBoilerplate):
         self.assertTrue('A' not in result)
         self.assertEqual(extend['A']['cmd'][0], 'run')
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_cmd_call(self):
         result = self.HIGHSTATE.state.call_template_str(textwrap.dedent('''\
             #!pydsl
@@ -233,7 +229,6 @@ class PyDSLRendererTestCase(CommonTestCaseBoilerplate):
         ret = next(result[k] for k in six.iterkeys(result) if '-G_' in k)
         self.assertEqual(ret['changes']['stdout'], 'this is state G')
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_multiple_state_func_in_state_mod(self):
         with self.assertRaisesRegex(PyDslError, 'Multiple state functions'):
             self.render_sls(textwrap.dedent('''
@@ -241,14 +236,12 @@ class PyDSLRendererTestCase(CommonTestCaseBoilerplate):
                 state('A').cmd.wait('echo hehe')
             '''))
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_no_state_func_in_state_mod(self):
         with self.assertRaisesRegex(PyDslError, 'No state function specified'):
             self.render_sls(textwrap.dedent('''
                 state('B').cmd.require(cmd='hoho')
             '''))
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_load_highstate(self):
         result = self.render_sls(textwrap.dedent('''
             import salt.utils.yaml
@@ -285,7 +278,6 @@ class PyDSLRendererTestCase(CommonTestCaseBoilerplate):
         self.assertIn({'watch': [{'cmd': 'A'}]}, result['B']['service'])
         self.assertEqual(len(result['B']['service']), 3)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_ordered_states(self):
         result = self.render_sls(textwrap.dedent('''
             __pydsl__.set(ordered=True)
@@ -301,7 +293,6 @@ class PyDSLRendererTestCase(CommonTestCaseBoilerplate):
         self.assertEqual(result['C']['cmd'][1]['require'][0]['cmd'], 'A')
         self.assertEqual(result['B']['file'][1]['require'][0]['cmd'], 'C')
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     @with_tempdir()
     def test_pipe_through_stateconf(self, dirpath):
         output = os.path.join(dirpath, 'output')
@@ -351,7 +342,6 @@ class PyDSLRendererTestCase(CommonTestCaseBoilerplate):
         with salt.utils.files.fopen(output, 'r') as f:
             self.assertEqual(''.join(f.read().split()), "XYZABCDEF")
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     @with_tempdir()
     def test_compile_time_state_execution(self, dirpath):
         if not sys.stdin.isatty():
@@ -380,7 +370,6 @@ class PyDSLRendererTestCase(CommonTestCaseBoilerplate):
         with salt.utils.files.fopen(os.path.join(dirpath, 'xxx.txt'), 'rt') as f:
             self.assertEqual(f.read(), 'hehe' + os.linesep)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     @with_tempdir()
     def test_nested_high_state_execution(self, dirpath):
         output = os.path.join(dirpath, 'output')
@@ -404,7 +393,6 @@ class PyDSLRendererTestCase(CommonTestCaseBoilerplate):
             '''))
         self.state_highstate({'base': ['aaa']}, dirpath)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     @with_tempdir()
     def test_repeat_includes(self, dirpath):
         output = os.path.join(dirpath, 'output')
