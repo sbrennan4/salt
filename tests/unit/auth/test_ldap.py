@@ -8,7 +8,7 @@ import salt.auth.ldap
 
 # Import Salt Testing Libs
 from tests.support.mock import patch, NO_MOCK, NO_MOCK_REASON
-from tests.support.unit import skipIf, TestCase
+from tests.support.unit import skipIf, TestCase, expectedFailure
 
 salt.auth.ldap.__opts__ = {}
 

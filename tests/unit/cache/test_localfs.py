@@ -12,7 +12,7 @@ import tempfile
 # Import Salt Testing libs
 from tests.support.mixins import LoaderModuleMockMixin
 from tests.support.paths import TMP
-from tests.support.unit import skipIf, TestCase
+from tests.support.unit import skipIf, TestCase, expectedFailure
 from tests.support.mock import (
     MagicMock,
     NO_MOCK,

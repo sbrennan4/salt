@@ -9,7 +9,7 @@ import tempfile
 import stat
 
 # Import Salt Testing libs
-from tests.support.unit import skipIf, TestCase
+from tests.support.unit import skipIf, TestCase, expectedFailure
 from tests.support.paths import TMP
 
 # Import salt libs

@@ -10,7 +10,7 @@ import datetime
 import os
 
 # Import Salt Testing Libs
-from tests.support.unit import skipIf, TestCase
+from tests.support.unit import skipIf, TestCase, expectedFailure
 from tests.support.mock import MagicMock, patch, NO_MOCK, NO_MOCK_REASON
 import tests.integration as integration
 

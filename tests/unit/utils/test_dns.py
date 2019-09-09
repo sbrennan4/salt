@@ -16,7 +16,7 @@ from salt.utils.dns import _to_port, _tree, _weighted_order, _data2rec, _data2re
 from salt.utils.dns import _lookup_gai, _lookup_dig, _lookup_drill, _lookup_host, _lookup_nslookup
 
 # Testing
-from tests.support.unit import skipIf, TestCase
+from tests.support.unit import skipIf, TestCase, expectedFailure
 from tests.support.mock import NO_MOCK, NO_MOCK_REASON, MagicMock, patch
 
 

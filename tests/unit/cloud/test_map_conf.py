@@ -7,7 +7,7 @@
 from __future__ import absolute_import
 
 # Import Salt Testing libs
-from tests.support.unit import skipIf, TestCase
+from tests.support.unit import skipIf, TestCase, expectedFailure
 from tests.support.mock import (
     MagicMock,
     patch,

@@ -13,7 +13,7 @@ import salt.utils.pkg
 
 # Import Salt Testing Libs
 from tests.support.mixins import LoaderModuleMockMixin
-from tests.support.unit import skipIf, TestCase
+from tests.support.unit import skipIf, TestCase, expectedFailure
 from tests.support.mock import MagicMock, Mock, patch, NO_MOCK, NO_MOCK_REASON
 
 TAPS_STRING = 'homebrew/dupes\nhomebrew/science\nhomebrew/x11'

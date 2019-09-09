@@ -824,7 +824,7 @@ will also redefine the ``__salt__`` dictionary such that it only contains
 
     # Import Salt Testing Libs
     from tests.support.mixins import LoaderModuleMockMixin
-    from tests.support.unit import skipIf, TestCase
+    from tests.support.unit import skipIf, TestCase, expectedFailure
     from tests.support.mock import (
         MagicMock,
         patch,
@@ -926,7 +926,7 @@ with.
 
     # Import Salt Testing Libs
     from tests.support.mixins import LoaderModuleMockMixin
-    from tests.support.unit import skipIf, TestCase
+    from tests.support.unit import skipIf, TestCase, expectedFailure
     from tests.support.mock import (
         MagicMock,
         patch,

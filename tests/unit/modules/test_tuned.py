@@ -4,7 +4,7 @@ from __future__ import absolute_import
 from salt.modules import tuned
 
 from tests.support.mixins import LoaderModuleMockMixin
-from tests.support.unit import skipIf, TestCase
+from tests.support.unit import skipIf, TestCase, expectedFailure
 from tests.support.mock import (
     MagicMock,
     NO_MOCK,

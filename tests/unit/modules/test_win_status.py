@@ -8,7 +8,7 @@ import sys
 from salt.ext import six
 
 # Import Salt Testing libs
-from tests.support.unit import skipIf, TestCase
+from tests.support.unit import skipIf, TestCase, expectedFailure
 from tests.support.mock import NO_MOCK, NO_MOCK_REASON, Mock, patch, ANY
 
 try:

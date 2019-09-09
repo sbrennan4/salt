@@ -5,7 +5,7 @@ from __future__ import absolute_import
 from collections import namedtuple
 
 # Salt testing libs
-from tests.support.unit import skipIf, TestCase
+from tests.support.unit import skipIf, TestCase, expectedFailure
 from tests.support.mock import NO_MOCK, NO_MOCK_REASON, patch, MagicMock, Mock
 from tests.support.mixins import LoaderModuleMockMixin
 

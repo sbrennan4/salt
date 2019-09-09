@@ -13,7 +13,7 @@ import sys
 
 # Import Salt Testing libs
 from tests.support.mixins import LoaderModuleMockMixin
-from tests.support.unit import skipIf, TestCase
+from tests.support.unit import skipIf, TestCase, expectedFailure
 from tests.support.helpers import TestsLoggingHandler, ForceImportErrorOn
 from tests.support.mock import NO_MOCK, NO_MOCK_REASON, MagicMock, patch
 

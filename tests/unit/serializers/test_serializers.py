@@ -5,7 +5,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 from textwrap import dedent
 
 # Import Salt Testing libs
-from tests.support.unit import skipIf, TestCase
+from tests.support.unit import skipIf, TestCase, expectedFailure
 
 # Import 3rd party libs
 import jinja2

@@ -11,7 +11,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 import salt.utils.decorators as decorators
 from salt.version import SaltStackVersion
 from salt.exceptions import CommandExecutionError, SaltConfigurationError
-from tests.support.unit import skipIf, TestCase
+from tests.support.unit import skipIf, TestCase, expectedFailure
 from tests.support.mock import NO_MOCK, NO_MOCK_REASON, patch
 
 

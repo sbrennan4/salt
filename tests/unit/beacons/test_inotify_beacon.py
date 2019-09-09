@@ -11,7 +11,7 @@ import salt.utils.files
 from salt.beacons import inotify
 
 # Salt testing libs
-from tests.support.unit import skipIf, TestCase
+from tests.support.unit import skipIf, TestCase, expectedFailure
 from tests.support.mixins import LoaderModuleMockMixin
 # Third-party libs
 try:

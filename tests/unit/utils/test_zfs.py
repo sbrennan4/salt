@@ -14,7 +14,7 @@ Tests for the zfs utils library
 from __future__ import absolute_import, unicode_literals, print_function
 
 # Import Salt Testing libs
-from tests.support.unit import skipIf, TestCase
+from tests.support.unit import skipIf, TestCase, expectedFailure
 from tests.support.mock import (
     MagicMock,
     patch,

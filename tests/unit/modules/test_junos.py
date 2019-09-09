@@ -8,7 +8,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 # Import test libs
 from tests.support.mixins import LoaderModuleMockMixin, XMLEqualityMixin
 from tests.support.mock import patch, mock_open
-from tests.support.unit import skipIf, TestCase
+from tests.support.unit import skipIf, TestCase, expectedFailure
 
 # Import 3rd-party libs
 try:

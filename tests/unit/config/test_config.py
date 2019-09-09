@@ -17,7 +17,7 @@ import textwrap
 from tests.support.helpers import with_tempdir, with_tempfile
 from tests.support.mixins import AdaptedConfigurationTestCaseMixin
 from tests.support.paths import TMP
-from tests.support.unit import skipIf, TestCase
+from tests.support.unit import skipIf, TestCase, expectedFailure
 from tests.support.mock import NO_MOCK, NO_MOCK_REASON, Mock, MagicMock, patch
 
 # Import Salt libs

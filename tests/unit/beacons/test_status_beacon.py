@@ -21,7 +21,7 @@ from salt.beacons import status
 import salt.modules.status as status_module
 
 # Salt testing libs
-from tests.support.unit import TestCase
+from tests.support.unit import TestCase, expectedFailure
 from tests.support.mixins import LoaderModuleMockMixin
 
 
