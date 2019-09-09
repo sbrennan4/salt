@@ -35,7 +35,7 @@ class AESFuncsTestCase(TestCase):
     def test__file_envs_load_is_none(self):        
         # Default master opts
         opts = salt.config.master_config(None)
-        opts['evaporator'] = {'tenancies']: [{'name': 'salt-core', 'groups': ['salt'], 'global': True}]}
+        opts['evaporator'] = {'tenancies': [{'name': 'salt-core', 'groups': ['salt'], 'global': True}]}
         opts['ext_pillar'] = [
             {'environments': ['word']}
         ]
@@ -47,16 +47,16 @@ class AESFuncsTestCase(TestCase):
     def test__file_envs_node_is_found(self):        
         # Default master opts
         opts = salt.config.master_config(None)
-        opts['evaporator'] = {'tenancies']: [{'name': 'salt-core', 'groups': ['salt'], 'global': True}]}
         opts['ext_pillar'] = [
             {'environments': ['word']}
         ]
-        opts['evaporator'] = {}
-        opts['evaporator']['tenancies'] = [
-            {"environment": "sltdm", "global": False},
-            {"environment": "salt-native", "global": True},
-            {"environment": "salt-water", "global": False},
-        ]
+        opts['evaporator'] = {
+            'tenancies': [
+                {"name": "sltdm", "groups": ["salt"], "global": False},
+                {"name": "salt-native", "groups": ["salt"], "global": True},
+                {"name": "salt-water", "groups": ["salt"], "global": False},
+            ]
+        }
 
         self.aes_funcs = salt.master.AESFuncs(opts)
         res = self.aes_funcs._file_envs({"id": "sltdm-rr-005"})
@@ -65,12 +65,13 @@ class AESFuncsTestCase(TestCase):
     def test__file_envs_node_no_environment(self):        
         # Default master opts
         opts = salt.config.master_config(None)
-        opts['evaporator'] = {}
-        opts['evaporator']['tenancies'] = [
-            {"environment": "sltdm", "global": False},
-            {"environment": "salt-native", "global": True},
-            {"environment": "salt-water", "global": False},
-        ]
+        opts['evaporator'] = {
+            'tenancies': [
+                {"name": "sltdm", "groups": ["salt"], "global": False},
+                {"name": "salt-native", "groups": ["salt"], "global": True},
+                {"name": "salt-water", "groups": ["salt"], "global": False},
+            ]
+        }
 
         self.aes_funcs = salt.master.AESFuncs(opts)
         res = self.aes_funcs._file_envs({"id": "sltdm-rr-005"})
