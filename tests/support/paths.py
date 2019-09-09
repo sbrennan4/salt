@@ -141,3 +141,20 @@ class ScriptPathMixin(object):
 
         log.info('Returning script path %r', script_path)
         return script_path
+
+def list_test_mods():
+    '''
+    A generator which returns all of the test files
+    '''
+    test_re = re.compile(r'^test_.+\.py$')
+    for dirname in (UNIT_TEST_DIR, INTEGRATION_TEST_DIR):
+        test_type = os.path.basename(dirname)
+        for root, _, files in salt.utils.path.os_walk(dirname):
+            parent_mod = root[len(dirname):].lstrip(os.sep).replace(os.sep, '.')
+            for filename in files:
+                if test_re.match(filename):
+                    mod_name = test_type
+                    if parent_mod:
+                        mod_name += '.' + parent_mod
+                    mod_name += '.' + filename[:-3]
+                    yield mod_name

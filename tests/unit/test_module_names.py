@@ -3,7 +3,6 @@
     tests.unit.test_test_module_name
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 '''
-
 # Import Python libs
 from __future__ import absolute_import
 import fnmatch
@@ -15,7 +14,7 @@ import salt.utils.stringutils
 
 # Import Salt Testing libs
 from tests.support.unit import TestCase
-from tests.support.paths import CODE_DIR, test_mods
+from tests.support.paths import CODE_DIR, list_test_mods
 
 EXCLUDED_DIRS = [
     os.path.join('tests', 'pkg'),
@@ -201,7 +200,7 @@ class BadTestModuleNamesTestCase(TestCase):
             msg += ''.join(errors)
             return msg
 
-        for mod_name in test_mods():
+        for mod_name in list_test_mods():
             if mod_name in ignore:
                 # Test module is being ignored, skip it
                 continue

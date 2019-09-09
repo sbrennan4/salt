@@ -21,7 +21,7 @@ import imp
 import copy
 
 # Import Salt Testing libs
-from tests.support.unit import TestCase, expectedFailure
+from tests.support.unit import TestCase, expectedFailure, skipIf
 from tests.support.mock import patch
 from tests.support.paths import TMP
 
