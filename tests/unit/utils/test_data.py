@@ -11,7 +11,7 @@ import logging
 import salt.utils.data
 import salt.utils.stringutils
 from salt.utils.odict import OrderedDict
-from tests.support.unit import TestCase, skipIf, expectedFailure, LOREM_IPSUM
+from tests.support.unit import TestCase, skipIf, LOREM_IPSUM
 from tests.support.mock import patch, NO_MOCK, NO_MOCK_REASON
 from salt.ext.six.moves import builtins  # pylint: disable=import-error,redefined-builtin
 from salt.ext import six

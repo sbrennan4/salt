@@ -8,7 +8,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 # Import Salt Testing Libs
 from tests.support.mixins import LoaderModuleMockMixin
-from tests.support.unit import skipIf, TestCase, expectedFailure
+from tests.support.unit import skipIf, TestCase
 from tests.support.mock import (
     MagicMock,
     NO_MOCK,

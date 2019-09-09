@@ -16,7 +16,7 @@ from salt.ext import six
 
 # Import Salt Testing Libs
 from tests.support.mock import patch, mock_open, NO_MOCK, NO_MOCK_REASON
-from tests.support.unit import TestCase, skipIf, expectedFailure
+from tests.support.unit import TestCase, skipIf
 
 log = logging.getLogger(__name__)
 

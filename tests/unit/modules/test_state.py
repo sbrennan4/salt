@@ -15,7 +15,7 @@ import time
 # Import Salt Testing Libs
 from tests.support.mixins import LoaderModuleMockMixin
 from tests.support.paths import TMP, TMP_CONF_DIR
-from tests.support.unit import TestCase, skipIf, expectedFailure
+from tests.support.unit import TestCase, skipIf
 from tests.support.mock import (
     Mock,
     MagicMock,

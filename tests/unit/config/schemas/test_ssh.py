@@ -9,7 +9,7 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 # Import Salt Testing Libs
-from tests.support.unit import TestCase, skipIf, expectedFailure
+from tests.support.unit import TestCase, skipIf
 
 # Import Salt Libs
 from salt.config.schemas import ssh as ssh_schemas

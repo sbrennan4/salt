@@ -20,7 +20,7 @@ else:
     import resource
 
 # Import Salt Testing libs
-from tests.support.unit import skipIf, TestCase, expectedFailure
+from tests.support.unit import skipIf, TestCase
 from tests.support.paths import TMP
 from tests.support.helpers import (
     requires_network,

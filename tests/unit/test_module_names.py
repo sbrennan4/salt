@@ -13,7 +13,7 @@ import salt.utils.path
 import salt.utils.stringutils
 
 # Import Salt Testing libs
-from tests.support.unit import TestCase, skipIf, expectedFailure
+from tests.support.unit import TestCase, skipIf
 from tests.support.paths import CODE_DIR, list_test_mods
 
 EXCLUDED_DIRS = [

@@ -17,7 +17,7 @@ import salt.states.ldap
 from salt.utils.oset import OrderedSet
 
 from tests.support.mixins import LoaderModuleMockMixin
-from tests.support.unit import skipIf, TestCase, expectedFailure
+from tests.support.unit import skipIf, TestCase
 from tests.support.mock import NO_MOCK, NO_MOCK_REASON
 
 # emulates the LDAP database.  each key is the DN of an entry and it

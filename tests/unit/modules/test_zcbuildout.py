@@ -17,7 +17,7 @@ from salt.ext.six.moves.urllib.request import urlopen
 # Import Salt Testing libs
 from tests.support.mixins import LoaderModuleMockMixin
 from tests.support.paths import FILES, TMP
-from tests.support.unit import TestCase, skipIf, expectedFailure
+from tests.support.unit import TestCase, skipIf
 from tests.support.helpers import requires_network, skip_if_binaries_missing
 
 # Import Salt libs

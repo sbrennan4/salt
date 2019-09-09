@@ -18,7 +18,7 @@ import subprocess
 import time
 
 # Import Salt Testing libs
-from tests.support.unit import TestCase, skipIf, expectedFailure
+from tests.support.unit import TestCase, skipIf
 
 # Import Salt libs
 import salt.utils.files

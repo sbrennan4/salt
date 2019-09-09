@@ -7,7 +7,7 @@ Test case for the YAML SDB module
 from __future__ import absolute_import, print_function, unicode_literals
 
 # Import Salt Testing libs
-from tests.support.unit import skipIf, TestCase, expectedFailure
+from tests.support.unit import skipIf, TestCase
 from tests.support.mock import (
     NO_MOCK,
     NO_MOCK_REASON,

@@ -6,7 +6,7 @@ from __future__ import absolute_import, unicode_literals
 
 # Import Salt libs
 import salt.utils.locales as locales
-from tests.support.unit import TestCase, skipIf, expectedFailure
+from tests.support.unit import TestCase, skipIf
 from tests.support.mock import patch, NO_MOCK, NO_MOCK_REASON
 
 # Import 3rd-part libs

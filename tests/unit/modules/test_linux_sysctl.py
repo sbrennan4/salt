@@ -13,7 +13,7 @@ from salt.exceptions import CommandExecutionError
 
 # Import Salt Testing Libs
 from tests.support.mixins import LoaderModuleMockMixin
-from tests.support.unit import skipIf, TestCase, expectedFailure
+from tests.support.unit import skipIf, TestCase
 from tests.support.mock import (
     MagicMock,
     mock_open,

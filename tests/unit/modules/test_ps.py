@@ -8,7 +8,7 @@ from __future__ import absolute_import, unicode_literals, print_function
 from collections import namedtuple
 
 # Import Salt Testing libs
-from tests.support.unit import TestCase, skipIf, expectedFailure
+from tests.support.unit import TestCase, skipIf
 from tests.support.mock import MagicMock, patch, call, Mock
 
 # Import Salt libs

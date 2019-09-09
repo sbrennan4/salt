@@ -13,7 +13,7 @@ import tempfile
 from tests.integration import AdaptedConfigurationTestCaseMixin
 from tests.support.mixins import LoaderModuleMockMixin
 from tests.support.paths import BASE_FILES, TMP, TMP_STATE_TREE
-from tests.support.unit import TestCase, skipIf, expectedFailure
+from tests.support.unit import TestCase, skipIf
 from tests.support.mock import patch, NO_MOCK, NO_MOCK_REASON
 
 # Import Salt libs

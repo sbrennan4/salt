@@ -10,7 +10,7 @@ import os
 
 # Import Salt libs
 import salt.utils.jid
-from tests.support.unit import TestCase, skipIf, expectedFailure
+from tests.support.unit import TestCase, skipIf
 from tests.support.mock import (
     patch,
     NO_MOCK,

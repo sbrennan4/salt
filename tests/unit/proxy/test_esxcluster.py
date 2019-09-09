@@ -22,7 +22,7 @@ from salt.config.schemas.esxcluster import EsxclusterProxySchema
 
 # Import Salt Testing Libs
 from tests.support.mixins import LoaderModuleMockMixin
-from tests.support.unit import TestCase, skipIf, expectedFailure
+from tests.support.unit import TestCase, skipIf
 from tests.support.mock import (
     MagicMock,
     patch,

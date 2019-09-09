@@ -19,7 +19,7 @@ import time
 from tests.integration import AdaptedConfigurationTestCaseMixin
 from tests.support.mixins import LoaderModuleMockMixin
 from tests.support.paths import TMP
-from tests.support.unit import TestCase, skipIf, expectedFailure
+from tests.support.unit import TestCase, skipIf
 from tests.support.mock import (
     MagicMock,
     NO_MOCK,
