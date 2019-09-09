@@ -15,6 +15,7 @@
 from __future__ import absolute_import
 import os
 import sys
+import re
 import stat
 import logging
 import tempfile
