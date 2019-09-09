@@ -51,7 +51,7 @@ SYS_TMP_DIR = os.path.abspath(os.path.realpath(
     # Gentoo Portage prefers ebuild tests are rooted in ${TMPDIR}
     os.environ.get('TMPDIR', tempfile.gettempdir()) if not sys.platform.startswith('darwin') else '/tmp'
 ))
-TMP = os.path.join(SYS_TMP_DIR, 'salt-tests-tmpdir')
+TMP = os.path.join(SYS_TMP_DIR, 'salt-tests-tmpdir-' + str(os.getpid()))
 FILES = os.path.join(INTEGRATION_TEST_DIR, 'files')
 BASE_FILES = os.path.join(FILES, 'file', 'base')
 PROD_FILES = os.path.join(FILES, 'file', 'prod')

@@ -37,20 +37,21 @@ pipeline {
                     // Run whatever tests you want here for now. All tests takes like an hour.
                     // If you write custom tests, add them here so we are sure they continue passing
 
-                    sh "docker exec ${unique_container_name} ./tests/runtests.py --unit -v"
+                    sh "docker exec ${unique_container_name} pytest -n30 tests/unit --color=yes"
 
                     // Whatever is failing we can skip with
                     // @expectedFailure #bb test was failing when ran in Jenkins
                 }
-            } 
+            }
             post {
                 cleanup {
-                    script {                            
+                    script {
+                        deleteDir() /* clean up our workspace */
                         sh "docker stop ${unique_container_name}"
                     }
                 }
             }
-        }        
+        }
         stage('Deploy to dev pypi') {
             when {changeRequest()}
             steps {

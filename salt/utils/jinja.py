@@ -5,7 +5,12 @@ Jinja loading utils to enable a more powerful backend for jinja templates
 
 # Import python libs
 from __future__ import absolute_import, unicode_literals
-import collections
+
+try:
+    from collections.abc import Hashable
+except ImportError:
+    from collections import Hashable
+
 import logging
 import os.path
 import pipes
@@ -273,7 +278,7 @@ def to_bool(val):
         return val.lower() in ('yes', '1', 'true')
     if isinstance(val, six.integer_types):
         return val > 0
-    if not isinstance(val, collections.Hashable):
+    if not isinstance(val, Hashable):
         return len(val) > 0
     return False
 
@@ -444,7 +449,7 @@ def unique(values):
         ['a', 'b', 'c']
     '''
     ret = None
-    if isinstance(values, collections.Hashable):
+    if isinstance(values, Hashable):
         ret = set(values)
     else:
         ret = []
@@ -516,7 +521,7 @@ def lst_avg(lst):
         stacklevel=3
     )
 
-    if not isinstance(lst, collections.Hashable):
+    if not isinstance(lst, Hashable):
         return float(sum(lst)/len(lst))
     return float(lst)
 
@@ -537,7 +542,7 @@ def union(lst1, lst2):
 
         [1, 2, 3, 4, 6]
     '''
-    if isinstance(lst1, collections.Hashable) and isinstance(lst2, collections.Hashable):
+    if isinstance(lst1, Hashable) and isinstance(lst2, Hashable):
         return set(lst1) | set(lst2)
     return unique(lst1 + lst2)
 
@@ -558,7 +563,7 @@ def intersect(lst1, lst2):
 
         [2, 4]
     '''
-    if isinstance(lst1, collections.Hashable) and isinstance(lst2, collections.Hashable):
+    if isinstance(lst1, Hashable) and isinstance(lst2, Hashable):
         return set(lst1) & set(lst2)
     return unique([ele for ele in lst1 if ele in lst2])
 
@@ -579,7 +584,7 @@ def difference(lst1, lst2):
 
         [1, 3, 6]
     '''
-    if isinstance(lst1, collections.Hashable) and isinstance(lst2, collections.Hashable):
+    if isinstance(lst1, Hashable) and isinstance(lst2, Hashable):
         return set(lst1) - set(lst2)
     return unique([ele for ele in lst1 if ele not in lst2])
 
@@ -600,7 +605,7 @@ def symmetric_difference(lst1, lst2):
 
         [1, 3]
     '''
-    if isinstance(lst1, collections.Hashable) and isinstance(lst2, collections.Hashable):
+    if isinstance(lst1, Hashable) and isinstance(lst2, Hashable):
         return set(lst1) ^ set(lst2)
     return unique([ele for ele in union(lst1, lst2) if ele not in intersect(lst1, lst2)])
 
