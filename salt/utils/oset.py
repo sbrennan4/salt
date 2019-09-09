@@ -22,7 +22,13 @@ Rob Speer's changes are as follows:
     - added __getitem__
 '''
 from __future__ import absolute_import, unicode_literals, print_function
-import collections
+
+# Import python libs
+try:
+    from collections.abc import MutableSet
+except ImportError:
+    from collections import MutableSet
+
 
 SLICE_ALL = slice(None)
 __version__ = '2.0.1'
