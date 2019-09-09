@@ -36,7 +36,7 @@ pipeline {
 
                     // Run whatever tests you want here for now. All tests takes like an hour.
                     // If you write custom tests, add them here so we are sure they continue passing
-                    sh "docker exec ${unique_container_name} ./tests/runtests.py --unit"
+                    sh "docker exec ${unique_container_name} ./tests/runtests.py --unit -v"
 
                     // Whatever is failing we can skip with
                     // @expectedFailure #bb test was failing when ran in Jenkins
