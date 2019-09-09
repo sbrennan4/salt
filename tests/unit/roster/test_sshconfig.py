@@ -7,7 +7,7 @@ import collections
 # Import Salt Testing Libs
 from tests.support import mock
 from tests.support import mixins
-from tests.support.unit import skipIf, TestCase
+from tests.support.unit import skipIf, TestCase, expectedFailure
 
 # Import Salt Libs
 import salt.roster.sshconfig as sshconfig

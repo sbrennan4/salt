@@ -132,7 +132,7 @@ Consider this more extensive example from
 
    # Import Salt Testing Libs
    from tests.support.mixins import LoaderModuleMockMixin
-   from tests.support.unit import TestCase, skipIf
+   from tests.support.unit import TestCase, skipIf, expectedFailure
    from tests.support.mock import (
        patch,
        MagicMock,
@@ -196,7 +196,7 @@ a separate implementation which has additional functionality.
 
 .. code-block:: python
 
-    from tests.support.unit import TestCase, skipIf
+    from tests.support.unit import TestCase, skipIf, expectedFailure
     from tests.support.mock import (
         patch
         mock_open,
@@ -251,7 +251,7 @@ those cases, you can pass ``read_data`` as a dictionary:
 
     import textwrap
 
-    from tests.support.unit import TestCase, skipIf
+    from tests.support.unit import TestCase, skipIf, expectedFailure
     from tests.support.mock import (
         patch
         mock_open,
@@ -324,7 +324,7 @@ Instead of a string, an exception can also be used as the ``read_data``:
 
     import errno
 
-    from tests.support.unit import TestCase, skipIf
+    from tests.support.unit import TestCase, skipIf, expectedFailure
     from tests.support.mock import (
         patch
         mock_open,
@@ -362,7 +362,7 @@ and produce a mocked filehandle with the specified contents. For example:
     import errno
     import textwrap
 
-    from tests.support.unit import TestCase, skipIf
+    from tests.support.unit import TestCase, skipIf, expectedFailure
     from tests.support.mock import (
         patch
         mock_open,
@@ -463,7 +463,7 @@ several useful attributes:
 
   .. code-block:: python
 
-      from tests.support.unit import TestCase, skipIf
+      from tests.support.unit import TestCase, skipIf, expectedFailure
       from tests.support.mock import (
           patch
           mock_open,
@@ -607,7 +607,7 @@ Most commonly, the following imports are necessary to create a unit test:
 
 .. code-block:: python
 
-    from tests.support.unit import TestCase, skipIf
+    from tests.support.unit import TestCase, skipIf, expectedFailure
 
 If you need mock support to your tests, please also import:
 
@@ -824,7 +824,7 @@ will also redefine the ``__salt__`` dictionary such that it only contains
 
     # Import Salt Testing Libs
     from tests.support.mixins import LoaderModuleMockMixin
-    from tests.support.unit import skipIf, TestCase
+    from tests.support.unit import skipIf, TestCase, expectedFailure
     from tests.support.mock import (
         MagicMock,
         patch,
@@ -926,7 +926,7 @@ with.
 
     # Import Salt Testing Libs
     from tests.support.mixins import LoaderModuleMockMixin
-    from tests.support.unit import skipIf, TestCase
+    from tests.support.unit import skipIf, TestCase, expectedFailure
     from tests.support.mock import (
         MagicMock,
         patch,
