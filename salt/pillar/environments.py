@@ -145,7 +145,7 @@ def resolve_node(minion_id):
     # if we've gotten this far its an unknown node
     return None
 
-def stage_envs(stage, envs)
+def stage_envs(stage, envs):
     """
     Takes in an iterable of env names and prepends a stage to the beginning.
     Example:
