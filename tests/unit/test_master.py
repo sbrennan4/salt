@@ -35,6 +35,7 @@ class AESFuncsTestCase(TestCase):
     def test__file_envs_load_is_none(self):        
         # Default master opts
         opts = salt.config.master_config(None)
+        opts['evaporator'] = {'tenancies']: [{'name': 'salt-core', 'groups': ['salt'], 'global': True}]}
         opts['ext_pillar'] = [
             {'environments': ['word']}
         ]
@@ -46,6 +47,7 @@ class AESFuncsTestCase(TestCase):
     def test__file_envs_node_is_found(self):        
         # Default master opts
         opts = salt.config.master_config(None)
+        opts['evaporator'] = {'tenancies']: [{'name': 'salt-core', 'groups': ['salt'], 'global': True}]}
         opts['ext_pillar'] = [
             {'environments': ['word']}
         ]
