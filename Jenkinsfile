@@ -46,12 +46,7 @@ pipeline {
                 cleanup {
                     script {                            
                         deleteDir() /* clean up our workspace */
-                        
-                        try {
-                            sh "docker stop ${unique_container_name}"
-                        } catch(Exception e) {
-                            // continue
-                        }
+                        sh "docker stop ${unique_container_name}"
                     }
                 }
             }
