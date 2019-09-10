@@ -41,7 +41,7 @@ import sys
 # Import salt libs
 from salt._compat import ipaddress
 # Import salt test libs
-from tests.support.unit import TestCase, skipIf
+from tests.support.unit import TestCase, skipIf, expectedFailure
 
 if sys.version_info < (3,):
     bytes = bytearray

@@ -218,13 +218,13 @@ class AsyncZeroMQReqChannel(salt.transport.client.ReqChannel):
         # if by chance master_uri is not there..
         if 'master_ip' in self.opts:
             return _get_master_uri(self.opts['master_ip'],
-                                   self.opts['master_port'],
+                                   self.opts.get('master_port', self.opts.get('ret_port')),
                                    source_ip=self.opts.get('source_ip'),
                                    source_port=self.opts.get('source_ret_port'))
 
         if self.opts['__role'] == 'master':
             return _get_master_uri('127.0.0.1',
-                                   self.opts['master_port'],
+                                   self.opts.get('master_port', self.opts.get('ret_port')),
                                    source_ip=self.opts.get('source_ip'),
                                    source_port=self.opts.get('source_ret_port'))
 
@@ -538,6 +538,17 @@ class ZeroMQReqServerChannel(salt.transport.mixins.auth.AESReqServerMixin,
         # Prepare the zeromq sockets
         self.uri = 'tcp://{interface}:{ret_port}'.format(**self.opts)
         self.clients = self.context.socket(zmq.ROUTER)
+
+        # if 2.1 >= zmq < 3.0, we only have one HWM setting
+        try:
+            self.clients.setsockopt(zmq.HWM, self.opts.get('router_hwm', 1000))
+        # in zmq >= 3.0, there are separate send and receive HWM settings
+        except AttributeError:
+            # Set the High Water Marks. For more information on HWM, see:
+            # http://api.zeromq.org/4-1:zmq-setsockopt
+            self.clients.setsockopt(zmq.SNDHWM, self.opts.get('router_hwm', 1000))
+            self.clients.setsockopt(zmq.RCVHWM, self.opts.get('router_hwm', 1000))
+
         if self.opts['ipv6'] is True and hasattr(zmq, 'IPV4ONLY'):
             # IPv6 sockets work for both IPv6 and IPv4 addresses
             self.clients.setsockopt(zmq.IPV4ONLY, 0)

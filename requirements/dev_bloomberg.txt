@@ -1,5 +1,4 @@
 -r base.txt
-
 mock>=2.0.0
 SaltPyLint>=v2017.3.6
 pytest>=3.5.0

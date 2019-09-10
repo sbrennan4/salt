@@ -10,7 +10,7 @@ import socket
 
 # Import Salt Testing Libs
 import tests.integration as integration
-from tests.support.unit import TestCase, skipIf
+from tests.support.unit import TestCase, skipIf, expectedFailure
 from tests.integration.cloud.helpers.virtualbox import (VirtualboxTestCase,
                                                         VirtualboxCloudTestCase,
                                                         CONFIG_NAME,
