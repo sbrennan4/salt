@@ -118,10 +118,11 @@ def global_tenancy_groups_set():
     groups = IndexedSet()
 
     for tenancy in __opts__['evaporator']['tenancies']:
-        try:
-            groups.add(tenancy['name'])
-        except KeyError:
-            pass
+        if tenancy['global']:
+          try:
+              groups.add(tenancy['name'])
+          except KeyError:
+              pass
 
     return groups
 

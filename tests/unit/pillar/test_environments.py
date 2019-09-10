@@ -11,6 +11,9 @@ from tests.support.mock import NO_MOCK, NO_MOCK_REASON, MagicMock, patch
 # Import file to test
 import salt.pillar.environments as environments
 
+# Bloomberg specific lib
+import hostinfo
+
 # Import 3rd-party libs
 from salt.ext import six
 from boltons.setutils import IndexedSet
@@ -26,21 +29,24 @@ class EnvironmentsTestCase(TestCase, LoaderModuleMockMixin):
                     'evaporator': {
                         'tenancies': [
                             {
-                                "environment": "salt-native"
-                            },
-                            "salt-core",
-                            "salt-himalayan",
-                            {
-                                "environment": "salt-water",
-                                "global": True
+                                "name": "sltdm",
+                                "groups": ["salt"],
+                                "global": False,
                             },
                             {
-                                "environment": "salt-coffee",
-                                "global": True
+                                "name": "ndis",
+                                "groups": ["natm"],
+                                "global": False,
                             },
                             {
-                                "environment": "salt-apple",
-                                "global": False
+                                "name": "salt-coffee",
+                                "groups": ["coffee"],
+                                "global": True,
+                            },
+                            {
+                                "name": "salt-apple",
+                                "groups": ["apple"],
+                                "global": False,
                             },
                         ]
                     }
@@ -48,9 +54,10 @@ class EnvironmentsTestCase(TestCase, LoaderModuleMockMixin):
             }
         }
 
-    def test_tenancy_groups_set_dict(self):
-        groups = environments.tenancy_groups_set()
-        self.assertEqual(groups, IndexedSet([u'salt-native', u'salt-core', u'salt-himalayan', u'salt-water', u'salt-coffee', u'salt-apple']))
+    def test_tenancy_groups_set_one(self):
+        node = hostinfo.host('sltdm-rr-129')
+        groups = environments.tenancy_groups_set(node)
+        self.assertEqual(groups, IndexedSet([u'sltdm']))
 
     def test_global_tenancy_groups_set(self):
         groups = environments.global_tenancy_groups_set()
