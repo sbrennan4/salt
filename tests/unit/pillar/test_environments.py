@@ -46,7 +46,7 @@ class EnvironmentsTestCase(TestCase, LoaderModuleMockMixin):
                             {
                                 "name": "salt-apple",
                                 "groups": ["apple"],
-                                "global": False,
+                                "global": True,
                             },
                         ]
                     }
@@ -61,7 +61,7 @@ class EnvironmentsTestCase(TestCase, LoaderModuleMockMixin):
 
     def test_global_tenancy_groups_set(self):
         groups = environments.global_tenancy_groups_set()
-        self.assertEqual(groups, IndexedSet([u'salt-water', u'salt-coffee']))
+        self.assertEqual(groups, IndexedSet([u'salt-coffee', u'salt-apple']))
 
     @skipIf(environments.HAS_HOSTINFO is False, 'hostinfo has to be installed')
     def test_resolve_node(self):
@@ -82,22 +82,14 @@ class EnvironmentsTestCase(TestCase, LoaderModuleMockMixin):
 
         with patch.object(environments, 'resolve_node', MagicMock(return_value=None)):
             result = environments.ext_pillar('minion_id', {})
-        self.assertEqual(result, [])
+        self.assertEqual(result, {'environments': ['salt-coffee-nostage', 'salt-apple-nostage']})
 
     # parameterize if/when salt switch to pytest runner
     def test_ext_pillar_hostinfo_groups_match_none(self):
-        mock_node = MagicMock()
-        mock_node.groups_set = lambda : {'pacld', 'bpkg'}
-
-        with patch.object(environments, 'resolve_node', return_value=mock_node):
-            result = environments.ext_pillar('minion_id', {})
-        self.assertEqual(result, {u'environments': [u'salt-water', u'salt-coffee']})
+        result = environments.ext_pillar('no-exist', {})
+        self.assertEqual(result, {'environments': ['salt-coffee-nostage', 'salt-apple-nostage']})
 
     def test_ext_pillar_hostinfo_groups_match_some(self):
-        mock_node = MagicMock()
-        mock_groups_set = lambda : {'salt-apple', 'bpkg'}
+        result = environments.ext_pillar('sltdm-rr-129', {})
+        self.assertEqual(result, {'environments': ['salt-coffee-s2', 'salt-apple-s2', 'sltdm-s2']})
 
-        with patch.object(environments, 'resolve_node', return_value=mock_node):
-            with patch.object(mock_node, 'groups_set', side_effect=mock_groups_set):
-                result = environments.ext_pillar('minion_id', {})
-        self.assertEqual(result, {u'environments': IndexedSet([u'salt-water', u'salt-coffee', u'salt-apple'])})
