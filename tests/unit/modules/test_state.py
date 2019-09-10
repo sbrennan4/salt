@@ -58,7 +58,8 @@ class MockState(object):
                      opts,
                      pillar_override=False,
                      pillar_enc=None,
-                     initial_pillar=None):
+                     initial_pillar=None,
+                     proxy=None):
             pass
 
         def verify_data(self, data):
