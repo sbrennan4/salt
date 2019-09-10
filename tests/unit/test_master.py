@@ -30,7 +30,7 @@ class AESFuncsTestCase(TestCase):
 
         self.aes_funcs = salt.master.AESFuncs(opts)
         res = self.aes_funcs._file_envs({"id": "pytest_minion_1"})
-        self.assertEqual(res, [])
+        self.assertEqual(res, {'environments': ['salt-core-nostage']})
 
     def test__file_envs_load_is_none(self):        
         # Default master opts
@@ -42,7 +42,7 @@ class AESFuncsTestCase(TestCase):
 
         self.aes_funcs = salt.master.AESFuncs(opts)
         res = self.aes_funcs._file_envs()
-        self.assertEqual(res, [])
+        self.assertEqual(res, {'environments': ['salt-core-nostage']})
 
     def test__file_envs_node_is_found(self):        
         # Default master opts
@@ -60,7 +60,7 @@ class AESFuncsTestCase(TestCase):
 
         self.aes_funcs = salt.master.AESFuncs(opts)
         res = self.aes_funcs._file_envs({"id": "sltdm-rr-005"})
-        self.assertEqual(res, {u'environments': ['salt-native', "sltdm"]})
+        self.assertEqual(res, {'environments': ['salt-native-s4', 'sltdm-s4', 'salt-water-s4']})
 
     def test__file_envs_node_no_environment(self):        
         # Default master opts
