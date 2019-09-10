@@ -828,3 +828,21 @@ class AsyncRemotePillarTestCase(TestCase):
              'pillar_override': {},
              'extra_minion_data': {'path_to_add': 'fake_data'}},
             dictkey='pillar')
+
+class Pillar(TestCase):
+    def test__get_envs(self):
+        opts = salt.config.master_config(None)
+        opts['ext_pillar'] = [
+            {'environments': ['word']}
+        ]
+
+        opts['evaporator'] = {}
+        opts['evaporator']['tenancies'] = [
+            {"environment": "sltdm", "global": False},
+            {"environment": "salt-native", "global": True},
+            {"environment": "salt-water", "global": False},
+        ]
+
+        pillar = salt.pillar.Pillar(opts, {}, 'sltdm-rr-005', 'base')
+        res = pillar._get_envs()
+        self.assertEqual(res, {u'environments': ['salt-native', 'sltdm']})

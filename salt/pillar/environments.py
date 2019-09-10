@@ -104,13 +104,11 @@ if HAS_HOSTINFO:
 def tenancy_groups_set():
     groups = IndexedSet()
 
-    # assume config is a sane schema
-    # scalar = tag, dict = 'tag' key is tag
     for tenancy in __opts__['evaporator']['tenancies']:
-        if isinstance(tenancy, dict):
-            groups.add(tenancy['environment'])
-        else:
-            groups.add(tenancy)
+        try:
+            groups.add(tenancy['environment']['groups'])
+        except KeyError:
+            pass
 
     return groups
 
@@ -118,17 +116,19 @@ def tenancy_groups_set():
 def global_tenancy_groups_set():
     groups = IndexedSet()
 
-    # assume config is a sane schema
-    # scalar = tag, dict = 'tag' key is tag
     for tenancy in __opts__['evaporator']['tenancies']:
-        if isinstance(tenancy, dict) and tenancy.get('global'):
-            groups.add(tenancy['environment'])
+        try:
+            if tenancy['global']:
+                groups.add(tenancy['environment']['groups'])
+        except KeyError:
+            pass
 
     return groups
 
 
 # first try node-id if it exists in grains, then try the minion_id
 def resolve_node(minion_id):
+
     if __grains__.get('bb', {}).get('node-id'):
         node_id = __grains__['bb']['node-id']
         try:
@@ -144,6 +144,18 @@ def resolve_node(minion_id):
 
     # if we've gotten this far its an unknown node
     return None
+
+def stage_envs(stage, envs):
+    """
+    Takes in an iterable of env names and prepends a stage to the beginning.
+    Example:
+        env = [salt-core, natm]
+        stage = 'sn2'
+
+        >> {'environments': ['salt-core-sn2', 'natm-sn2']}
+    """
+    staged_envs = ['{}-{}'.format(env, stage) for env in envs]
+    return {'environments': staged_envs}
 
 
 # the goal here is to
@@ -161,13 +173,19 @@ def ext_pillar(minion_id, pillar):
     :return: a dictionary which is included by the salt master in the pillars returned to the minion
     """
 
-    node = resolve_node(minion_id)
+    global_tenancy_groups = global_tenancy_groups_set()
 
+    # hostinfo resolving a node that is None will throw an error
+    if not minion_id:
+        return stage_envs('nostage', global_tenancy_groups)
+
+    node = resolve_node(minion_id)
+ 
     if node is None:
-        return []
+        return stage_envs('nostage', global_tenancy_groups)
 
     # any matching tenancy_group is a 1 to 1 association with environment
     # we use an IndexedSet to ensure global roots are always highest priority
-    environments = IndexedSet(global_tenancy_groups_set() | ( node.groups_set() & tenancy_groups_set()))
+    environments = IndexedSet(global_tenancy_groups | ( node.groups_set() & tenancy_groups_set()))
 
-    return {'environments': list(environments)}
+    return stage_envs(node.stage, environments)
