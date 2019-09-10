@@ -54,6 +54,7 @@ class Authorize(object):
                 # late import to avoid circular dependencies
                 import salt.utils.minions
                 self.ckminions = salt.utils.minions.CkMinions.factory(self.opts)
+
             # only apply acl if it is listed in auth_list tag set
             if self.tag not in auth_check.get('tags', []):
                 log.trace('loader tag %s not in auth_check tags enforcement list. noop', self.tag)
