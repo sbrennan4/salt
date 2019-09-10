@@ -188,6 +188,7 @@ class Maintenance(salt.utils.process.SignalHandlingMultiprocessingProcess):
                                                      runner_client.functions_dict(),
                                                      returners=self.returners)
         self.ckminions = salt.utils.minions.CkMinions.factory(self.opts)
+        self.cache = salt.cache.factory(self.opts)
         # Make Event bus for firing
         self.event = salt.utils.event.get_master_event(self.opts, self.opts['sock_dir'], listen=False)
         # Init any values needed by the git ext pillar
@@ -233,9 +234,16 @@ class Maintenance(salt.utils.process.SignalHandlingMultiprocessingProcess):
             self.handle_key_cache()
             self.handle_presence(old_present)
             self.handle_key_rotate(now)
+            self.handle_cache_maintenance()
             salt.utils.verify.check_max_open_files(self.opts)
             last = now
             time.sleep(self.loop_interval)
+
+
+    # will be a noop if backend does not support maintenance operation
+    def handle_cache_maintenance(self):
+        self.cache.maintenance()
+
 
     def handle_key_cache(self):
         '''
@@ -1201,7 +1209,7 @@ class AESFuncs(object):
         if any('environments' in ext for ext in self.opts['ext_pillar']):
             return self.pillars['environments'](load.get('id'), {})
         else:
-            return self.fs_.envs()
+            return self.fs_.envs(**load)
 
     def __verify_minion(self, id_, token):
         '''
@@ -1992,7 +2000,11 @@ class ClearFuncs(object):
         auth_type, err_name, key, sensitive_load_keys = self._prep_auth_info(clear_load)
 
         # Authenticate
-        auth_check = self.loadauth.check_authentication(clear_load, auth_type, key=key)
+        if 'auth_check' in RequestContext.current and 'eauth' not in clear_load:
+            auth_check = RequestContext.current['auth_check']
+        else:
+            auth_check = self.loadauth.check_authentication(clear_load, auth_type, key=key)
+
         error = auth_check.get('error')
 
         if error:
@@ -2101,7 +2113,7 @@ class ClearFuncs(object):
 
         # if auth_check is already in the request ctx, we don't re-authenticate, we assume
         # from the previous call up the stack it is authenticated and just authorize
-        if 'auth_check' in RequestContext.current and 'eauth' not in clear_load and 'eauth' not in clear_load.get('kwargs'):
+        if 'auth_check' in RequestContext.current and 'eauth' not in clear_load and 'eauth' not in clear_load.get('kwargs', {}):
             auth_check = RequestContext.current['auth_check']
         else:
             if auth_type == 'user':

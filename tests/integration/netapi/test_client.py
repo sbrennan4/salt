@@ -7,7 +7,7 @@ import time
 
 # Import Salt Testing libs
 from tests.support.paths import TMP_CONF_DIR
-from tests.support.unit import TestCase, skipIf
+from tests.support.unit import TestCase, skipIf, expectedFailure
 
 # Import Salt libs
 import salt.config

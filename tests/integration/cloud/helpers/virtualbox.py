@@ -8,7 +8,7 @@ import os
 # Import Salt Testing libs
 import tests.integration.cloud.helpers
 from tests.support.case import ShellCase
-from tests.support.unit import TestCase, skipIf
+from tests.support.unit import TestCase, skipIf, expectedFailure
 from tests.support.paths import FILES
 
 # Import Salt libs

@@ -1576,10 +1576,11 @@ def runner(name, arg=None, kwarg=None, full_return=False, saltenv='base', jid=No
     if 'master_job_cache' not in __opts__:
         master_config = os.path.join(os.path.dirname(__opts__['conf_file']),
                                      'master')
-        master_opts = salt.config.master_config(master_config)
-        rclient = salt.runner.RunnerClient(master_opts)
+        opts = salt.config.master_config(master_config)
+        rclient = salt.runner.RunnerClient(opts)
     else:
-        rclient = salt.runner.RunnerClient(__opts__)
+        opts = __opts__
+        rclient = salt.runner.RunnerClient(opts)
 
     if name in rclient.functions:
         aspec = salt.utils.args.get_function_argspec(rclient.functions[name])
@@ -1597,27 +1598,29 @@ def runner(name, arg=None, kwarg=None, full_return=False, saltenv='base', jid=No
             prefix='run'
         )
 
-    if asynchronous or eauth:
-        master_key = salt.utils.master.get_master_key('root', __opts__)
-        low = {'arg': arg, 'kwarg': kwarg, 'fun': name, 'key': master_key}
-        if eauth:
-            low['eauth'] = eauth
-        if eauth_opts:
-            low['eauth_opts'] = eauth_opts
-        if 'auth_check' in RequestContext.current:
-            log.debug('RequestContext.current auth_check: %s', RequestContext.current['auth_check'])
-            low['auth_check'] = RequestContext.current['auth_check']
-        if asynchronous:
-            return rclient.cmd_async(low)
-        else:
-            ret = rclient.cmd_sync(low, full_return=True)
-            return ret.get('data', ret)
-    else:
+    masterless = __opts__['__role'] == 'minion' and \
+             __opts__['file_client'] == 'local'
+
+    master_key = salt.utils.master.get_master_key('root', opts)
+    low = {'arg': arg, 'kwarg': kwarg, 'fun': name, 'key': master_key}
+    if eauth:
+        low['eauth'] = eauth
+    if eauth_opts:
+        low['eauth_opts'] = eauth_opts
+    if 'auth_check' in RequestContext.current:
+        log.debug('RequestContext.current auth_check: %s', RequestContext.current['auth_check'])
+        low['auth_check'] = RequestContext.current['auth_check']
+
+    if masterless:
         return rclient.cmd(name,
                            arg=arg,
                            kwarg=kwarg,
                            print_event=False,
                            full_return=full_return)
+    elif asynchronous:
+        return rclient.cmd_async(low)
+    else:
+        return rclient.cmd_sync(low, full_return=full_return)
 
 def wheel(name, *args, **kwargs):
     '''
@@ -1663,20 +1666,17 @@ def wheel(name, *args, **kwargs):
     if 'auth_check' in kwargs:
         raise AuthorizationError('auth_check found in saltutil.cmd kwargs. Someone is trying to be clever and circumvent acl')
 
-    if 'auth_check' in RequestContext.current:
-        log.debug('RequestContext.current auth_check: %s', RequestContext.current['auth_check'])
-        kwargs['auth_check'] = RequestContext.current['auth_check']
-
     jid = kwargs.pop('__orchestration_jid__', None)
     saltenv = kwargs.pop('__env__', 'base')
 
     if __opts__['__role'] == 'minion':
         master_config = os.path.join(os.path.dirname(__opts__['conf_file']),
                                      'master')
-        master_opts = salt.config.client_config(master_config)
-        wheel_client = salt.wheel.WheelClient(master_opts)
+        opts = salt.config.client_config(master_config)
+        wheel_client = salt.wheel.WheelClient(opts)
     else:
-        wheel_client = salt.wheel.WheelClient(__opts__)
+        opts = __opts__
+        wheel_client = salt.wheel.WheelClient(opts)
 
     # The WheelClient cmd needs args, kwargs, and pub_data separated out from
     # the "normal" kwargs structure, which at this point contains __pub_x keys.
@@ -1704,17 +1704,17 @@ def wheel(name, *args, **kwargs):
                 prefix='run'
             )
 
+        master_key = salt.utils.master.get_master_key('root', opts)
+        low = {'arg': args, 'kwarg': kwargs, 'fun': name, 'key': master_key}
+
+        if 'auth_check' in RequestContext.current:
+            log.debug('RequestContext.current auth_check: %s', RequestContext.current['auth_check'])
+            low['auth_check'] = RequestContext.current['auth_check']
+
         if kwargs.pop('asynchronous', False):
-            master_key = salt.utils.master.get_master_key('root', __opts__)
-            low = {'arg': args, 'kwarg': kwargs, 'fun': name, 'key': master_key}
             ret = wheel_client.cmd_async(low)
         else:
-            ret = wheel_client.cmd(name,
-                                   arg=args,
-                                   pub_data=pub_data,
-                                   kwarg=valid_kwargs,
-                                   print_event=False,
-                                   full_return=True)
+            ret = wheel_client.cmd_sync(low, full_return=True)
     except SaltInvocationError as e:
         raise CommandExecutionError(
             'This command can only be executed on a minion that is located on '

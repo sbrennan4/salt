@@ -1,0 +1,7 @@
+[systems_third_party_rhel7.5]
+name=Pulp repo for systems_third_party_rhel7.5
+baseurl="http://bbrepo.bdns.bloomberg.com/pub/repos/systems_third_party_rhel7.5"
+enabled=1
+#failovermethod=priority
+gpgcheck=0
+proxy=_none_

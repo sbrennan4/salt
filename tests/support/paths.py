@@ -15,6 +15,7 @@
 from __future__ import absolute_import
 import os
 import sys
+import re
 import stat
 import logging
 import tempfile
@@ -30,6 +31,8 @@ if sys.platform.startswith('win'):
 CODE_DIR = os.path.dirname(TESTS_DIR)
 if sys.platform.startswith('win'):
     CODE_DIR = CODE_DIR.replace('\\', '\\\\')
+
+UNIT_TEST_DIR = os.path.join(TESTS_DIR, 'unit')
 INTEGRATION_TEST_DIR = os.path.join(TESTS_DIR, 'integration')
 
 # Let's inject CODE_DIR so salt is importable if not there already
@@ -141,3 +144,20 @@ class ScriptPathMixin(object):
 
         log.info('Returning script path %r', script_path)
         return script_path
+
+def list_test_mods():
+    '''
+    A generator which returns all of the test files
+    '''
+    test_re = re.compile(r'^test_.+\.py$')
+    for dirname in (UNIT_TEST_DIR, INTEGRATION_TEST_DIR):
+        test_type = os.path.basename(dirname)
+        for root, _, files in salt.utils.path.os_walk(dirname):
+            parent_mod = root[len(dirname):].lstrip(os.sep).replace(os.sep, '.')
+            for filename in files:
+                if test_re.match(filename):
+                    mod_name = test_type
+                    if parent_mod:
+                        mod_name += '.' + parent_mod
+                    mod_name += '.' + filename[:-3]
+                    yield mod_name

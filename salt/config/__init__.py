@@ -595,6 +595,7 @@ VALID_OPTS = {
     # Set the zeromq high water mark on the publisher interface.
     # http://api.zeromq.org/3-2:zmq-setsockopt
     'pub_hwm': int,
+    'router_hwm': int,
 
     # IPC buffer size
     # Refs https://github.com/saltstack/salt/issues/34215
@@ -1533,6 +1534,7 @@ DEFAULT_MASTER_OPTS = {
     'publish_port': 4505,
     'zmq_backlog': 1000,
     'pub_hwm': 1000,
+    'router_hwm': 1000,
     'auth_mode': 1,
     'user': _MASTER_USER,
     'worker_threads': 5,
@@ -1574,7 +1576,7 @@ DEFAULT_MASTER_OPTS = {
     'pillarenv': None,
     'default_top': 'base',
     'file_client': 'local',
-    'local': True,
+    'local': False,
 
     # Update intervals
     'roots_update_interval': DEFAULT_INTERVAL,

@@ -168,8 +168,7 @@ def store(bank, key, data, expires=None):
         with _exec_pg(autocommit=False) as cur:
             cur.execute(store_sql, params)
     except salt.exceptions.SaltMasterError as err:
-        raise salt.exceptions.SaltCacheError(
-            'Could not store cache with postgres cache: {}'.format(err))
+        raise salt.exceptions.SaltCacheError('Could not store cache with postgres cache: {}'.format(err))
 
 
 def flush(bank, key=None):
@@ -188,8 +187,7 @@ def flush(bank, key=None):
         with _exec_pg(autocommit=False) as cur:
             cur.execute(del_sql, params)
     except salt.exceptions.SaltMasterError as err:
-        raise salt.exceptions.SaltCacheError(
-            'Could not flush cache with postgres cache: {}'.format(err))
+        raise salt.exceptions.SaltCacheError('Could not flush cache with postgres cache: {}'.format(err))
 
 
 def fetch(bank, key):
@@ -205,8 +203,7 @@ def fetch(bank, key):
                 return data[0]
             return {}
     except salt.exceptions.SaltMasterError as err:
-        raise salt.exceptions.SaltCacheError(
-            'Could not fetch cache with postgres cache: {}'.format(err))
+        raise salt.exceptions.SaltCacheError('Could not fetch cache with postgres cache: {}'.format(err))
 
 
 def list(bank):
@@ -222,8 +219,7 @@ def list(bank):
             tuples = cur.fetchall()
             return [x[0] for x in tuples]
     except salt.exceptions.SaltMasterError as err:
-        raise salt.exceptions.SaltCacheError(
-            'Could not list cache with postgres cache: {}'.format(err))
+        raise salt.exceptions.SaltCacheError('Could not list cache with postgres cache: {}'.format(err))
 
 
 def contains(bank, key):
@@ -243,8 +239,7 @@ def contains(bank, key):
                 return False
             return False
     except salt.exceptions.SaltMasterError as err:
-        raise salt.exceptions.SaltCacheError(
-            'Could not run contains with postgres cache: {}'.format(err))
+        raise salt.exceptions.SaltCacheError('Could not run contains with postgres cache: {}'.format(err))
 
 
 def updated(bank, key):
@@ -261,8 +256,7 @@ def updated(bank, key):
                 return time.mktime(data[0].timetuple())
             return None
     except salt.exceptions.SaltMasterError as err:
-        raise salt.exceptions.SaltCacheError(
-            'Could not run updated with postgres cache: {}'.format(err))
+        raise salt.exceptions.SaltCacheError('Could not run updated with postgres cache: {}'.format(err))
 
 
 def clean_expired(bank):
@@ -276,9 +270,19 @@ def clean_expired(bank):
         with _exec_pg(autocommit=False) as cur:
             cur.execute(expire_sql, (bank,))
     except salt.exceptions.SaltMasterError as err:
-        raise salt.exceptions.SaltCacheError(
-            'Could not clean up expired tokens with postgres cache: {}'.format(err))
+        raise salt.exceptions.SaltCacheError('Could not clean up expired tokens with postgres cache: {}'.format(err))
 
+
+def maintenance():
+    '''
+    if any maintenance is required, do it here
+    for pg, this means refresh the materialized view
+    '''
+    try:
+        with _exec_pg(autocommit=True) as cur:
+            return cur.execute('REFRESH MATERIALIZED VIEW CONCURRENTLY "cache_grains_ipv4_view"')
+    except salt.exceptions.SaltMasterError as err:
+        raise salt.exceptions.SaltCacheError('Could not execute cache with postgres cache: {}'.format(err))
 
 def query(sql, bind=None, autocommit=True):
     '''
@@ -290,5 +294,4 @@ def query(sql, bind=None, autocommit=True):
             cur.execute(sql, bind)
             return cur.fetchall()
     except salt.exceptions.SaltMasterError as err:
-        raise salt.exceptions.SaltCacheError(
-            'Could not fetch cache with postgres cache: {}'.format(err))
+        raise salt.exceptions.SaltCacheError('Could not fetch cache with postgres cache: {}'.format(err))

@@ -275,8 +275,12 @@ import shutil
 import sys
 import time
 import traceback
-from collections import Iterable, Mapping, defaultdict
 from datetime import datetime   # python3 problem in the making?
+from collections import defaultdict
+try:
+    from collections.abc import Iterable, Mapping
+except ImportError:
+    from collections import Iterable, Mapping
 
 # Import salt libs
 import salt.loader

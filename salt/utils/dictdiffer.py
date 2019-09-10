@@ -13,9 +13,12 @@
 '''
 from __future__ import absolute_import, print_function, unicode_literals
 import copy
-from collections import Mapping
 from salt.ext import six
 
+try:
+    from collections.abc import Mapping
+except ImportError:
+    from collections import Mapping
 
 def diff(current_dict, past_dict):
     return DictDiffer(current_dict, past_dict)

@@ -686,3 +686,11 @@ class UtilStateMergeSubreturnTestcase(TestCase):
         res = salt.utils.state.merge_subreturn(m, s)
         self.assertEqual(res['comment'], [sub_comment_1, sub_comment_2])
         self.assertEqual('\n'.join(res['comment']), final_comment)
+
+class UtilStateGetSlsOptsTestcase(TestCase):
+    '''
+    Test cases for salt.utils.state.merge_subreturn function.
+    '''
+    def test_get_sls_opts(self):
+        opts = salt.utils.state.get_sls_opts({'orig':'inal'}, {"environments": ['base', 'scuba-diving']})
+        self.assertEqual(opts, {u'pillarenv': [u'base', u'scuba-diving'], u'saltenv': [u'base', u'scuba-diving'], u'orig': u'inal'})

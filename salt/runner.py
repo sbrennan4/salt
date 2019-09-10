@@ -182,7 +182,7 @@ class Runner(RunnerClient):
             print(docs[fun])
 
     # TODO: move to mixin whenever we want a salt-wheel cli
-    def run(self):
+    def run(self, timeout=None):
         '''
         Execute the runner sequence
         '''
@@ -190,9 +190,9 @@ class Runner(RunnerClient):
         if self.opts.get('doc', False):
             self.print_docs()
         else:
-            return self._run_runner()
+            return self._run_runner(timeout)
 
-    def _run_runner(self):
+    def _run_runner(self, timeout=None):
         '''
         Actually execute specific runner
         :return:
@@ -269,23 +269,34 @@ class Runner(RunnerClient):
                 )
                 return async_pub['jid']  # return the jid
             else:
-                # this would be more sane to set to 0/-1 for a timeout,
-                # but salt.utils.parsers does not respect default_timeout. cant
-                # figure out where its picking that default up from
-                if self.opts['timeout'] != 1:
-                    ret = self.cmd_sync(low, timeout=self.opts['timeout'])
+                if self.opts.get('local') or low['fun'] == 'state.event':
+                    ret = self._proc_function(self.opts['fun'],
+                                              low,
+                                              user,
+                                              async_pub['tag'],
+                                              async_pub['jid'],
+                                              print_event=False,
+                                              daemonize=False)
                 else:
-                    ret = self.cmd_sync(low)
+                    # this would be more sane to set to 0/-1 for a timeout,
+                    # but salt.utils.parsers does not respect default_timeout. cant
+                    # figure out where its picking that default up from
+                    ret = self.cmd_sync(low, timeout=timeout, full_return=True)
 
+            outputter = None
+            if isinstance(ret, dict):
+                # unwrap a layer of the full_return
+                if 'data' in ret and 'return' in ret['data']:
+                    ret = ret['data']['return']
 
-            if isinstance(ret, dict) and set(ret) == {'data', 'outputter', 'retcode'}:
-                outputter = ret['outputter']
-                ret = ret['data']
-            else:
-                outputter = None
+            if isinstance(ret, dict):
+                if set(ret) >= {'data', 'outputter'}:
+                    outputter = ret['outputter']
+
             display_output(ret, outputter, self.opts)
 
         except salt.exceptions.SaltException as exc:
+            log.error(exc)
             with salt.utils.event.get_event('master', opts=self.opts) as evt:
                 evt.fire_event({'success': False,
                                 'return': '{0}'.format(exc),
