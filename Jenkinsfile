@@ -37,7 +37,6 @@ pipeline {
                     // Run whatever tests you want here for now. All tests takes like an hour.
                     // If you write custom tests, add them here so we are sure they continue passing
 
-                    sh "docker exec ${unique_container_name} ./tests/runtests.py -n unit.test_master.AESFuncsTestCase"
                     sh "docker exec ${unique_container_name} ./tests/runtests.py --unit -v"
 
                     // Whatever is failing we can skip with
@@ -47,7 +46,6 @@ pipeline {
             post {
                 cleanup {
                     script {                            
-                        deleteDir() /* clean up our workspace */
                         sh "docker stop ${unique_container_name}"
                     }
                 }
@@ -64,6 +62,11 @@ pipeline {
             steps {
                 sh 'bash ./build/build.sh -u -p -t $BBGH_TOKEN_PSW'
             }
+        }
+    }
+    post {
+        cleanup {
+            deleteDir() /* clean up our workspace */
         }
     }
 }
