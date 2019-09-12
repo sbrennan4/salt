@@ -83,7 +83,6 @@ class CommonTestCaseBoilerplate(TestCase):
         finally:
             HIGHSTATE.pop_active()
 
-@skipIf(True, 'bb test was failing when ran in Jenkins')
 class PyDSLRendererTestCase(CommonTestCaseBoilerplate):
     '''
     WARNING: If tests in here are flaky, they may need
@@ -104,7 +103,7 @@ class PyDSLRendererTestCase(CommonTestCaseBoilerplate):
         result = self.render_sls(textwrap.dedent('''
             state('A').cmd.run('ls -la', cwd='/var/tmp')
             state().file.managed('myfile.txt', source='salt://path/to/file')
-        state('X').cmd('run', 'echo hello world', cwd='/')
+            state('X').cmd('run', 'echo hello world', cwd='/')
 
             a_cmd = state('A').cmd
             a_cmd.run(shell='/bin/bash')

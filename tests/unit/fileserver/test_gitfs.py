@@ -61,8 +61,8 @@ except AttributeError:
 
 log = logging.getLogger(__name__)
 
-TMP_SOCK_DIR = tempfile.mkdtemp(dir=TMP)
-TMP_REPO_DIR = os.path.join(TMP, 'gitfs_root')
+TMP_SOCK_DIR = tempfile.mkdtemp(dir=RUNTIME_VARS.TMP)
+TMP_REPO_DIR = os.path.join(RUNTIME_VARS.TMP, 'gitfs_root')
 if salt.utils.platform.is_windows():
     TMP_REPO_DIR = TMP_REPO_DIR.replace('\\', '/')
 INTEGRATION_BASE_FILES = os.path.join(FILES, 'file', 'base')
