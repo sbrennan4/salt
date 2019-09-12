@@ -15,6 +15,7 @@ import tempfile
 from tests.support.unit import skipIf, TestCase, expectedFailure
 from tests.support.mock import NO_MOCK, NO_MOCK_REASON, MagicMock, patch
 from tests.support.paths import TMP
+from salt.utils.ctx import RequestContext
 
 # Import salt libs
 import salt.pillar
@@ -844,5 +845,7 @@ class Pillar(TestCase):
         ]
 
         pillar = salt.pillar.Pillar(opts, {}, 'sltdm-rr-005', 'base')
-        res = pillar._get_envs()
-        self.assertEqual(res, {u'environments': ['salt-native', 'sltdm']})
+
+        with patch.object(RequestContext, 'current', return_value={'opts':opts}):
+            res = pillar._get_envs()
+            self.assertEqual(res, {u'environments': []})
