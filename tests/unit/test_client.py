@@ -49,7 +49,6 @@ class LocalClientTestCase(TestCase,
 
         self.assertDictEqual(valid_pub_data, self.client._check_pub_data(valid_pub_data))
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test__prep_pub(self):
         fake_pub = self.client._prep_pub('*', 'first.func', [], 'glob', None, '', 30, True)
         self.assertTrue(salt.utils.jid.is_jid(fake_pub['jid']))
@@ -204,7 +203,6 @@ class LocalClientTestCase(TestCase,
                     parsed_args = ['a', 5, {'yaml_arg': {'qux': 'Qux'}, 'another_yaml': {'bax': 12345}, '__kwarg__': True}]
                     self.assertTrue(any(parsed_args in call[0] for call in pub_mock.call_args_list))
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_parse_input_is_called(self):
         self._test_parse_input('run_job')
         self._test_parse_input('cmd')

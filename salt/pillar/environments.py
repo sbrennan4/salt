@@ -101,12 +101,13 @@ if HAS_HOSTINFO:
     setattr(hostinfo, '__cache', SorFallbackCache())
 
 
-def tenancy_groups_set():
+def tenancy_groups_set(node):
     groups = IndexedSet()
 
     for tenancy in __opts__['evaporator']['tenancies']:
         try:
-            groups.add(tenancy['environment']['groups'])
+            if node.groups_set() & set(tenancy['groups']):
+                groups.add(tenancy['name'])
         except KeyError:
             pass
 
@@ -117,11 +118,11 @@ def global_tenancy_groups_set():
     groups = IndexedSet()
 
     for tenancy in __opts__['evaporator']['tenancies']:
-        try:
-            if tenancy['global']:
-                groups.add(tenancy['environment']['groups'])
-        except KeyError:
-            pass
+        if tenancy['global']:
+          try:
+              groups.add(tenancy['name'])
+          except KeyError:
+              pass
 
     return groups
 
@@ -154,6 +155,7 @@ def stage_envs(stage, envs):
 
         >> {'environments': ['salt-core-sn2', 'natm-sn2']}
     """
+    stage = stage.lower() # stage must be lowercase
     staged_envs = ['{}-{}'.format(env, stage) for env in envs]
     return {'environments': staged_envs}
 
@@ -180,12 +182,11 @@ def ext_pillar(minion_id, pillar):
         return stage_envs('nostage', global_tenancy_groups)
 
     node = resolve_node(minion_id)
- 
+
     if node is None:
         return stage_envs('nostage', global_tenancy_groups)
 
     # any matching tenancy_group is a 1 to 1 association with environment
     # we use an IndexedSet to ensure global roots are always highest priority
-    environments = IndexedSet(global_tenancy_groups | ( node.groups_set() & tenancy_groups_set()))
-
-    return stage_envs(node.stage, environments)
+    tenancies = IndexedSet(global_tenancy_groups | tenancy_groups_set(node))
+    return stage_envs(node.stage(), tenancies)
