@@ -33,7 +33,6 @@ class AESFuncsTestCase(TestCase):
         ]    
 
         aes_funcs = salt.master.AESFuncs(opts)
-        with RequestContext.current['opts']
         res = aes_funcs._file_envs({"id": "pytest_minion_1"})
         self.assertEqual(res, {'environments': ['salt-core-nostage']})
 
