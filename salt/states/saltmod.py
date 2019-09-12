@@ -230,7 +230,7 @@ def state(name,
         NOTE: This flag conflicts with subset and batch flags and cannot be
         used at the same time.
 
-        .. versionadded:: neon
+        .. versionadded:: develop
 
 
     Examples:
@@ -791,6 +791,11 @@ def runner(name, **kwargs):
 
     kwargs
         Any keyword arguments to pass to the runner function
+
+    timeout
+        How long the runner should run for before timing out. Default is Infinity
+
+        .. versionadded:: neon
 
     asynchronous
         Run the salt command but don't wait for a reply.

@@ -1527,7 +1527,7 @@ def cmd_iter(tgt,
         yield ret
 
 
-def runner(name, arg=None, kwarg=None, full_return=False, saltenv='base', jid=None, asynchronous=False, eauth=None, eauth_opts=None, **kwargs):
+def runner(name, arg=None, kwarg=None, full_return=False, saltenv='base', jid=None, asynchronous=False, eauth=None, eauth_opts=None, timeout=None, **kwargs):
     '''
     Execute a runner function. This function must be run on the master,
     either by targeting a minion running on a master or by using
@@ -1540,6 +1540,12 @@ def runner(name, arg=None, kwarg=None, full_return=False, saltenv='base', jid=No
 
     kwargs
         Any keyword arguments to pass to the runner function
+
+
+    timeout
+        How long the runner should run for before timing out. Default is Infinity
+
+        .. versionadded:: develop
 
     asynchronous
         Run the salt command but don't wait for a reply.
@@ -1620,7 +1626,7 @@ def runner(name, arg=None, kwarg=None, full_return=False, saltenv='base', jid=No
     elif asynchronous:
         return rclient.cmd_async(low)
     else:
-        return rclient.cmd_sync(low, full_return=full_return)
+        return rclient.cmd_sync(low, full_return=full_return, timeout=timeout)
 
 def wheel(name, *args, **kwargs):
     '''
