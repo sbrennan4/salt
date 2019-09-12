@@ -52,7 +52,6 @@ class StateCompilerTestCase(TestCase, AdaptedConfigurationTestCaseMixin):
                'result': True}
         salt.state.format_log(ret)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_render_error_on_invalid_requisite(self):
         '''
         Test that the state compiler correctly deliver a rendering

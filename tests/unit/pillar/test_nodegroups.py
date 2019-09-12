@@ -47,7 +47,6 @@ class NodegroupsPillarTestCase(TestCase, LoaderModuleMockMixin):
             actual_ret = nodegroups.ext_pillar(fake_minion_id, fake_pillar, pillar_name=pillar_name)
             self.assertDictEqual(actual_ret, expected_ret)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_succeeds(self):
         ret = {fake_pillar_name: ['groupA', ]}
         self._runner(ret)

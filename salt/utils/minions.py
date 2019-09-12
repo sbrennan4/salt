@@ -226,10 +226,10 @@ class CkMinions(object):
 
     @staticmethod
     def factory(opts):
-        if opts['__role'] == 'minion':
+        if opts.get('__role') == 'minion':
             return RemoteCkMinions(opts)
         else:
-            if opts['cache'] == 'pgjsonb':
+            if opts.get('cache') == 'pgjsonb':
                 return PgJsonbCkMinions(opts)
             else:
                 return CkMinions(opts)

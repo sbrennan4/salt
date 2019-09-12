@@ -36,6 +36,8 @@ pipeline {
 
                     // Run whatever tests you want here for now. All tests takes like an hour.
                     // If you write custom tests, add them here so we are sure they continue passing
+
+                    sh "docker exec ${unique_container_name} ./tests/runtests.py -n unit.test_master.AESFuncsTestCase"
                     sh "docker exec ${unique_container_name} ./tests/runtests.py --unit -v"
 
                     // Whatever is failing we can skip with
@@ -44,16 +46,9 @@ pipeline {
             } 
             post {
                 cleanup {
-                    node("syscore-salt") {
-                        script {                            
-                            deleteDir() /* clean up our workspace */
-                            
-                            try {
-                                sh "docker stop ${unique_container_name}"
-                            } catch(Exception e) {
-                                // continue
-                            }
-                        }
+                    script {                            
+                        deleteDir() /* clean up our workspace */
+                        sh "docker stop ${unique_container_name}"
                     }
                 }
             }

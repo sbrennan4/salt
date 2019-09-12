@@ -11,6 +11,9 @@ from tests.support.mock import NO_MOCK, NO_MOCK_REASON, MagicMock, patch
 # Import file to test
 import salt.pillar.environments as environments
 
+# Bloomberg specific lib
+import hostinfo
+
 # Import 3rd-party libs
 from salt.ext import six
 from boltons.setutils import IndexedSet
@@ -26,21 +29,24 @@ class EnvironmentsTestCase(TestCase, LoaderModuleMockMixin):
                     'evaporator': {
                         'tenancies': [
                             {
-                                "environment": "salt-native"
-                            },
-                            "salt-core",
-                            "salt-himalayan",
-                            {
-                                "environment": "salt-water",
-                                "global": True
+                                "name": "sltdm",
+                                "groups": ["salt"],
+                                "global": False,
                             },
                             {
-                                "environment": "salt-coffee",
-                                "global": True
+                                "name": "ndis",
+                                "groups": ["natm"],
+                                "global": False,
                             },
                             {
-                                "environment": "salt-apple",
-                                "global": False
+                                "name": "salt-coffee",
+                                "groups": ["coffee"],
+                                "global": True,
+                            },
+                            {
+                                "name": "salt-apple",
+                                "groups": ["apple"],
+                                "global": True,
                             },
                         ]
                     }
@@ -48,13 +54,14 @@ class EnvironmentsTestCase(TestCase, LoaderModuleMockMixin):
             }
         }
 
-    def test_tenancy_groups_set_dict(self):
-        groups = environments.tenancy_groups_set()
-        self.assertEqual(groups, IndexedSet([u'salt-native', u'salt-core', u'salt-himalayan', u'salt-water', u'salt-coffee', u'salt-apple']))
+    def test_tenancy_groups_set_one(self):
+        node = hostinfo.host('sltdm-rr-129')
+        groups = environments.tenancy_groups_set(node)
+        self.assertEqual(groups, IndexedSet([u'sltdm']))
 
     def test_global_tenancy_groups_set(self):
         groups = environments.global_tenancy_groups_set()
-        self.assertEqual(groups, IndexedSet([u'salt-water', u'salt-coffee']))
+        self.assertEqual(groups, IndexedSet([u'salt-coffee', u'salt-apple']))
 
     @skipIf(environments.HAS_HOSTINFO is False, 'hostinfo has to be installed')
     def test_resolve_node(self):
@@ -75,22 +82,14 @@ class EnvironmentsTestCase(TestCase, LoaderModuleMockMixin):
 
         with patch.object(environments, 'resolve_node', MagicMock(return_value=None)):
             result = environments.ext_pillar('minion_id', {})
-        self.assertEqual(result, [])
+        self.assertEqual(result, {'environments': ['salt-coffee-nostage', 'salt-apple-nostage']})
 
     # parameterize if/when salt switch to pytest runner
     def test_ext_pillar_hostinfo_groups_match_none(self):
-        mock_node = MagicMock()
-        mock_node.groups_set = lambda : {'pacld', 'bpkg'}
-
-        with patch.object(environments, 'resolve_node', return_value=mock_node):
-            result = environments.ext_pillar('minion_id', {})
-        self.assertEqual(result, {u'environments': [u'salt-water', u'salt-coffee']})
+        result = environments.ext_pillar('no-exist', {})
+        self.assertEqual(result, {'environments': ['salt-coffee-nostage', 'salt-apple-nostage']})
 
     def test_ext_pillar_hostinfo_groups_match_some(self):
-        mock_node = MagicMock()
-        mock_groups_set = lambda : {'salt-apple', 'bpkg'}
+        result = environments.ext_pillar('sltdm-rr-129', {})
+        self.assertEqual(result, {'environments': ['salt-coffee-s2', 'salt-apple-s2', 'sltdm-s2']})
 
-        with patch.object(environments, 'resolve_node', return_value=mock_node):
-            with patch.object(mock_node, 'groups_set', side_effect=mock_groups_set):
-                result = environments.ext_pillar('minion_id', {})
-        self.assertEqual(result, {u'environments': IndexedSet([u'salt-water', u'salt-coffee', u'salt-apple'])})
