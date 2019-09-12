@@ -8,12 +8,8 @@ from __future__ import absolute_import, print_function, unicode_literals
 # Import Salt Testing Libs
 from tests.support.runtests import RUNTIME_VARS
 from tests.support.mixins import LoaderModuleMockMixin
-<<<<<<< HEAD
-from tests.support.paths import TMP
-from tests.support.unit import TestCase, skipIf, expectedFailure
-=======
 from tests.support.unit import TestCase, skipIf
->>>>>>> 0545cb5c7a... Point paths to RUNTIME_VARS
+from tests.support.unit import TestCase, skipIf, expectedFailure
 from tests.support.mock import (
     MagicMock,
     patch,

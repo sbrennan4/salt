@@ -11,12 +11,8 @@ from salt.exceptions import SaltCloudSystemExit
 import salt.utils.files
 
 # Import Salt Testing Libs
-<<<<<<< HEAD
-from tests.support.unit import TestCase, skipIf, expectedFailure
-=======
 from tests.support.runtests import RUNTIME_VARS
-from tests.support.unit import TestCase, skipIf
->>>>>>> 0545cb5c7a... Point paths to RUNTIME_VARS
+from tests.support.unit import TestCase, skipIf, expectedFailure
 from tests.support.mixins import LoaderModuleMockMixin
 from tests.support.mock import NO_MOCK, NO_MOCK_REASON, patch, PropertyMock
 from tests.unit.test_crypt import PRIVKEY_DATA

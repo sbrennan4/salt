@@ -132,17 +132,12 @@ class GitfsConfigTestCase(TestCase, LoaderModuleMockMixin):
         # Clear the instance map so that we make sure to create a new instance
         # for this test class.
         _clear_instance_map()
-<<<<<<< HEAD
-        cls.tmp_cachedir = tempfile.mkdtemp(dir=TMP)
-        cls.tmp_sock_dir = tempfile.mkdtemp(dir=TMP)
-=======
 
         cls.tmp_repo_dir = os.path.join(RUNTIME_VARS.TMP, 'gitfs_root')
         if salt.utils.platform.is_windows():
             cls.tmp_repo_dir = cls.tmp_repo_dir.replace('\\', '/')
         cls.tmp_cachedir = tempfile.mkdtemp(dir=RUNTIME_VARS.TMP)
         cls.tmp_sock_dir = tempfile.mkdtemp(dir=RUNTIME_VARS.TMP)
->>>>>>> 0545cb5c7a... Point paths to RUNTIME_VARS
 
     @classmethod
     def tearDownClass(cls):
@@ -395,17 +390,12 @@ class GitFSTestBase(object):
 
     @classmethod
     def setUpClass(cls):
-<<<<<<< HEAD
-        cls.tmp_cachedir = tempfile.mkdtemp(dir=TMP)
-        cls.tmp_sock_dir = tempfile.mkdtemp(dir=TMP)
-=======
 
         cls.tmp_repo_dir = os.path.join(RUNTIME_VARS.TMP, 'gitfs_root')
         if salt.utils.platform.is_windows():
             cls.tmp_repo_dir = cls.tmp_repo_dir.replace('\\', '/')
         cls.tmp_cachedir = tempfile.mkdtemp(dir=RUNTIME_VARS.TMP)
         cls.tmp_sock_dir = tempfile.mkdtemp(dir=RUNTIME_VARS.TMP)
->>>>>>> 0545cb5c7a... Point paths to RUNTIME_VARS
 
         try:
             shutil.rmtree(TMP_REPO_DIR)

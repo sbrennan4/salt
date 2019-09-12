@@ -11,12 +11,7 @@ import textwrap
 from tests.support.runtests import RUNTIME_VARS
 from tests.support.helpers import with_tempfile
 from tests.support.mixins import LoaderModuleMockMixin
-<<<<<<< HEAD
-from tests.support.paths import TMP
 from tests.support.unit import TestCase, skipIf, expectedFailure
-=======
-from tests.support.unit import TestCase, skipIf
->>>>>>> 0545cb5c7a... Point paths to RUNTIME_VARS
 from tests.support.mock import MagicMock, Mock, patch, mock_open, DEFAULT
 
 try:

@@ -78,8 +78,6 @@ def uses_git_opts(caller):
     )
 
 
-<<<<<<< HEAD
-=======
 class WithGitMirror(object):
     def __init__(self, repo_url, **kwargs):
         self.repo_url = repo_url
@@ -127,10 +125,6 @@ class WithGitMirror(object):
             shutil.rmtree(clone_dir, ignore_errors=True)
 
 
-with_git_mirror = WithGitMirror
-
-
->>>>>>> 0545cb5c7a... Point paths to RUNTIME_VARS
 @ensure_min_git
 class GitTest(ModuleCase, SaltReturnAssertsMixin):
     '''
@@ -783,7 +777,6 @@ class LocalRepoGitTest(ModuleCase, SaltReturnAssertsMixin):
     '''
     Tests which do no require connectivity to github.com
     '''
-<<<<<<< HEAD
     @with_tempdir()
     @with_tempdir()
     @with_tempdir()
@@ -792,7 +785,6 @@ class LocalRepoGitTest(ModuleCase, SaltReturnAssertsMixin):
         Test the case where the remote branch has been removed
         https://github.com/saltstack/salt/issues/36242
         '''
-=======
     def setUp(self):
         self.repo = tempfile.mkdtemp(dir=RUNTIME_VARS.TMP)
         self.admin = tempfile.mkdtemp(dir=RUNTIME_VARS.TMP)
@@ -800,7 +792,6 @@ class LocalRepoGitTest(ModuleCase, SaltReturnAssertsMixin):
         for dirname in (self.repo, self.admin, self.target):
             self.addCleanup(shutil.rmtree, dirname, ignore_errors=True)
 
->>>>>>> 0545cb5c7a... Point paths to RUNTIME_VARS
         # Create bare repo
         self.run_function('git.init', [repo], bare=True)
         # Clone bare repo

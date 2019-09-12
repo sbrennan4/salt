@@ -6,13 +6,8 @@ import os
 import time
 
 # Import Salt Testing libs
-<<<<<<< HEAD
-from tests.support.paths import TMP_CONF_DIR
-from tests.support.unit import TestCase, skipIf, expectedFailure
-=======
 from tests.support.runtests import RUNTIME_VARS
 from tests.support.unit import TestCase, skipIf
->>>>>>> 0545cb5c7a... Point paths to RUNTIME_VARS
 
 # Import Salt libs
 import salt.config

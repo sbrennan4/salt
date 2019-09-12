@@ -703,8 +703,6 @@ class OrchEventTest(ShellCase):
             self.assertTrue(received)
             del listener
             signal.alarm(0)
-<<<<<<< HEAD
-=======
 
     def test_orchestration_onchanges_and_prereq(self):
         '''
@@ -821,4 +819,3 @@ class OrchEventTest(ShellCase):
         # shown no changes.
         assert not ret[jid2]['manage_a_file']['changes'], \
             ret[jid2]['manage_a_file']['changes']
->>>>>>> 0545cb5c7a... Point paths to RUNTIME_VARS
