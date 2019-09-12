@@ -28,10 +28,11 @@ class Authorize(object):
     # we don't have access to it here
     ckminions = None
 
-    def __init__(self, tag, item):
+    def __init__(self, tag, item, opts):
         log.trace('Authorized decorator - tag %s applied', tag)
         self.tag = tag
         self.item = item
+        self.opts = opts
 
     def __call__(self, f):
         @wraps(f)
@@ -52,7 +53,7 @@ class Authorize(object):
             if not self.ckminions:
                 # late import to avoid circular dependencies
                 import salt.utils.minions
-                self.ckminions = salt.utils.minions.CkMinions.factory(RequestContext.current['opts'])
+                self.ckminions = salt.utils.minions.CkMinions.factory(self.opts)
 
             # only apply acl if it is listed in auth_list tag set
             if self.tag not in auth_check.get('tags', []):
@@ -84,11 +85,6 @@ class Authorize(object):
                 return f(*args, **kwargs)
 
             if self.tag == 'module':
-                if '__opts__' not in f.__globals__ or 'id' not in f.__globals__['__opts__']:
-                    raise AuthorizationError('Error occurred - no __opts__ accessible from function.')
-
-                opts = f.__globals__['__opts__']
-
                 # minion loader covers two usecases:
                 # 1) master side orchestrations, including salutil.cmd special-cases for salt.state/salt.function
                 # 2) minion side re-enforcment of provided authlist
@@ -100,9 +96,9 @@ class Authorize(object):
                     auth_list,
                     self.item,
                     [args, kwargs],
-                    opts['id'],
+                    self.opts['id'],
                     'list',
-                    minions=[opts['id']],
+                    minions=[self.opts['id']],
                     # always accept find_job
                     whitelist=['saltutil.find_job', 'saltutil.is_running', 'grains.get', 'config.get', 'config.option'],
                 )
@@ -112,7 +108,7 @@ class Authorize(object):
                     if auth_check == 'eauth' and not auth_list and 'username' in extra and 'eauth' in extra:
                         log.debug('Auth configuration for eauth "%s" and user "%s" is empty', extra['eauth'], extra['username'])
                     log.error("current auth_check profile: %s", auth_check)
-                    raise AuthorizationError('User \'{0}\' is not permissioned to execute module function \'{1}\' on minion \'{2}\''.format(auth_check.get('username', 'UNKNOWN'), self.item, opts['id']))
+                    raise AuthorizationError('User \'{0}\' is not permissioned to execute module function \'{1}\' on minion \'{2}\''.format(auth_check.get('username', 'UNKNOWN'), self.item, self.opts['id']))
 
                 # if we've made it here, we are good. call the func
                 return f(*args, **kwargs)

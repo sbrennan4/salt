@@ -846,6 +846,5 @@ class Pillar(TestCase):
 
         pillar = salt.pillar.Pillar(opts, {}, 'sltdm-rr-005', 'base')
 
-        with patch.object(RequestContext, 'current', return_value={'opts':opts}):
-            res = pillar._get_envs()
-            self.assertEqual(res, {u'environments': []})
+        res = pillar._get_envs()
+        self.assertEqual(res, {u'environments': []})
