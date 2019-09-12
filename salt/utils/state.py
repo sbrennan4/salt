@@ -230,8 +230,10 @@ def get_sls_opts(opts, pillar, **kwargs):
 
     # always force highest priority if environments pillar exists
     if 'environments' in pillar:
-        opts['saltenv'] = pillar['environments']
-        opts['pillarenv'] = pillar['environments']
+        # force empty pillarenv to iterate all saltenvs for pillarenv
+        # todo: a saltenv override could work if it asserts being part of the environments set
+        opts['saltenv'] = tuple(pillar['environments'])
+        opts['pillarenv'] = None
         return opts
 
     if 'saltenv' in kwargs:
