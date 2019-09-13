@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 '''
     :codeauthor: Pedro Algarvio (pedro@algarvio.me)
     :codeauthor: Alexandru Bleotu (alexandru.bleotu@morganstanley.com)
@@ -12,7 +11,9 @@ from __future__ import absolute_import
 import tempfile
 
 # Import Salt Testing libs
-from tests.support.unit import skipIf, TestCase, expectedFailure
+from tests.support.runtests import RUNTIME_VARS
+from tests.support.helpers import with_tempdir
+from tests.support.unit import skipIf, TestCase
 from tests.support.mock import NO_MOCK, NO_MOCK_REASON, MagicMock, patch
 from tests.support.paths import TMP
 from salt.utils.ctx import RequestContext
@@ -537,6 +538,35 @@ class PillarTestCase(TestCase):
 
     def _setup_test_topfile_mocks(self, Matcher, get_file_client,
                                   nodegroup_order, glob_order):
+        def _run_test(nodegroup_order, glob_order, expected):
+            tempdir = tempfile.mkdtemp(dir=RUNTIME_VARS.TMP)
+            try:
+                sls_files = self._setup_test_topfile_sls(
+                    tempdir,
+                    nodegroup_order,
+                    glob_order)
+                fc_mock = MockFileclient(
+                    cache_file=sls_files['top']['dest'],
+                    list_states=['top', 'ssh', 'ssh.minion',
+                                 'generic', 'generic.minion'],
+                    get_state=sls_files)
+                with patch.object(salt.fileclient, 'get_file_client',
+                                  MagicMock(return_value=fc_mock)):
+                    pillar = salt.pillar.Pillar(opts, grains, 'mocked-minion', 'base')
+                    # Make sure that confirm_top.confirm_top returns True
+                    pillar.matchers['confirm_top.confirm_top'] = lambda *x, **y: True
+                    self.assertEqual(pillar.compile_pillar()['ssh'], expected)
+            finally:
+                shutil.rmtree(tempdir, ignore_errors=True)
+
+        # test case where glob match happens second and therefore takes
+        # precedence over nodegroup match.
+        _run_test(nodegroup_order=1, glob_order=2, expected='bar')
+        # test case where nodegroup match happens second and therefore takes
+        # precedence over glob match.
+        _run_test(nodegroup_order=2, glob_order=1, expected='foo')
+
+    def _setup_test_topfile_sls(self, tempdir, nodegroup_order, glob_order):
         # Write a simple topfile and two pillar state files
         self.top_file = tempfile.NamedTemporaryFile(dir=TMP, delete=False)
         s = '''

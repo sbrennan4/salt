@@ -10,9 +10,9 @@ import textwrap
 import copy
 
 # Import Salt Testing libs
+from tests.support.runtests import RUNTIME_VARS
 from tests.support.helpers import with_tempdir
-from tests.support.unit import TestCase, skipIf
-from tests.support.paths import TMP
+from tests.support.unit import TestCase
 
 # Import Salt libs
 import salt.loader
@@ -34,7 +34,7 @@ REQUISITES = ['require', 'require_in', 'use', 'use_in', 'watch', 'watch_in']
 class CommonTestCaseBoilerplate(TestCase):
 
     def setUp(self):
-        self.root_dir = tempfile.mkdtemp(dir=TMP)
+        self.root_dir = tempfile.mkdtemp(dir=RUNTIME_VARS.TMP)
         self.addCleanup(shutil.rmtree, self.root_dir, ignore_errors=True)
         self.state_tree_dir = os.path.join(self.root_dir, 'state_tree')
         self.cache_dir = os.path.join(self.root_dir, 'cachedir')
@@ -83,7 +83,6 @@ class CommonTestCaseBoilerplate(TestCase):
         finally:
             HIGHSTATE.pop_active()
 
-@skipIf(True, 'bb test was failing when ran in Jenkins')
 class PyDSLRendererTestCase(CommonTestCaseBoilerplate):
     '''
     WARNING: If tests in here are flaky, they may need
@@ -104,7 +103,7 @@ class PyDSLRendererTestCase(CommonTestCaseBoilerplate):
         result = self.render_sls(textwrap.dedent('''
             state('A').cmd.run('ls -la', cwd='/var/tmp')
             state().file.managed('myfile.txt', source='salt://path/to/file')
-        state('X').cmd('run', 'echo hello world', cwd='/')
+            state('X').cmd('run', 'echo hello world', cwd='/')
 
             a_cmd = state('A').cmd
             a_cmd.run(shell='/bin/bash')

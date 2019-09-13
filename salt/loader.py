@@ -1245,12 +1245,12 @@ class LazyLoader(salt.utils.lazy.LazyDict):
         '''
         func = super(LazyLoader, self).__getitem__(item)
 
+        if self.inject_globals:
+            func = global_injector_decorator(self.inject_globals)(func)
+
         # pass through authorize acl system - will noop unless enabled
         # xxx maybe this should be gated by an opt, unsure of performance impact
         func = Authorize(tag=self.tag, item=item, opts=self.opts)(func)
-
-        if self.inject_globals:
-            func = global_injector_decorator(self.inject_globals)(func)
 
         return func
 

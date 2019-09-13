@@ -73,6 +73,7 @@ def serialize(obj, **options):
     '''
 
     options.setdefault('Dumper', Dumper)
+    options.setdefault('default_flow_style', None)
     try:
         response = yaml.dump(obj, **options)
         if response.endswith('\n...\n'):
@@ -121,6 +122,7 @@ Loader.add_multi_constructor('tag:yaml.org,2002:map', Loader.construct_yaml_map)
 class Dumper(BaseDumper):  # pylint: disable=W0232
     '''Overwrites Dumper as not for pollute legacy Dumper'''
     pass
+
 
 Dumper.add_multi_representer(EncryptedString, EncryptedString.yaml_dumper)
 Dumper.add_multi_representer(type(None), Dumper.represent_none)

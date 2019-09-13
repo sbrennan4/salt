@@ -971,6 +971,9 @@ VALID_OPTS = {
     # Always generate minion id in lowercase.
     'minion_id_lowercase': bool,
 
+    # Remove either a single domain (foo.org), or all (True) from a generated minion id.
+    'minion_id_remove_domain': (six.string_types, bool),
+
     # If set, the master will sign all publications before they are sent out
     'sign_pub_messages': bool,
 
@@ -1467,6 +1470,7 @@ DEFAULT_MINION_OPTS = {
     'grains_refresh_every': 0,
     'minion_id_caching': True,
     'minion_id_lowercase': False,
+    'minion_id_remove_domain': '',
     'keysize': 2048,
     'transport': 'zeromq',
     'auth_timeout': 5,
@@ -1982,15 +1986,10 @@ PROVIDER_CONFIG_DEFAULTS = {
 # <---- Salt Cloud Configuration Defaults ------------------------------------
 
 
-def _validate_file_roots(file_roots):
+def _normalize_roots(file_roots):
     '''
-    If the file_roots option has a key that is None then we will error out,
-    just replace it with an empty list
+    Normalize file or pillar roots.
     '''
-    if not isinstance(file_roots, dict):
-        log.warning('The file_roots parameter is not properly formatted,'
-                    ' using defaults')
-        return {'base': _expand_glob_path([salt.syspaths.BASE_FILE_ROOTS_DIR])}
     for saltenv, dirs in six.iteritems(file_roots):
         normalized_saltenv = six.text_type(saltenv)
         if normalized_saltenv != saltenv:
@@ -2000,6 +1999,30 @@ def _validate_file_roots(file_roots):
         file_roots[normalized_saltenv] = \
                 _expand_glob_path(file_roots[normalized_saltenv])
     return file_roots
+
+
+def _validate_pillar_roots(pillar_roots):
+    '''
+    If the pillar_roots option has a key that is None then we will error out,
+    just replace it with an empty list
+    '''
+    if not isinstance(pillar_roots, dict):
+        log.warning('The pillar_roots parameter is not properly formatted,'
+                    ' using defaults')
+        return {'base': _expand_glob_path([salt.syspaths.BASE_PILLAR_ROOTS_DIR])}
+    return _normalize_roots(pillar_roots)
+
+
+def _validate_file_roots(file_roots):
+    '''
+    If the file_roots option has a key that is None then we will error out,
+    just replace it with an empty list
+    '''
+    if not isinstance(file_roots, dict):
+        log.warning('The file_roots parameter is not properly formatted,'
+                    ' using defaults')
+        return {'base': _expand_glob_path([salt.syspaths.BASE_FILE_ROOTS_DIR])}
+    return _normalize_roots(file_roots)
 
 
 def _expand_glob_path(file_roots):
@@ -3625,6 +3648,26 @@ def call_id_function(opts):
         sys.exit(salt.defaults.exitcodes.EX_GENERIC)
 
 
+def remove_domain_from_fqdn(opts, newid):
+    '''
+    Depending on the values of `minion_id_remove_domain`,
+    remove all domains or a single domain from a FQDN, effectivly generating a hostname.
+    '''
+    opt_domain = opts.get('minion_id_remove_domain')
+    if opt_domain is True:
+        if '.' in newid:
+            # Remove any domain
+            newid, xdomain = newid.split('.', 1)
+            log.debug('Removed any domain (%s) from minion id.', xdomain)
+    else:
+        # Must be string type
+        if newid.upper().endswith('.' + opt_domain.upper()):
+            # Remove single domain
+            newid = newid[:-len('.' + opt_domain)]
+            log.debug('Removed single domain %s from minion id.', opt_domain)
+    return newid
+
+
 def get_id(opts, cache_minion_id=False):
     '''
     Guess the id of the minion.
@@ -3676,6 +3719,11 @@ def get_id(opts, cache_minion_id=False):
     if opts.get('minion_id_lowercase'):
         newid = newid.lower()
         log.debug('Changed minion id %s to lowercase.', newid)
+
+    # Optionally remove one or many domains in a generated minion id
+    if opts.get('minion_id_remove_domain'):
+        newid = remove_domain_from_fqdn(opts, newid)
+
     if '__role' in opts and opts.get('__role') == 'minion':
         if opts.get('id_function'):
             log.debug(
@@ -3819,7 +3867,7 @@ def apply_minion_config(overrides=None,
     # nothing else!
     opts['open_mode'] = opts['open_mode'] is True
     opts['file_roots'] = _validate_file_roots(opts['file_roots'])
-    opts['pillar_roots'] = _validate_file_roots(opts['pillar_roots'])
+    opts['pillar_roots'] = _validate_pillar_roots(opts['pillar_roots'])
     # Make sure ext_mods gets set if it is an untrue value
     # (here to catch older bad configs)
     opts['extension_modules'] = (

@@ -21,9 +21,11 @@ import imp
 import copy
 
 # Import Salt Testing libs
-from tests.support.unit import TestCase, expectedFailure, skipIf
+from tests.support.runtests import RUNTIME_VARS
+from tests.support.case import ModuleCase
+from tests.support.unit import TestCase
+from tests.support.unit import TestCase, expectedFailure
 from tests.support.mock import patch
-from tests.support.paths import TMP
 
 # Import Salt libs
 import salt.config
@@ -83,13 +85,13 @@ class LazyLoaderTest(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.opts = salt.config.minion_config(None)
-        cls.opts['grains'] = grains(cls.opts)
-        if not os.path.isdir(TMP):
-            os.makedirs(TMP)
+        cls.opts['grains'] = salt.loader.grains(cls.opts)
+        if not os.path.isdir(RUNTIME_VARS.TMP):
+            os.makedirs(RUNTIME_VARS.TMP)
 
     def setUp(self):
         # Setup the module
-        self.module_dir = tempfile.mkdtemp(dir=TMP)
+        self.module_dir = tempfile.mkdtemp(dir=RUNTIME_VARS.TMP)
         self.module_file = os.path.join(self.module_dir,
                                         '{0}.py'.format(self.module_name))
         with salt.utils.files.fopen(self.module_file, 'w') as fh:
@@ -196,7 +198,7 @@ class LazyLoaderVirtualEnabledTest(TestCase):
             break
         self.assertNotEqual(self.loader._dict, {})
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
+    @expectedFailure #bb test was failing when ran in Jenkins
     def test_context(self):
         '''
         Make sure context is shared across modules
@@ -359,12 +361,12 @@ class LazyLoaderReloadingTest(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.opts = salt.config.minion_config(None)
-        cls.opts['grains'] = grains(cls.opts)
-        if not os.path.isdir(TMP):
-            os.makedirs(TMP)
+        cls.opts['grains'] = salt.loader.grains(cls.opts)
+        if not os.path.isdir(RUNTIME_VARS.TMP):
+            os.makedirs(RUNTIME_VARS.TMP)
 
     def setUp(self):
-        self.tmp_dir = tempfile.mkdtemp(dir=TMP)
+        self.tmp_dir = tempfile.mkdtemp(dir=RUNTIME_VARS.TMP)
 
         self.count = 0
         opts = copy.deepcopy(self.opts)
@@ -501,12 +503,12 @@ class LazyLoaderVirtualAliasTest(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.opts = salt.config.minion_config(None)
-        cls.opts['grains'] = grains(cls.opts)
-        if not os.path.isdir(TMP):
-            os.makedirs(TMP)
+        cls.opts['grains'] = salt.loader.grains(cls.opts)
+        if not os.path.isdir(RUNTIME_VARS.TMP):
+            os.makedirs(RUNTIME_VARS.TMP)
 
     def setUp(self):
-        self.tmp_dir = tempfile.mkdtemp(dir=TMP)
+        self.tmp_dir = tempfile.mkdtemp(dir=RUNTIME_VARS.TMP)
         opts = copy.deepcopy(self.opts)
         dirs = _module_dirs(opts, 'modules', 'module')
         dirs.append(self.tmp_dir)
@@ -587,12 +589,12 @@ class LazyLoaderSubmodReloadingTest(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.opts = salt.config.minion_config(None)
-        cls.opts['grains'] = grains(cls.opts)
-        if not os.path.isdir(TMP):
-            os.makedirs(TMP)
+        cls.opts['grains'] = salt.loader.grains(cls.opts)
+        if not os.path.isdir(RUNTIME_VARS.TMP):
+            os.makedirs(RUNTIME_VARS.TMP)
 
     def setUp(self):
-        self.tmp_dir = tempfile.mkdtemp(dir=TMP)
+        self.tmp_dir = tempfile.mkdtemp(dir=RUNTIME_VARS.TMP)
         os.makedirs(self.module_dir)
 
         self.count = 0
@@ -760,12 +762,12 @@ class LazyLoaderModulePackageTest(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.opts = salt.config.minion_config(None)
-        cls.opts['grains'] = grains(cls.opts)
-        if not os.path.isdir(TMP):
-            os.makedirs(TMP)
+        cls.opts['grains'] = salt.loader.grains(cls.opts)
+        if not os.path.isdir(RUNTIME_VARS.TMP):
+            os.makedirs(RUNTIME_VARS.TMP)
 
     def setUp(self):
-        self.tmp_dir = tempfile.mkdtemp(dir=TMP)
+        self.tmp_dir = tempfile.mkdtemp(dir=RUNTIME_VARS.TMP)
 
         dirs = _module_dirs(copy.deepcopy(self.opts), 'modules', 'module')
         dirs.append(self.tmp_dir)
@@ -864,12 +866,12 @@ class LazyLoaderDeepSubmodReloadingTest(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.opts = salt.config.minion_config(None)
-        cls.opts['grains'] = grains(cls.opts)
-        if not os.path.isdir(TMP):
-            os.makedirs(TMP)
+        cls.opts['grains'] = salt.loader.grains(cls.opts)
+        if not os.path.isdir(RUNTIME_VARS.TMP):
+            os.makedirs(RUNTIME_VARS.TMP)
 
     def setUp(self):
-        self.tmp_dir = tempfile.mkdtemp(dir=TMP)
+        self.tmp_dir = tempfile.mkdtemp(dir=RUNTIME_VARS.TMP)
         os.makedirs(self.module_dir)
 
         self.lib_count = collections.defaultdict(int)  # mapping of path -> count
@@ -990,7 +992,7 @@ class LazyLoaderOptimizationOrderTest(TestCase):
 
     def setUp(self):
         # Setup the module
-        self.module_dir = tempfile.mkdtemp(dir=TMP)
+        self.module_dir = tempfile.mkdtemp(dir=RUNTIME_VARS.TMP)
         self.module_file = os.path.join(self.module_dir,
                                         '{0}.py'.format(self.module_name))
 

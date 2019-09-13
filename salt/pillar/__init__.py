@@ -500,7 +500,7 @@ class Pillar(object):
         '''
         # environments ext_pillar takes priority always if enabled
         if any('environments' in ext for ext in self.opts.get('ext_pillar', [])):
-            return self.ext_pillars['environments'](self.minion_id, {})
+            return self.ext_pillars['environments'](self.minion_id, {}).get('environments', [])
 
         envs = set(['base'])
         if 'file_roots' in self.opts:

@@ -342,6 +342,29 @@ class Client(object):
 
         return ''
 
+    def cache_dest(self, url, saltenv='base', cachedir=None):
+        '''
+        Return the expected cache location for the specified URL and
+        environment.
+        '''
+        proto = urlparse(url).scheme
+
+        if proto == '':
+            # Local file path
+            return url
+
+        if proto == 'salt':
+            url, senv = salt.utils.url.parse(url)
+            if senv:
+                saltenv = senv
+            return salt.utils.path.join(
+                self.opts['cachedir'],
+                'files',
+                saltenv,
+                url.lstrip('|/'))
+
+        return self._extrn_path(url, saltenv, cachedir=cachedir)
+
     def list_states(self, saltenv):
         '''
         Return a list of all available sls modules on the master for a given
@@ -1378,8 +1401,7 @@ class RemoteClient(Client):
         '''
         Return a list of the files in the file server's specified environment
         '''
-        load = {'saltenv': saltenv,
-                'cmd': '_file_list'}
+        load = {'saltenv': saltenv, 'cmd': '_file_list', 'id': self.opts['id']}
         return salt.utils.data.decode(self.channel.send(load)) if six.PY2 \
             else self.channel.send(load)
 
@@ -1395,7 +1417,7 @@ class RemoteClient(Client):
         '''
         Return the master opts data
         '''
-        load = {'cmd': '_master_opts'}
+        load = {'cmd': '_master_opts', 'id': self.opts['id']}
         return salt.utils.data.decode(self.channel.send(load)) if six.PY2 \
             else self.channel.send(load)
 

@@ -12,6 +12,7 @@ import socket
 import string
 
 # Import Salt Testing libs
+from tests.support.runtests import RUNTIME_VARS
 from tests.support.case import ModuleCase
 from tests.support.helpers import with_tempdir
 from tests.support.mixins import SaltReturnAssertsMixin
@@ -75,6 +76,53 @@ def uses_git_opts(caller):
         min_version,
         'git_opts only supported in git {0} and newer (detected {1})'
     )
+
+
+class WithGitMirror(object):
+    def __init__(self, repo_url, **kwargs):
+        self.repo_url = repo_url
+        if 'dir' not in kwargs:
+            kwargs['dir'] = RUNTIME_VARS.TMP
+        self.kwargs = kwargs
+
+    def __call__(self, func):
+        self.func = func
+        return functools.wraps(func)(
+            lambda testcase, *args, **kwargs: self.wrap(testcase, *args, **kwargs)  # pylint: disable=W0108
+        )
+
+    def wrap(self, testcase, *args, **kwargs):
+        # Get temp dir paths
+        mirror_dir = tempfile.mkdtemp(**self.kwargs)
+        admin_dir = tempfile.mkdtemp(**self.kwargs)
+        clone_dir = tempfile.mkdtemp(**self.kwargs)
+        # Clean up the directories, we want git to actually create them
+        os.rmdir(mirror_dir)
+        os.rmdir(admin_dir)
+        os.rmdir(clone_dir)
+        # Create a URL to clone
+        mirror_url = 'file://' + mirror_dir
+        # Mirror the repo
+        testcase.run_function(
+            'git.clone', [mirror_dir], url=TEST_REPO, opts='--mirror')
+        # Make sure the directory for the mirror now exists
+        assert os.path.exists(mirror_dir)
+        # Clone to the admin dir
+        ret = testcase.run_state('git.latest', name=mirror_url, target=admin_dir)
+        ret = ret[next(iter(ret))]
+        assert os.path.exists(admin_dir)
+
+        try:
+            # Run the actual function with three arguments added:
+            #   1. URL for the test to use to clone
+            #   2. Cloned admin dir for making/pushing changes to the mirror
+            #   3. Yet-nonexistant clone_dir for the test function to use as a
+            #      destination for cloning.
+            return self.func(testcase, mirror_url, admin_dir, clone_dir, *args, **kwargs)
+        finally:
+            shutil.rmtree(mirror_dir, ignore_errors=True)
+            shutil.rmtree(admin_dir, ignore_errors=True)
+            shutil.rmtree(clone_dir, ignore_errors=True)
 
 
 @ensure_min_git
@@ -737,6 +785,13 @@ class LocalRepoGitTest(ModuleCase, SaltReturnAssertsMixin):
         Test the case where the remote branch has been removed
         https://github.com/saltstack/salt/issues/36242
         '''
+    def setUp(self):
+        self.repo = tempfile.mkdtemp(dir=RUNTIME_VARS.TMP)
+        self.admin = tempfile.mkdtemp(dir=RUNTIME_VARS.TMP)
+        self.target = tempfile.mkdtemp(dir=RUNTIME_VARS.TMP)
+        for dirname in (self.repo, self.admin, self.target):
+            self.addCleanup(shutil.rmtree, dirname, ignore_errors=True)
+
         # Create bare repo
         self.run_function('git.init', [repo], bare=True)
         # Clone bare repo

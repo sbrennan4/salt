@@ -1207,7 +1207,7 @@ class AESFuncs(object):
 
         # when environments ext_pillar is in place, it is source of truth
         if any('environments' in ext for ext in self.opts['ext_pillar']):
-            return self.pillars['environments'](load.get('id'), {})
+            return self.pillars['environments'](load.get('id'), {}).get('environments', [])
         else:
             return self.fs_.envs(**load)
 
@@ -1373,7 +1373,7 @@ class AESFuncs(object):
         '''
         mopts = {}
         file_roots = {}
-        envs = self._file_envs()
+        envs = self._file_envs(load)
         for saltenv in envs:
             if saltenv not in file_roots:
                 file_roots[saltenv] = []
@@ -2415,16 +2415,16 @@ class ClearFuncs(object):
                 clear_load['user'], clear_load['fun'], clear_load['jid']
             )
             load['user'] = clear_load['user']
-
-        # if there is an active auth_check in current context, pass it down
-        if 'auth_check' in RequestContext.current:
-            load['auth_check'] = RequestContext.current['auth_check']
-
         else:
             log.info(
                 'Published command %s with jid %s',
                 clear_load['fun'], clear_load['jid']
             )
+
+        # if there is an active auth_check in current context, pass it down
+        if 'auth_check' in RequestContext.current:
+            load['auth_check'] = RequestContext.current['auth_check']
+
         log.debug('Published command details %s', load)
         return load
 

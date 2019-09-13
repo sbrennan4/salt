@@ -18,9 +18,10 @@ from datetime import datetime
 import logging
 
 # Import Salt Testing libs
+from tests.support.runtests import RUNTIME_VARS
 from tests.support.case import ShellCase
 from tests.support.unit import skipIf
-from tests.support.paths import FILES, TMP
+from tests.support.paths import FILES
 from tests.support.mixins import ShellCaseCommonTestsMixin
 from tests.support.helpers import destructiveTest, flaky
 from tests.integration.utils import testprogram
@@ -163,7 +164,7 @@ class CallTest(ShellCase, testprogram.TestProgramCase, ShellCaseCommonTestsMixin
     @skipIf(sys.platform.startswith('win'), 'This test does not apply on Win')
     @flaky
     def test_issue_2731_masterless(self):
-        root_dir = os.path.join(TMP, 'issue-2731')
+        root_dir = os.path.join(RUNTIME_VARS.TMP, 'issue-2731')
         config_dir = os.path.join(root_dir, 'conf')
         minion_config_file = os.path.join(config_dir, 'minion')
         logfile = os.path.join(root_dir, 'minion_test_issue_2731')
@@ -291,7 +292,7 @@ class CallTest(ShellCase, testprogram.TestProgramCase, ShellCaseCommonTestsMixin
 
     def test_issue_7754(self):
         old_cwd = os.getcwd()
-        config_dir = os.path.join(TMP, 'issue-7754')
+        config_dir = os.path.join(RUNTIME_VARS.TMP, 'issue-7754')
         if not os.path.isdir(config_dir):
             os.makedirs(config_dir)
 
@@ -330,7 +331,7 @@ class CallTest(ShellCase, testprogram.TestProgramCase, ShellCaseCommonTestsMixin
         test when log_file is set to a syslog file that does not exist
         '''
         old_cwd = os.getcwd()
-        config_dir = os.path.join(TMP, 'log_file_incorrect')
+        config_dir = os.path.join(RUNTIME_VARS.TMP, 'log_file_incorrect')
         if not os.path.isdir(config_dir):
             os.makedirs(config_dir)
 
@@ -369,7 +370,7 @@ class CallTest(ShellCase, testprogram.TestProgramCase, ShellCaseCommonTestsMixin
 
     @flaky
     def test_issue_15074_output_file_append(self):
-        output_file_append = os.path.join(TMP, 'issue-15074')
+        output_file_append = os.path.join(RUNTIME_VARS.TMP, 'issue-15074')
         try:
             # Let's create an initial output file with some data
             _ = self.run_script(
@@ -401,7 +402,7 @@ class CallTest(ShellCase, testprogram.TestProgramCase, ShellCaseCommonTestsMixin
                 os.unlink(output_file_append)
 
     def test_issue_14979_output_file_permissions(self):
-        output_file = os.path.join(TMP, 'issue-14979')
+        output_file = os.path.join(RUNTIME_VARS.TMP, 'issue-14979')
         with salt.utils.files.set_umask(0o077):
             try:
                 # Let's create an initial output file with some data
@@ -530,7 +531,7 @@ class CallTest(ShellCase, testprogram.TestProgramCase, ShellCaseCommonTestsMixin
         '''
         ret = self.run_call('state.highstate', local=True)
 
-        destpath = os.path.join(TMP, 'testfile')
+        destpath = os.path.join(RUNTIME_VARS.TMP, 'testfile')
         exp_out = ['    Function: file.managed', '      Result: True',
                    '          ID: {0}'.format(destpath)]
 

@@ -20,10 +20,11 @@ except ImportError:
     pass
 
 # Import Salt Testing Libs
+from tests.support.runtests import RUNTIME_VARS
 from tests.support.mixins import LoaderModuleMockMixin
 from tests.support.unit import TestCase, skipIf
 from tests.support.mock import NO_MOCK, NO_MOCK_REASON, patch
-from tests.support.paths import TMP, FILES
+from tests.support.paths import FILES
 
 # Import salt libs
 import salt.fileserver.gitfs as gitfs
@@ -60,8 +61,8 @@ except AttributeError:
 
 log = logging.getLogger(__name__)
 
-TMP_SOCK_DIR = tempfile.mkdtemp(dir=TMP)
-TMP_REPO_DIR = os.path.join(TMP, 'gitfs_root')
+TMP_SOCK_DIR = tempfile.mkdtemp(dir=RUNTIME_VARS.TMP)
+TMP_REPO_DIR = os.path.join(RUNTIME_VARS.TMP, 'gitfs_root')
 if salt.utils.platform.is_windows():
     TMP_REPO_DIR = TMP_REPO_DIR.replace('\\', '/')
 INTEGRATION_BASE_FILES = os.path.join(FILES, 'file', 'base')
@@ -131,8 +132,12 @@ class GitfsConfigTestCase(TestCase, LoaderModuleMockMixin):
         # Clear the instance map so that we make sure to create a new instance
         # for this test class.
         _clear_instance_map()
-        cls.tmp_cachedir = tempfile.mkdtemp(dir=TMP)
-        cls.tmp_sock_dir = tempfile.mkdtemp(dir=TMP)
+
+        cls.tmp_repo_dir = os.path.join(RUNTIME_VARS.TMP, 'gitfs_root')
+        if salt.utils.platform.is_windows():
+            cls.tmp_repo_dir = cls.tmp_repo_dir.replace('\\', '/')
+        cls.tmp_cachedir = tempfile.mkdtemp(dir=RUNTIME_VARS.TMP)
+        cls.tmp_sock_dir = tempfile.mkdtemp(dir=RUNTIME_VARS.TMP)
 
     @classmethod
     def tearDownClass(cls):
@@ -385,8 +390,12 @@ class GitFSTestBase(object):
 
     @classmethod
     def setUpClass(cls):
-        cls.tmp_cachedir = tempfile.mkdtemp(dir=TMP)
-        cls.tmp_sock_dir = tempfile.mkdtemp(dir=TMP)
+
+        cls.tmp_repo_dir = os.path.join(RUNTIME_VARS.TMP, 'gitfs_root')
+        if salt.utils.platform.is_windows():
+            cls.tmp_repo_dir = cls.tmp_repo_dir.replace('\\', '/')
+        cls.tmp_cachedir = tempfile.mkdtemp(dir=RUNTIME_VARS.TMP)
+        cls.tmp_sock_dir = tempfile.mkdtemp(dir=RUNTIME_VARS.TMP)
 
         try:
             shutil.rmtree(TMP_REPO_DIR)

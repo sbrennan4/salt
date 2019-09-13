@@ -70,7 +70,9 @@ elif msgpack.version >= (0, 2, 0):
     def _deserialize(stream_or_string, **options):
         try:
             options.setdefault('use_list', True)
-            options.setdefault('encoding', 'utf-8')
+            # matt note; this should go through salt.serial or something
+            # im assuming raw=False here because i know we are py3 msgpack 6.1
+            options.setdefault('raw', False)
             return salt.utils.msgpack.loads(stream_or_string,
                                             _msgpack_module=msgpack,
                                             **options)

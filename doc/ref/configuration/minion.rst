@@ -591,6 +591,35 @@ FQDN (for instance, Solaris).
 
     append_domain: foo.org
 
+.. conf_minion:: minion_id_remove_domain
+
+``minion_id_remove_domain``
+---------------------
+
+.. versionadded:: Neon
+
+Default: ``False``
+
+Remove a domain when the minion id is generated as a fully qualified domain
+name (either by the user provided ``id_function``, or by Salt). This is useful
+when the minions shall be named like hostnames. Can only be a single domain to
+prevent name clashes.
+
+Example:
+ - FQDN = king_bob.foo.org
+ - minion_id_remove_domain = foo.org
+ - minion_id = king_bob
+
+
+For more information, please see `Issue #49212`_ and `Pull Request #49378`_.
+
+.. code-block:: yaml
+
+    minion_id_remove_domain: foo.org
+
+.. _Issue #49212: https://github.com/saltstack/salt/issues/49212
+.. _Pull Request #49378: https://github.com/saltstack/salt/pull/49378
+
 .. conf_minion:: minion_id_lowercase
 
 ``minion_id_lowercase``

@@ -3765,23 +3765,37 @@ class BaseHighState(object):
         all_errors = []
         mods = set()
         statefiles = []
-        for saltenv, states in six.iteritems(matches):
+
+        for saltenvs, states in six.iteritems(matches):
+            if not isinstance(saltenvs, list):
+                saltenvs = [six.ensure_str(saltenvs)]
+
+            # if multiple saltenvs are provided, take the first/highest priority match
             for sls_match in states:
-                try:
-                    statefiles = fnmatch.filter(self.avail[saltenv], sls_match)
-                except KeyError:
-                    all_errors.extend(
-                        ['No matching salt environment for environment '
-                         '\'{0}\' found'.format(saltenv)]
-                    )
+                statefiles = []
+                for saltenv in saltenvs:
+                    try:
+                        matches = fnmatch.filter(self.avail[saltenv], sls_match)
+
+                        if matches:
+                            for match in matches:
+                                statefiles.append((saltenv, match))
+                            break
+
+                    except KeyError:
+                        all_errors.extend(
+                            ['No matching salt environment for environment '
+                             '\'{0}\' found'.format(saltenv)]
+                        )
+
                 # if we did not found any sls in the fileserver listing, this
                 # may be because the sls was generated or added later, we can
                 # try to directly execute it, and if it fails, anyway it will
                 # return the former error
                 if not statefiles:
-                    statefiles = [sls_match]
+                    statefiles.append((saltenvs[0], sls_match))
 
-                for sls in statefiles:
+                for (saltenv, sls) in statefiles:
                     r_env = '{0}:{1}'.format(saltenv, sls)
                     if r_env in mods:
                         continue
