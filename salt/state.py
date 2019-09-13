@@ -3018,54 +3018,40 @@ class BaseHighState(object):
                     'default_top configuration option was set'
                 )
 
-        if self.opts['saltenv']:
+        found = 0
+        saltenvs = []
+        if self.opts.get('state_top_saltenv', False):
+            saltenvs = [self.opts.get('state_top_saltenv')]
+        elif isinstance(self.opts['saltenv'], six.string_types):
+            saltenvs = [self.opts['saltenv']]
+        elif isinstance(self.opts['saltenv'], tuple):
+            saltenvs = self.opts['saltenv']
+        elif isinstance(self.opts['saltenv'], list):
+            saltenvs = self.opts['saltenv']
+        else:
+            saltenvs = self._get_envs()
+
+        for saltenv in saltenvs:
+            saltenv = six.text_type(saltenv)
             contents = self.client.cache_file(
                 self.opts['state_top'],
-                self.opts['saltenv']
+                saltenv
             )
             if contents:
-                found = 1
-                tops[self.opts['saltenv']] = [
+                found += 1
+                tops[saltenv].append(
                     compile_template(
                         contents,
                         self.state.rend,
                         self.state.opts['renderer'],
                         self.state.opts['renderer_blacklist'],
                         self.state.opts['renderer_whitelist'],
-                        saltenv=self.opts['saltenv']
+                        saltenv=saltenv
                     )
-                ]
-            else:
-                tops[self.opts['saltenv']] = [{}]
-
-        else:
-            found = 0
-            state_top_saltenv = self.opts.get('state_top_saltenv', False)
-            if state_top_saltenv \
-                    and not isinstance(state_top_saltenv, six.string_types):
-                state_top_saltenv = six.text_type(state_top_saltenv)
-
-            for saltenv in [state_top_saltenv] if state_top_saltenv \
-                    else self._get_envs():
-                contents = self.client.cache_file(
-                    self.opts['state_top'],
-                    saltenv
                 )
-                if contents:
-                    found = found + 1
-                    tops[saltenv].append(
-                        compile_template(
-                            contents,
-                            self.state.rend,
-                            self.state.opts['renderer'],
-                            self.state.opts['renderer_blacklist'],
-                            self.state.opts['renderer_whitelist'],
-                            saltenv=saltenv
-                        )
-                    )
-                else:
-                    tops[saltenv].append({})
-                    log.debug('No contents loaded for saltenv \'%s\'', saltenv)
+            else:
+                tops[saltenv].append({})
+                log.debug('No contents loaded for saltenv \'%s\'', saltenv)
 
             if found > 1 and merging_strategy == 'merge' and not self.opts.get('env_order', None):
                 log.warning(
@@ -3369,8 +3355,12 @@ class BaseHighState(object):
         # pylint: disable=cell-var-from-loop
         for saltenv, body in six.iteritems(top):
             if self.opts['saltenv']:
-                if saltenv != self.opts['saltenv']:
-                    continue
+                if isinstance(self.opts['saltenv'], tuple) or isinstance(self.opts['saltenv'], list):
+                    if saltenv not in self.opts['saltenv']:
+                        continue
+                else:
+                    if saltenv != self.opts['saltenv']:
+                        continue
             for match, data in six.iteritems(body):
                 def _filter_matches(_match, _data, _opts):
                     if isinstance(_data, six.string_types):
@@ -3767,7 +3757,7 @@ class BaseHighState(object):
         statefiles = []
 
         for saltenvs, states in six.iteritems(matches):
-            if not isinstance(saltenvs, list):
+            if not isinstance(saltenvs, list) and not isinstance(saltenvs, tuple):
                 saltenvs = [six.ensure_str(saltenvs)]
 
             # if multiple saltenvs are provided, take the first/highest priority match
