@@ -1207,7 +1207,7 @@ class AESFuncs(object):
 
         # when environments ext_pillar is in place, it is source of truth
         if any('environments' in ext for ext in self.opts['ext_pillar']):
-            return self.pillars['environments'](load.get('id'), {}).get('environments')
+            return self.pillars['environments'](load.get('id'), {}).get('environments', [])
         else:
             return self.fs_.envs(**load)
 

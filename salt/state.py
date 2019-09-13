@@ -3767,8 +3767,8 @@ class BaseHighState(object):
         statefiles = []
 
         for saltenvs, states in six.iteritems(matches):
-            if isinstance(saltenvs, six.string_types):
-                saltenvs = [saltenvs]
+            if not isinstance(saltenvs, list):
+                saltenvs = [six.ensure_str(saltenvs)]
 
             # if multiple saltenvs are provided, take the first/highest priority match
             for sls_match in states:
