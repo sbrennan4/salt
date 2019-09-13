@@ -1001,7 +1001,7 @@ class TestCustomExtensions(TestCase):
                                      dict(opts=self.local_opts, saltenv='test', salt=self.local_salt))
         self.assertEqual(rendered, 'False')
 
-        rendered = render_jinja_tmpl("{{ 'fe80::20d:b9ff:fe01:ea8%eth0' | is_ipv6 }}",
+        rendered = render_jinja_tmpl("{{ 'fe80::20d:b9ff:fe01:ea8' | is_ipv6 }}",
                                      dict(opts=self.local_opts, saltenv='test', salt=self.local_salt))
         self.assertEqual(rendered, 'True')
 
@@ -1119,7 +1119,7 @@ class TestCustomExtensions(TestCase):
                                      dict(opts=self.local_opts, saltenv='test', salt=self.local_salt))
         self.assertEqual(rendered, '16777216')
 
-    @flaky
+    @skipIf(True, 'requires live internet connection')
     def test_http_query(self):
         '''
         Test the `http_query` Jinja filter.
