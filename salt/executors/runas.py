@@ -135,7 +135,7 @@ def execute(opts, data, func, args, kwargs):
         proc = salt.utils.process.MultiprocessingProcess(
             target=_chugid_then_run,
             args=(user, group, umask, child_conn, func, args, kwargs),
-            name='salt.utils.executors.runas',
+            name='salt.executors.runas',
         )
         proc.start()
         ret = parent_conn.recv()
