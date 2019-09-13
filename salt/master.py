@@ -1177,6 +1177,8 @@ class AESFuncs(object):
         )
         self.__setup_fileserver()
         self.masterapi = salt.daemons.masterapi.RemoteFuncs(opts)
+        # Make an Auth object
+        self.loadauth = salt.auth.LoadAuth(opts)
 
     def __setup_fileserver(self):
         '''
@@ -1552,6 +1554,15 @@ class AESFuncs(object):
         :rtype: dict
         :return: The pillar data for the minion
         '''
+
+        if self.opts['loader_acl']:
+            auth_list = self.loadauth.get_auth_list({'eauth': 'default'})
+
+            auth_check = {'auth_list': auth_list,
+                          'auth_type': '_pillar',
+                          'tags': self.opts.get('loader_acl', [])}
+            RequestContext.current['auth_check'] = auth_check
+
         if any(key not in load or load[key] is None for key in ('id', 'grains')):
             return False
         if not salt.utils.verify.valid_id(self.opts, load['id']):

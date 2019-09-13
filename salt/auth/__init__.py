@@ -403,12 +403,17 @@ class LoadAuth(object):
             groups = self.get_groups(load)  # The groups this user belongs to
 
         default_config = self.opts['external_auth'].get('default', [])
-        eauth_config = self.opts['external_auth'][eauth]
+        # if eauth is default, pillar is asking for a default auth_list, so we do nothing
+        if eauth == 'default':
+            eauth_config = {'default': default_config}
+            name = 'default'
+        else:
+            eauth_config = self.opts['external_auth'][eauth]
 
-        # if a default profile was specified, we must merge into each matcher
-        if default_config and eauth_config:
-            for matcher in eauth_config.keys():
-                eauth_config[matcher] = default_config + eauth_config[matcher]
+            # if a default profile was specified, we must merge into each matcher
+            if default_config and eauth_config:
+                for matcher in default_config.keys():
+                    eauth_config[matcher] = default_config + eauth_config.get(matcher, [])
 
         if not eauth_config:
             log.debug('eauth "%s" configuration is empty', eauth)
