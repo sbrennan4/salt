@@ -231,3 +231,8 @@ RUNTIME_VARS = RuntimeVars(
     SHELL_FALSE_PATH=salt.utils.path.which('false'),
 )
 # <---- Tests Runtime Variables --------------------------------------------------------------------------------------
+
+try:
+    os.mkdir(RUNTIME_VARS.TMP)
+except FileExistsError:
+    pass

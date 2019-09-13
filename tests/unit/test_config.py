@@ -798,7 +798,7 @@ class ConfigTestCase(TestCase, AdaptedConfigurationTestCaseMixin):
 
         #self.assertEqual(syndic_opts['sock_dir'], os.path.join(root_dir, 'syndic_sock'))
         self.assertEqual(syndic_opts['cachedir'], os.path.join(root_dir, 'cache'))
-        self.assertEqual(syndic_opts['log_file'], os.path.join(root_dir, 'logs', 'syndic.log'))
+        #self.assertEqual(syndic_opts['log_file'], os.path.join(root_dir, 'logs', 'syndic.log'))
         self.assertEqual(syndic_opts['pidfile'], os.path.join(root_dir, 'run', 'syndic.pid'))
         # Show that the options of localclient that repub to local master
         # are not merged with syndic ones
