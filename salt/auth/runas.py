@@ -18,7 +18,7 @@ log = logging.getLogger(__name__)
 
 def acl(eauth_opts=None, username=None):
     '''
-    given euath_opts specifying another user to run privileges under, return that acl
+    given eauth_opts specifying another user to run privileges under, return that acl
     IMPORTANT NOTE: this eauth lives within the token system built into salt,
     as such any token minted by it is cast as the runas user, and will not
     change. You must not use a cached token with runas and expect it to be

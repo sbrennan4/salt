@@ -521,7 +521,7 @@ class Authorize(object):
             'Neon',
             'The \'Authorize\' class has been deprecated. Please use the '
             '\'LoadAuth\', \'Reslover\', or \'AuthUser\' classes instead. '
-            'Support for the \'Authorze\' class will be removed in Salt '
+            'Support for the \'Authorize\' class will be removed in Salt '
             '{version}.'
         )
         self.opts = salt.config.master_config(opts['conf_file'])
