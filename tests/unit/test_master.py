@@ -29,6 +29,7 @@ class AESFuncsTestCase(TestCase):
     def test__file_envs_no_matching_node(self):
         # Default master opts
         opts = copy.deepcopy(self.opts)
+        opts['evaporator'] = {'tenancies': [{'name': 'salt-core', 'groups': ['salt'], 'global': True}]}
         opts['ext_pillar'] = [
             {'environments': ['word']}
         ]
