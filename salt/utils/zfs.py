@@ -175,7 +175,6 @@ def _auto(direction, name, value, source='auto', convert_to_human=True):
     return globals()['{}_{}'.format(direction, value_type)](value)
 
 
-@real_memoize
 def _zfs_cmd():
     '''
     Return the path of the zfs binary if present
@@ -184,7 +183,6 @@ def _zfs_cmd():
     return salt.utils.path.which('zfs')
 
 
-@real_memoize
 def _zpool_cmd():
     '''
     Return the path of the zpool binary if present
@@ -304,7 +302,6 @@ def is_supported():
     return (salt.utils.path.which('zpool') and on_supported_platform) is True
 
 
-@real_memoize
 def has_feature_flags():
     '''
     Check if zpool-features is available
@@ -316,7 +313,6 @@ def has_feature_flags():
     )) if man else False
 
 
-@real_memoize
 def property_data_zpool():
     '''
     Return a dict of zpool properties
@@ -372,7 +368,6 @@ def property_data_zpool():
     return property_data
 
 
-@real_memoize
 def property_data_zfs():
     '''
     Return a dict of zfs properties

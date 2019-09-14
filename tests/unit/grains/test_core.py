@@ -665,6 +665,7 @@ class CoreGrainsTestCase(TestCase, LoaderModuleMockMixin):
                             exists".format(key, value))
 
     @skipIf(not salt.utils.platform.is_linux(), 'System is not Linux')
+    @skipIf(os.path.isfile('/.dockerenv'), 'test doesnt work right on docker')
     def test_fqdn_return(self):
         '''
         test ip4 and ip6 return values
@@ -676,6 +677,7 @@ class CoreGrainsTestCase(TestCase, LoaderModuleMockMixin):
                              ip4_empty=False, ip6_empty=False)
 
     @skipIf(not salt.utils.platform.is_linux(), 'System is not Linux')
+    @skipIf(os.path.isfile('/.dockerenv'), 'test doesnt work on docker')
     def test_fqdn6_empty(self):
         '''
         test when ip6 is empty
