@@ -14,6 +14,7 @@ from tests.support.mock import (
     patch,
     MagicMock,
 )
+from salt.utils.ctx import RequestContext
 
 
 # These tests require a working /bb/bin/bbcpu.lst/alias.
@@ -109,6 +110,8 @@ class ClearFuncsTestCase(TestCase):
     def setUp(self):
         opts = salt.config.master_config(None)
         self.clear_funcs = salt.master.ClearFuncs(opts, {})
+        if 'auth_check' in RequestContext.current:
+            del RequestContext.current['auth_check']
 
     # runner tests
 
