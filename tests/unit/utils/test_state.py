@@ -689,8 +689,8 @@ class UtilStateMergeSubreturnTestcase(TestCase):
 
 class UtilStateGetSlsOptsTestcase(TestCase):
     '''
-    Test cases for salt.utils.state.merge_subreturn function.
+    Test cases for salt.utils.state.get_sls_opts function.
     '''
     def test_get_sls_opts(self):
         opts = salt.utils.state.get_sls_opts({'orig':'inal'}, {"environments": ['base', 'scuba-diving']})
-        self.assertEqual(opts, {u'pillarenv': [u'base', u'scuba-diving'], u'saltenv': [u'base', u'scuba-diving'], u'orig': u'inal'})
+        self.assertEqual(opts, {u'pillarenv': None, u'saltenv': tuple([u'base', u'scuba-diving']), u'orig': u'inal'})

@@ -210,6 +210,10 @@ def pytest_configure(config):
         'requires_network(only_local_network=False): Skip if no networking is set up. '
         'If \'only_local_network\' is \'True\', only the local network is checked.'
     )
+
+    config.addinivalue_line('markers', 'integration: integration tests')
+    config.addinivalue_line('markers', 'unit: unit tests')
+
     # Make sure the test suite "knows" this is a pytest test run
     RUNTIME_VARS.PYTEST_SESSION = True
 
@@ -340,7 +344,6 @@ def pytest_collection_modifyitems(items):
     '''
     for item in items:
         fspath = str(item.fspath)
-        import pprint; pprint.pprint(fspath)
         if '/integration/' in fspath:
             if 'default_session_daemons' not in item.fixturenames:
                 item.fixturenames.append('default_session_daemons')

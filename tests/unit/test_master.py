@@ -25,18 +25,18 @@ class AESFuncsTestCase(TestCase):
     def setUp(self):
         self.opts = salt.config.master_config(None)
 
-    def test__file_envs_no_matching_node(self):        
+    def test__file_envs_no_matching_node(self):
         # Default master opts
         opts = copy.deepcopy(self.opts)
         opts['ext_pillar'] = [
             {'environments': ['word']}
-        ]    
+        ]
 
         aes_funcs = salt.master.AESFuncs(opts)
         res = aes_funcs._file_envs({"id": "pytest_minion_1"})
-        self.assertEqual(res, {'environments': ['salt-core-nostage']})
+        self.assertEqual(res, ['salt-core-nostage'])
 
-    def test__file_envs_load_is_none(self):        
+    def test__file_envs_load_is_none(self):
         # Default master opts
         opts = copy.deepcopy(self.opts)
         opts['evaporator'] = {'tenancies': [{'name': 'salt-core', 'groups': ['salt'], 'global': True}]}
@@ -46,9 +46,9 @@ class AESFuncsTestCase(TestCase):
 
         aes_funcs = salt.master.AESFuncs(opts)
         res = aes_funcs._file_envs()
-        self.assertEqual(res, {'environments': ['salt-core-nostage']})
+        self.assertEqual(res, ['salt-core-nostage'])
 
-    def test__file_envs_node_is_found(self):        
+    def test__file_envs_node_is_found(self):
         # Default master opts
         opts = copy.deepcopy(self.opts)
         opts['ext_pillar'] = [
@@ -64,9 +64,9 @@ class AESFuncsTestCase(TestCase):
 
         aes_funcs = salt.master.AESFuncs(opts)
         res = aes_funcs._file_envs({"id": "sltdm-rr-005"})
-        self.assertEqual(res, {'environments': ['salt-native-s4', 'sltdm-s4', 'salt-water-s4']})
+        self.assertEqual(res, ['salt-native-s4', 'sltdm-s4', 'salt-water-s4'])
 
-    def test__file_envs_node_no_environment(self):        
+    def test__file_envs_node_no_environment(self):
         # Default master opts
         opts = copy.deepcopy(self.opts)
         opts['evaporator'] = {
@@ -94,7 +94,7 @@ class AESFuncsTestCase(TestCase):
         ]
 
         aes_funcs = salt.master.AESFuncs(opts)
-        
+
         res = aes_funcs._master_opts({
             "id": "sltdm-rr-005",
             "env_only": True,

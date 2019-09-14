@@ -219,11 +219,14 @@ def merge_subreturn(original_return, sub_return, subkey=None):
     return original_return
 
 
-def get_sls_opts(opts, pillar, **kwargs):
+def get_sls_opts(opts, pillar=None, **kwargs):
     '''
     Return a copy of the opts for use, optionally load a local config on top
     '''
     opts = copy.deepcopy(opts)
+
+    if not pillar:
+        pillar = {}
 
     if 'localconfig' in kwargs:
         return salt.config.minion_config(kwargs['localconfig'], defaults=opts)
