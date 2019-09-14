@@ -485,7 +485,7 @@ class LoadAuth(object):
             msg = 'Authentication failure of type "user" occurred'
             if not auth_ret:  # auth_ret can be a boolean or the effective user id
                 if show_username:
-                    msg = '{0} for user {1}.'.format(msg, username)
+                    msg = '{0} for user "{1}".'.format(msg, username)
                 ret['error'] = {'name': 'UserAuthenticationError', 'message': msg}
                 return ret
 

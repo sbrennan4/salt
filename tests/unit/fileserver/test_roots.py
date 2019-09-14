@@ -12,9 +12,10 @@ import tempfile
 # Import Salt Testing libs
 from tests.integration import AdaptedConfigurationTestCaseMixin
 from tests.support.mixins import LoaderModuleMockMixin
-from tests.support.runtests import RUNTIME_VARS
 from tests.support.unit import TestCase, skipIf
 from tests.support.mock import patch, NO_MOCK, NO_MOCK_REASON
+from tests.support.runtests import RUNTIME_VARS
+from tests.support.paths import TMP
 
 # Import Salt libs
 import salt.fileserver.roots as roots
@@ -36,9 +37,7 @@ UNICODE_DIRNAME = UNICODE_ENVNAME = 'соль'
 class RootsTest(TestCase, AdaptedConfigurationTestCaseMixin, LoaderModuleMockMixin):
 
     def setup_loader_modules(self):
-        self.tmp_cachedir = tempfile.mkdtemp(dir=RUNTIME_VARS.TMP)
         self.opts = self.get_temp_config('master')
-        self.opts['cachedir'] = self.tmp_cachedir
         empty_dir = os.path.join(RUNTIME_VARS.TMP_STATE_TREE, 'empty_dir')
         if not os.path.isdir(empty_dir):
             os.makedirs(empty_dir)
@@ -153,6 +152,17 @@ class RootsTest(TestCase, AdaptedConfigurationTestCaseMixin, LoaderModuleMockMix
         ret = roots.file_list_emptydirs({'saltenv': 'base'})
         self.assertIn('empty_dir', ret)
 
+    def test_file_list_with_slash(self):
+        opts = {'file_roots': copy.copy(self.opts['file_roots'])}
+        opts['file_roots']['foo/bar'] = opts['file_roots']['base']
+        load = {
+                'saltenv': 'foo/bar',
+                }
+        with patch.dict(roots.__opts__, opts):
+            ret = roots.file_list(load)
+        self.assertIn('testfile', ret)
+        self.assertIn(UNICODE_FILENAME, ret)
+
     def test_dir_list(self):
         ret = roots.dir_list({'saltenv': 'base'})
         self.assertIn('empty_dir', ret)
@@ -169,23 +179,19 @@ class RootsTest(TestCase, AdaptedConfigurationTestCaseMixin, LoaderModuleMockMix
             if self.test_symlink_list_file_roots:
                 self.opts['file_roots'] = orig_file_roots
 
-
-class RootsLimitTraversalTest(TestCase, AdaptedConfigurationTestCaseMixin):
-
-    def test_limit_traversal(self):
-        '''
-        1) Set up a deep directory structure
-        2) Enable the configuration option 'fileserver_limit_traversal'
-        3) Ensure that we can find SLS files in a directory so long as there is
-           an SLS file in a directory above.
-        4) Ensure that we cannot find an SLS file in a directory that does not
-           have an SLS file in a directory above.
-
-        '''
-        file_client_opts = self.get_temp_config('master')
-        file_client_opts['fileserver_limit_traversal'] = True
-
-        ret = salt.fileclient.Client(file_client_opts).list_states('base')
-        self.assertIn('test_deep.test', ret)
-        self.assertIn('test_deep.a.test', ret)
-        self.assertNotIn('test_deep.b.2.test', ret)
+    def test_dynamic_file_roots(self):
+        dyn_root_dir = tempfile.mkdtemp(dir=TMP)
+        top_sls = os.path.join(dyn_root_dir, 'top.sls')
+        with salt.utils.files.fopen(top_sls, 'w') as fp_:
+            fp_.write("{{saltenv}}:\n  '*':\n    - dynamo\n")
+        dynamo_sls = os.path.join(dyn_root_dir, 'dynamo.sls')
+        with salt.utils.files.fopen(dynamo_sls, 'w') as fp_:
+            fp_.write("foo:\n  test.nop\n")
+        opts = {'file_roots': copy.copy(self.opts['file_roots'])}
+        opts['file_roots']['__env__'] = [dyn_root_dir]
+        with patch.dict(roots.__opts__, opts):
+            ret1 = roots.find_file('dynamo.sls', 'dyn')
+            ret2 = roots.file_list({'saltenv': 'dyn'})
+        self.assertEqual('dynamo.sls', ret1['rel'])
+        self.assertIn('top.sls', ret2)
+        self.assertIn('dynamo.sls', ret2)

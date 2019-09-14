@@ -9,7 +9,7 @@ import salt.master
 import copy
 
 # Import Salt Testing Libs
-from tests.support.unit import TestCase, expectedFailure, skipIf
+from tests.support.unit import TestCase
 from tests.support.mock import (
     patch,
     MagicMock,
@@ -99,7 +99,7 @@ class AESFuncsTestCase(TestCase):
             "id": "sltdm-rr-005",
             "env_only": True,
         })
-        self.assertEqual(res, {u'default_top': u'base', u'env_order': [], u'ext_pillar': [{'environments': ['word']}], u'top_file_merging_strategy': u'merge', u'file_roots': {u'environments': []},})
+        self.assertEqual(res, {u'default_top': u'base', u'env_order': [], u'ext_pillar': [{'environments': ['word']}], u'top_file_merging_strategy': u'merge', u'file_roots': {}})
 
 
 class ClearFuncsTestCase(TestCase):
@@ -112,7 +112,6 @@ class ClearFuncsTestCase(TestCase):
 
     # runner tests
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
     def test_runner_token_not_authenticated(self):
         '''
         Asserts that a TokenAuthenticationError is returned when the token can't authenticate.
@@ -122,7 +121,6 @@ class ClearFuncsTestCase(TestCase):
         ret = self.clear_funcs.runner({'token': 'asdfasdfasdfasdf'})
         self.assertDictEqual(mock_ret, ret)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_runner_token_authorization_error(self):
         '''
         Asserts that a TokenAuthenticationError is returned when the token authenticates, but is
@@ -133,7 +131,7 @@ class ClearFuncsTestCase(TestCase):
         mock_token = {'token': token, 'eauth': 'foo', 'name': 'test'}
         mock_ret = {'error': {'name': 'TokenAuthenticationError',
                                 'message': 'Authentication failure of type "token" occurred '
-                                            'for user test.'}}
+                                            'for user "test".'}}
 
         with patch('salt.auth.LoadAuth.authenticate_token', MagicMock(return_value=mock_token)), \
                 patch('salt.auth.LoadAuth.get_auth_list', MagicMock(return_value=[])):
@@ -158,18 +156,16 @@ class ClearFuncsTestCase(TestCase):
 
         self.assertDictEqual(mock_ret, ret)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_runner_eauth_not_authenticated(self):
         '''
         Asserts that an EauthAuthenticationError is returned when the user can't authenticate.
         '''
         mock_ret = {'error': {'name': 'EauthAuthenticationError',
                                 'message': 'Authentication failure of type "eauth" occurred for '
-                                            'user UNKNOWN.'}}
+                                            'user "UNKNOWN".'}}
         ret = self.clear_funcs.runner({'eauth': 'foo'})
         self.assertDictEqual(mock_ret, ret)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_runner_eauth_authorization_error(self):
         '''
         Asserts that an EauthAuthenticationError is returned when the user authenticates, but is
@@ -178,7 +174,7 @@ class ClearFuncsTestCase(TestCase):
         clear_load = {'eauth': 'foo', 'username': 'test', 'fun': 'test.arg'}
         mock_ret = {'error': {'name': 'EauthAuthenticationError',
                                 'message': 'Authentication failure of type "eauth" occurred for '
-                                            'user test.'}}
+                                            'user "test".'}}
         with patch('salt.auth.LoadAuth.authenticate_eauth', MagicMock(return_value=True)), \
                 patch('salt.auth.LoadAuth.get_auth_list', MagicMock(return_value=[])):
             ret = self.clear_funcs.runner(clear_load)
@@ -199,7 +195,6 @@ class ClearFuncsTestCase(TestCase):
 
         self.assertDictEqual(mock_ret, ret)
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
     def test_runner_user_not_authenticated(self):
         '''
         Asserts that an UserAuthenticationError is returned when the user can't authenticate.
@@ -211,7 +206,6 @@ class ClearFuncsTestCase(TestCase):
 
     # wheel tests
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
     def test_wheel_token_not_authenticated(self):
         '''
         Asserts that a TokenAuthenticationError is returned when the token can't authenticate.
@@ -221,7 +215,6 @@ class ClearFuncsTestCase(TestCase):
         ret = self.clear_funcs.wheel({'token': 'asdfasdfasdfasdf'})
         self.assertDictEqual(mock_ret, ret)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_wheel_token_authorization_error(self):
         '''
         Asserts that a TokenAuthenticationError is returned when the token authenticates, but is
@@ -232,7 +225,7 @@ class ClearFuncsTestCase(TestCase):
         mock_token = {'token': token, 'eauth': 'foo', 'name': 'test'}
         mock_ret = {'error': {'name': 'TokenAuthenticationError',
                                 'message': 'Authentication failure of type "token" occurred '
-                                            'for user test.'}}
+                                            'for user "test".'}}
 
         with patch('salt.auth.LoadAuth.authenticate_token', MagicMock(return_value=mock_token)), \
                 patch('salt.auth.LoadAuth.get_auth_list', MagicMock(return_value=[])):
@@ -257,14 +250,13 @@ class ClearFuncsTestCase(TestCase):
 
         self.assertDictEqual(mock_ret, ret)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_wheel_eauth_not_authenticated(self):
         '''
         Asserts that an EauthAuthenticationError is returned when the user can't authenticate.
         '''
         mock_ret = {'error': {'name': 'EauthAuthenticationError',
                                 'message': 'Authentication failure of type "eauth" occurred for '
-                                            'user UNKNOWN.'}}
+                                            'user "UNKNOWN".'}}
         ret = self.clear_funcs.wheel({'eauth': 'foo'})
         self.assertDictEqual(mock_ret, ret)
 
@@ -276,7 +268,7 @@ class ClearFuncsTestCase(TestCase):
         clear_load = {'eauth': 'foo', 'username': 'test', 'fun': 'test.arg'}
         mock_ret = {'error': {'name': 'EauthAuthenticationError',
                                 'message': 'Authentication failure of type "eauth" occurred for '
-                                            'user test.'}}
+                                            'user "test".'}}
         with patch('salt.auth.LoadAuth.authenticate_eauth', MagicMock(return_value=True)), \
                 patch('salt.auth.LoadAuth.get_auth_list', MagicMock(return_value=[])):
             ret = self.clear_funcs.wheel(clear_load)
@@ -297,7 +289,6 @@ class ClearFuncsTestCase(TestCase):
 
         self.assertDictEqual(mock_ret, ret)
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
     def test_wheel_user_not_authenticated(self):
         '''
         Asserts that an UserAuthenticationError is returned when the user can't authenticate.
@@ -328,21 +319,21 @@ class ClearFuncsTestCase(TestCase):
                 patch('salt.acl.PublisherACL.cmd_is_blacklisted', MagicMock(return_value=True)):
             self.assertEqual(mock_ret, self.clear_funcs.publish({'user': 'foo', 'fun': 'test.arg'}))
 
-    
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
+
     def test_publish_token_not_authenticated(self):
         '''
         Asserts that an AuthenticationError is returned when the token can't authenticate.
         '''
         mock_ret = {'error': {'name': 'AuthenticationError',
-                                'message': 'Authentication error occurred.'}}
+                                'message': 'Authentication failure of type "token" occurred. Is '
+                                           '"foo" authorized to run "test.arg" on tgt '
+                                           '"test_minion"?'}}
         load = {'user': 'foo', 'fun': 'test.arg', 'tgt': 'test_minion',
                 'kwargs': {'token': 'asdfasdfasdfasdf'}}
         with patch('salt.acl.PublisherACL.user_is_blacklisted', MagicMock(return_value=False)), \
                 patch('salt.acl.PublisherACL.cmd_is_blacklisted', MagicMock(return_value=False)):
             self.assertEqual(mock_ret, self.clear_funcs.publish(load))
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_publish_token_authorization_error(self):
         '''
         Asserts that an AuthorizationError is returned when the token authenticates, but is not
@@ -353,15 +344,15 @@ class ClearFuncsTestCase(TestCase):
                 'arg': 'bar', 'kwargs': {'token': token}}
         mock_token = {'token': token, 'eauth': 'foo', 'name': 'test'}
         mock_ret = {'error': {'name': 'AuthorizationError',
-                                'message': 'Authorization error occurred.'}}
-
+                                'message': 'Authentication failure of type "token" occurred. Is '
+                                           '"foo" authorized to run "test.arg" on tgt '
+                                           '"test_minion"?'}}
         with patch('salt.acl.PublisherACL.user_is_blacklisted', MagicMock(return_value=False)), \
                 patch('salt.acl.PublisherACL.cmd_is_blacklisted', MagicMock(return_value=False)), \
                 patch('salt.auth.LoadAuth.authenticate_token', MagicMock(return_value=mock_token)), \
                 patch('salt.auth.LoadAuth.get_auth_list', MagicMock(return_value=[])):
             self.assertEqual(mock_ret, self.clear_funcs.publish(load))
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_publish_eauth_not_authenticated(self):
         '''
         Asserts that an AuthenticationError is returned when the user can't authenticate.
@@ -369,12 +360,13 @@ class ClearFuncsTestCase(TestCase):
         load = {'user': 'test', 'fun': 'test.arg', 'tgt': 'test_minion',
                 'kwargs': {'eauth': 'foo'}}
         mock_ret = {'error': {'name': 'AuthenticationError',
-                                'message': 'Authentication error occurred.'}}
+                                'message': 'Authentication failure of type "eauth" occurred. Is '
+                                           '"test" authorized to run "test.arg" on tgt '
+                                           '"test_minion"?'}}
         with patch('salt.acl.PublisherACL.user_is_blacklisted', MagicMock(return_value=False)), \
                 patch('salt.acl.PublisherACL.cmd_is_blacklisted', MagicMock(return_value=False)):
             self.assertEqual(mock_ret, self.clear_funcs.publish(load))
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_publish_eauth_authorization_error(self):
         '''
         Asserts that an AuthorizationError is returned when the user authenticates, but is not
@@ -384,25 +376,30 @@ class ClearFuncsTestCase(TestCase):
                 'kwargs': {'eauth': 'foo'}, 'arg': 'bar'}
         mock_ret = {'error': {'name': 'AuthorizationError',
                                 'message': 'Authorization error occurred.'}}
+
+        mock_ret = {'error': {'name': 'AuthorizationError',
+                                'message': 'Authentication failure of type "eauth" occurred. Is '
+                                           '"test" authorized to run "test.arg" on tgt '
+                                           '"test_minion"?'}}
         with patch('salt.acl.PublisherACL.user_is_blacklisted', MagicMock(return_value=False)), \
                 patch('salt.acl.PublisherACL.cmd_is_blacklisted', MagicMock(return_value=False)), \
                 patch('salt.auth.LoadAuth.authenticate_eauth', MagicMock(return_value=True)), \
                 patch('salt.auth.LoadAuth.get_auth_list', MagicMock(return_value=[])):
             self.assertEqual(mock_ret, self.clear_funcs.publish(load))
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
     def test_publish_user_not_authenticated(self):
         '''
         Asserts that an AuthenticationError is returned when the user can't authenticate.
         '''
         load = {'user': 'test', 'fun': 'test.arg', 'tgt': 'test_minion'}
         mock_ret = {'error': {'name': 'AuthenticationError',
-                                'message': 'Authentication error occurred.'}}
+                                'message': 'Authentication failure of type "user" occurred. Is '
+                                           '"test" authorized to run "test.arg" on tgt '
+                                           '"test_minion"?'}}
         with patch('salt.acl.PublisherACL.user_is_blacklisted', MagicMock(return_value=False)), \
                 patch('salt.acl.PublisherACL.cmd_is_blacklisted', MagicMock(return_value=False)):
             self.assertEqual(mock_ret, self.clear_funcs.publish(load))
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_publish_user_authenticated_missing_auth_list(self):
         '''
         Asserts that an AuthenticationError is returned when the user has an effective user id and is
@@ -411,14 +408,15 @@ class ClearFuncsTestCase(TestCase):
         load = {'user': 'test', 'fun': 'test.arg', 'tgt': 'test_minion',
                 'kwargs': {'user': 'test'}, 'arg': 'foo'}
         mock_ret = {'error': {'name': 'AuthenticationError',
-                                'message': 'Authentication error occurred.'}}
+                                'message': 'Authentication failure of type "user" occurred. Is '
+                                           '"test" authorized to run "test.arg" on tgt '
+                                           '"test_minion"?'}}
         with patch('salt.acl.PublisherACL.user_is_blacklisted', MagicMock(return_value=False)), \
                 patch('salt.acl.PublisherACL.cmd_is_blacklisted', MagicMock(return_value=False)), \
                 patch('salt.auth.LoadAuth.authenticate_key', MagicMock(return_value='fake-user-key')), \
                 patch('salt.utils.master.get_values_of_matching_keys', MagicMock(return_value=[])):
             self.assertEqual(mock_ret, self.clear_funcs.publish(load))
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_publish_user_authorization_error(self):
         '''
         Asserts that an AuthorizationError is returned when the user authenticates, but is not
@@ -427,7 +425,9 @@ class ClearFuncsTestCase(TestCase):
         load = {'user': 'test', 'fun': 'test.arg', 'tgt': 'test_minion',
                 'kwargs': {'user': 'test'}, 'arg': 'foo'}
         mock_ret = {'error': {'name': 'AuthorizationError',
-                                'message': 'Authorization error occurred.'}}
+                                'message': 'Authentication failure of type "user" occurred. Is '
+                                           '"test" authorized to run "test.arg" on tgt '
+                                           '"test_minion"?'}}
         with patch('salt.acl.PublisherACL.user_is_blacklisted', MagicMock(return_value=False)), \
                 patch('salt.acl.PublisherACL.cmd_is_blacklisted', MagicMock(return_value=False)), \
                 patch('salt.auth.LoadAuth.authenticate_key', MagicMock(return_value='fake-user-key')), \

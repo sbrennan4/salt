@@ -2033,7 +2033,7 @@ class ClearFuncs(object):
             if not wheel_check:
                 return {'error': {'name': err_name,
                                   'message': 'Authentication failure of type "{0}" occurred for '
-                                             'user {1}.'.format(auth_type, username)}}
+                                             'user "{1}".'.format(auth_type, username)}}
             elif isinstance(wheel_check, dict) and 'error' in wheel_check:
                 # A dictionary with an error name/message was handled by ckminions.wheel_check
                 return wheel_check
