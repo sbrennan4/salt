@@ -3258,8 +3258,6 @@ class Matcher(object):
         Takes the data passed to a top file environment and determines if the
         data matches this minion
         '''
-        import pprint
-        pprint.pprint("HOCINFIRNOINFRIONFO")
         matcher = 'compound'
         if not data:
             log.error('Received bad data when setting the match from the top '
