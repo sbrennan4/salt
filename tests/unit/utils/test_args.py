@@ -11,7 +11,7 @@ from salt.ext import six
 import salt.utils.args
 
 # Import Salt Testing Libs
-from tests.support.unit import TestCase, skipIf, expectedFailure
+from tests.support.unit import TestCase, skipIf
 from tests.support.mock import (
     create_autospec,
     DEFAULT,
@@ -123,7 +123,6 @@ class ArgsTestCase(TestCase):
             salt.utils.args.format_call(foo2, dict(one=1))
 
     @skipIf(NO_MOCK, NO_MOCK_REASON)
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_argspec_report(self):
         def _test_spec(arg1, arg2, kwarg1=None):
             pass

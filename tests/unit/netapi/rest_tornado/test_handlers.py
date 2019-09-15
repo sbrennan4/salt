@@ -8,7 +8,7 @@ import hashlib
 
 # Import Salt Testing Libs
 from tests.integration import AdaptedConfigurationTestCaseMixin
-from tests.support.unit import TestCase, skipIf, expectedFailure
+from tests.support.unit import TestCase, skipIf
 
 # Import Salt libs
 import salt.auth
@@ -578,7 +578,6 @@ class TestSaltAuthHandler(SaltnadoTestCase):
 
         self.assertEqual(response.code, 400)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_login_bad_creds(self):
         '''
         Test logins with bad/missing passwords

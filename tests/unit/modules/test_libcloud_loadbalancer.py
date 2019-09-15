@@ -82,7 +82,6 @@ if HAS_LIBCLOUD:
     def get_mock_driver():
         return MockLBDriver()
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
     @skipIf(NO_MOCK, NO_MOCK_REASON)
     @patch('salt.modules.libcloud_loadbalancer._get_driver',
         MagicMock(return_value=MockLBDriver()))

@@ -10,7 +10,7 @@ import tempfile
 # Import Salt Testing Libs
 from tests.support.mixins import LoaderModuleMockMixin
 from tests.support.paths import TMP
-from tests.support.unit import skipIf, TestCase, expectedFailure
+from tests.support.unit import skipIf, TestCase
 from tests.support.mock import (
     PropertyMock,
     NO_MOCK,
@@ -42,7 +42,6 @@ class EngineScriptTestCase(TestCase, LoaderModuleMockMixin):
              }
         }
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test__get_serializer(self):
         '''
         Test known serializer is returned or exception is raised
