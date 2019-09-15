@@ -22,7 +22,6 @@ import salt.utils.master
 
 
 @skipIf(NO_MOCK, NO_MOCK_REASON)
-@skipIf(True, 'bb test was failing when ran in Jenkins')
 class CacheTest(TestCase, LoaderModuleMockMixin):
     '''
     Validate the cache runner
