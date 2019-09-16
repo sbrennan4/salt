@@ -596,9 +596,10 @@ class MinionBase(object):
                 opts['master_list'] = [opts['master']]
 
         for master in opts['master_list']:
-            opts['master'] = master
-            opts.update(prep_ip_port(opts))
-            opts['master_uri_list'].append(resolve_dns(opts)['master_uri'])
+            opts_copy = copy.deepcopy(opts)
+            opts_copy['master'] = master
+            opts_copy.update(prep_ip_port(opts_copy))
+            opts['master_uri_list'].append(resolve_dns(opts_copy)['master_uri'])
 
         # if we have a list of masters, loop through them and be
         # happy with the first one that allows us to connect
@@ -610,13 +611,9 @@ class MinionBase(object):
             # shuffle the masters and then loop through them
             opts['local_masters'] = copy.copy(opts['master'])
             if opts['random_master']:
-                # master_failback is only used when master_type is set to failover
-                if opts['master_type'] == 'failover' and opts['master_failback']:
-                    secondary_masters = opts['local_masters'][1:]
-                    shuffle(secondary_masters)
-                    opts['local_masters'][1:] = secondary_masters
-                else:
-                    shuffle(opts['local_masters'])
+                shuffle(opts['local_masters'])
+            last_exc = None
+            opts['master_uri_list'] = list()
 
             while True:
                 if attempts != 0:

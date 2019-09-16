@@ -3966,9 +3966,9 @@ class BaseHighState(object):
                 statefiles = []
                 for saltenv in saltenvs:
                     if saltenv in self.avail:
-                        statefiles = fnmatch.filter(self.avail[saltenv], sls_match)
+                        statefiles = [(saltenv, _sls) for _sls in fnmatch.filter(self.avail[saltenv], sls_match)]
                     elif '__env__' in self.avail:
-                        statefiles = fnmatch.filter(self.avail['__env__'], sls_match)
+                        statefiles = [(saltenv, _sls) for _sls in fnmatch.filter(self.avail['__env__'], sls_match)]
                     else:
                         all_errors.append(
                             'No matching salt environment for environment '
