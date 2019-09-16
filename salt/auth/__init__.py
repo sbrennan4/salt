@@ -402,7 +402,7 @@ class LoadAuth(object):
             name = self.load_name(load)  # The username we are attempting to auth with
             groups = self.get_groups(load)  # The groups this user belongs to
 
-        default_config = self.opts['external_auth'].get('default', [])
+        default_config = self.opts['external_auth'].get('default', {})
         # if eauth is default, pillar is asking for a default auth_list, so we do nothing
         if eauth == 'default':
             eauth_config = {'default': default_config}
