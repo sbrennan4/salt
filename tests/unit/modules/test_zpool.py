@@ -14,7 +14,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 # Import Salt Testing libs
 from tests.support.mixins import LoaderModuleMockMixin
-from tests.support.unit import skipIf, TestCase, expectedFailure
+from tests.support.unit import skip, skipIf, TestCase, expectedFailure
 from tests.support.mock import (
     MagicMock,
     patch,
@@ -38,6 +38,7 @@ import salt.utils.decorators.path
 
 # Skip this test case if we don't have access to mock!
 @skipIf(NO_MOCK, NO_MOCK_REASON)
+@skip('These tests go weird under xdist')
 class ZpoolTestCase(TestCase, LoaderModuleMockMixin):
     '''
     This class contains a set of functions that test salt.modules.zpool module
@@ -54,7 +55,6 @@ class ZpoolTestCase(TestCase, LoaderModuleMockMixin):
 
         return zpool_obj
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_exists_success(self):
         '''
         Tests successful return of exists function
@@ -69,7 +69,6 @@ class ZpoolTestCase(TestCase, LoaderModuleMockMixin):
              patch.dict(zpool.__utils__, utils_patch):
             self.assertTrue(zpool.exists('myzpool'))
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_exists_failure(self):
         '''
         Tests failure return of exists function
@@ -84,7 +83,6 @@ class ZpoolTestCase(TestCase, LoaderModuleMockMixin):
              patch.dict(zpool.__utils__, utils_patch):
             self.assertFalse(zpool.exists('myzpool'))
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_healthy(self):
         '''
         Tests successful return of healthy function
@@ -99,7 +97,6 @@ class ZpoolTestCase(TestCase, LoaderModuleMockMixin):
              patch.dict(zpool.__utils__, utils_patch):
             self.assertTrue(zpool.healthy())
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_status(self):
         '''
         Tests successful return of status function
@@ -127,7 +124,6 @@ class ZpoolTestCase(TestCase, LoaderModuleMockMixin):
             ret = zpool.status()
             self.assertEqual('ONLINE', ret['mypool']['state'])
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_iostat(self):
         '''
         Tests successful return of iostat function
@@ -151,7 +147,6 @@ class ZpoolTestCase(TestCase, LoaderModuleMockMixin):
             ret = zpool.iostat('mypool', parsable=False)
             self.assertEqual('46.7G', ret['mypool']['capacity-alloc'])
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_iostat_parsable(self):
         '''
         Tests successful return of iostat function
@@ -180,7 +175,6 @@ class ZpoolTestCase(TestCase, LoaderModuleMockMixin):
             ret = zpool.iostat('mypool', parsable=True)
             self.assertEqual(50143743180, ret['mypool']['capacity-alloc'])
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_list(self):
         '''
         Tests successful return of list function
@@ -203,7 +197,6 @@ class ZpoolTestCase(TestCase, LoaderModuleMockMixin):
             ]))])
             self.assertEqual(ret, res)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_list_parsable(self):
         '''
         Tests successful return of list function with parsable output
@@ -226,7 +219,6 @@ class ZpoolTestCase(TestCase, LoaderModuleMockMixin):
             ]))])
             self.assertEqual(ret, res)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_get(self):
         '''
         Tests successful return of get function
@@ -242,7 +234,6 @@ class ZpoolTestCase(TestCase, LoaderModuleMockMixin):
             res = OrderedDict(OrderedDict([('size', '1.81T')]))
             self.assertEqual(ret, res)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_get_parsable(self):
         '''
         Tests successful return of get function with parsable output
@@ -258,7 +249,6 @@ class ZpoolTestCase(TestCase, LoaderModuleMockMixin):
             res = OrderedDict(OrderedDict([('size', 1990116046274)]))
             self.assertEqual(ret, res)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_get_whitespace(self):
         '''
         Tests successful return of get function with a string with whitespaces
@@ -274,7 +264,6 @@ class ZpoolTestCase(TestCase, LoaderModuleMockMixin):
             res = OrderedDict(OrderedDict([('comment', "my testing pool")]))
             self.assertEqual(ret, res)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_scrub_start(self):
         '''
         Tests start of scrub
@@ -293,7 +282,6 @@ class ZpoolTestCase(TestCase, LoaderModuleMockMixin):
             res = OrderedDict(OrderedDict([('scrubbing', True)]))
             self.assertEqual(ret, res)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_scrub_pause(self):
         '''
         Tests pause of scrub
@@ -312,7 +300,6 @@ class ZpoolTestCase(TestCase, LoaderModuleMockMixin):
             res = OrderedDict(OrderedDict([('scrubbing', False)]))
             self.assertEqual(ret, res)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_scrub_stop(self):
         '''
         Tests pauze of scrub
@@ -331,7 +318,6 @@ class ZpoolTestCase(TestCase, LoaderModuleMockMixin):
             res = OrderedDict(OrderedDict([('scrubbing', False)]))
             self.assertEqual(ret, res)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_split_success(self):
         '''
         Tests split on success
@@ -348,7 +334,6 @@ class ZpoolTestCase(TestCase, LoaderModuleMockMixin):
             res = OrderedDict([('split', True)])
             self.assertEqual(ret, res)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_split_exist_new(self):
         '''
         Tests split on exising new pool
@@ -365,7 +350,6 @@ class ZpoolTestCase(TestCase, LoaderModuleMockMixin):
             res = OrderedDict([('split', False), ('error', 'Unable to split datapool: pool already exists')])
             self.assertEqual(ret, res)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_split_missing_pool(self):
         '''
         Tests split on missing source pool
@@ -382,7 +366,6 @@ class ZpoolTestCase(TestCase, LoaderModuleMockMixin):
             res = OrderedDict([('split', False), ('error', "cannot open 'datapool': no such pool")])
             self.assertEqual(ret, res)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_split_not_mirror(self):
         '''
         Tests split on source pool is not a mirror
@@ -399,7 +382,6 @@ class ZpoolTestCase(TestCase, LoaderModuleMockMixin):
             res = OrderedDict([('split', False), ('error', 'Unable to split datapool: Source pool must be composed only of mirrors')])
             self.assertEqual(ret, res)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_labelclear_success(self):
         '''
         Tests labelclear on succesful label removal
@@ -416,7 +398,6 @@ class ZpoolTestCase(TestCase, LoaderModuleMockMixin):
             res = OrderedDict([('labelcleared', True)])
             self.assertEqual(ret, res)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_labelclear_nodevice(self):
         '''
         Tests labelclear on non existing device
@@ -436,7 +417,6 @@ class ZpoolTestCase(TestCase, LoaderModuleMockMixin):
             ])
             self.assertEqual(ret, res)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_labelclear_cleared(self):
         '''
         Tests labelclear on device with no label
@@ -456,7 +436,6 @@ class ZpoolTestCase(TestCase, LoaderModuleMockMixin):
             ])
             self.assertEqual(ret, res)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_labelclear_exported(self):
         '''
         Tests labelclear on device with from exported pool
@@ -519,7 +498,6 @@ class ZpoolTestCase(TestCase, LoaderModuleMockMixin):
             ])
             self.assertEqual(ret, res)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_export_success(self):
         '''
         Tests export
@@ -536,7 +514,6 @@ class ZpoolTestCase(TestCase, LoaderModuleMockMixin):
             res = OrderedDict([('exported', True)])
             self.assertEqual(ret, res)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_export_nopool(self):
         '''
         Tests export when the pool does not exists
@@ -553,7 +530,6 @@ class ZpoolTestCase(TestCase, LoaderModuleMockMixin):
             res = OrderedDict([('exported', False), ('error', "cannot open 'mypool': no such pool")])
             self.assertEqual(ret, res)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_import_success(self):
         '''
         Tests import
@@ -570,7 +546,6 @@ class ZpoolTestCase(TestCase, LoaderModuleMockMixin):
             res = OrderedDict([('imported', True)])
             self.assertEqual(ret, res)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_import_duplicate(self):
         '''
         Tests import with already imported pool
@@ -593,7 +568,6 @@ class ZpoolTestCase(TestCase, LoaderModuleMockMixin):
             ])
             self.assertEqual(ret, res)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_import_nopool(self):
         '''
         Tests import
@@ -613,7 +587,6 @@ class ZpoolTestCase(TestCase, LoaderModuleMockMixin):
             ])
             self.assertEqual(ret, res)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_online_success(self):
         '''
         Tests online
@@ -630,7 +603,6 @@ class ZpoolTestCase(TestCase, LoaderModuleMockMixin):
             res = OrderedDict([('onlined', True)])
             self.assertEqual(ret, res)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_online_nodevice(self):
         '''
         Tests online
@@ -650,7 +622,6 @@ class ZpoolTestCase(TestCase, LoaderModuleMockMixin):
             ])
             self.assertEqual(ret, res)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_offline_success(self):
         '''
         Tests offline
@@ -667,7 +638,6 @@ class ZpoolTestCase(TestCase, LoaderModuleMockMixin):
             res = OrderedDict([('offlined', True)])
             self.assertEqual(ret, res)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_offline_nodevice(self):
         '''
         Tests offline
@@ -687,7 +657,6 @@ class ZpoolTestCase(TestCase, LoaderModuleMockMixin):
             ])
             self.assertEqual(ret, res)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_offline_noreplica(self):
         '''
         Tests offline
@@ -707,7 +676,6 @@ class ZpoolTestCase(TestCase, LoaderModuleMockMixin):
             ])
             self.assertEqual(ret, res)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_reguid_success(self):
         '''
         Tests reguid
@@ -724,7 +692,6 @@ class ZpoolTestCase(TestCase, LoaderModuleMockMixin):
             res = OrderedDict([('reguided', True)])
             self.assertEqual(ret, res)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_reguid_nopool(self):
         '''
         Tests reguid with missing pool
@@ -744,7 +711,6 @@ class ZpoolTestCase(TestCase, LoaderModuleMockMixin):
             ])
             self.assertEqual(ret, res)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_reopen_success(self):
         '''
         Tests reopen
@@ -761,7 +727,6 @@ class ZpoolTestCase(TestCase, LoaderModuleMockMixin):
             res = OrderedDict([('reopened', True)])
             self.assertEqual(ret, res)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_reopen_nopool(self):
         '''
         Tests reopen with missing pool
@@ -781,7 +746,6 @@ class ZpoolTestCase(TestCase, LoaderModuleMockMixin):
             ])
             self.assertEqual(ret, res)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_upgrade_success(self):
         '''
         Tests upgrade
@@ -798,7 +762,6 @@ class ZpoolTestCase(TestCase, LoaderModuleMockMixin):
             res = OrderedDict([('upgraded', True)])
             self.assertEqual(ret, res)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_upgrade_nopool(self):
         '''
         Tests upgrade with missing pool
@@ -818,7 +781,6 @@ class ZpoolTestCase(TestCase, LoaderModuleMockMixin):
             ])
             self.assertEqual(ret, res)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_history_success(self):
         '''
         Tests history
@@ -844,7 +806,6 @@ class ZpoolTestCase(TestCase, LoaderModuleMockMixin):
             ])
             self.assertEqual(ret, res)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_history_nopool(self):
         '''
         Tests history with missing pool
@@ -863,7 +824,6 @@ class ZpoolTestCase(TestCase, LoaderModuleMockMixin):
             ])
             self.assertEqual(ret, res)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_clear_success(self):
         '''
         Tests clear
@@ -880,7 +840,6 @@ class ZpoolTestCase(TestCase, LoaderModuleMockMixin):
             res = OrderedDict([('cleared', True)])
             self.assertEqual(ret, res)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_clear_nopool(self):
         '''
         Tests clear with missing pool
@@ -899,7 +858,6 @@ class ZpoolTestCase(TestCase, LoaderModuleMockMixin):
                 ('error', "cannot open 'mypool': no such pool"),
             ])
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_clear_nodevice(self):
         '''
         Tests clear with non existign device
