@@ -8,22 +8,21 @@
 
 # Import Python libs
 from __future__ import absolute_import, print_function, unicode_literals
+import collections
 import compileall
+import copy
+import imp
 import inspect
 import logging
+import os
+import shutil
+import sys
 import tempfile
 import textwrap
-import shutil
-import os
-import collections
-import sys
-import imp
-import copy
 
 # Import Salt Testing libs
 from tests.support.runtests import RUNTIME_VARS
 from tests.support.case import ModuleCase
-from tests.support.unit import TestCase
 from tests.support.unit import TestCase
 from tests.support.mock import patch
 
@@ -284,6 +283,31 @@ class LazyLoaderWhitelistTest(TestCase):
         self.assertNotIn('grains.get', self.loader)
 
 
+class LazyLoaderGrainsBlacklistTest(TestCase):
+    '''
+    Test the loader of grains with a blacklist
+    '''
+    def setUp(self):
+        self.opts = salt.config.minion_config(None)
+
+    def tearDown(self):
+        del self.opts
+
+    def test_whitelist(self):
+        opts = copy.deepcopy(self.opts)
+        opts['grains_blacklist'] = [
+            'master',
+            'os*',
+            'ipv[46]'
+        ]
+
+        grains = salt.loader.grains(opts)
+        self.assertNotIn('master', grains)
+        self.assertNotIn('os', set([g[:2] for g in list(grains)]))
+        self.assertNotIn('ipv4', grains)
+        self.assertNotIn('ipv6', grains)
+
+
 class LazyLoaderSingleItem(TestCase):
     '''
     Test loading a single item via the _load() function
@@ -306,17 +330,13 @@ class LazyLoaderSingleItem(TestCase):
         '''
         Checks that a KeyError is raised when the function key does not contain a '.'
         '''
+        key = 'testing_no_dot'
+        expected = "The key '{0}' should contain a '.'".format(key)
         with self.assertRaises(KeyError) as err:
             inspect.isfunction(self.loader['testing_no_dot'])
 
-        if six.PY2:
-            self.assertEqual(err.exception[0],
-                             'The key \'%s\' should contain a \'.\'')
-        else:
-            self.assertEqual(
-                six.text_type(err.exception),
-                six.text_type(("The key '%s' should contain a '.'", 'testing_no_dot'))
-            )
+        result = err.exception.args[0]
+        assert result == expected, result
 
 
 module_template = '''
@@ -981,25 +1001,25 @@ class LoaderGlobalsTest(ModuleCase):
         Verify that the globals listed in the doc string (from the test) are in these modules
         '''
         # find the globals
-        global_vars = []
+        global_vars = {}
         for val in six.itervalues(mod_dict):
             # only find salty globals
             if val.__module__.startswith('salt.loaded'):
                 if hasattr(val, '__globals__'):
-                    if '__wrapped__' in val.__globals__:
-                        global_vars.append(sys.modules[val.__module__].__dict__)
+                    if hasattr(val, '__wrapped__') or '__wrapped__' in val.__globals__:
+                        global_vars[val.__module__] = sys.modules[val.__module__].__dict__
                     else:
-                        global_vars.append(val.__globals__)
+                        global_vars[val.__module__] = val.__globals__
 
         # if we couldn't find any, then we have no modules -- so something is broken
-        self.assertNotEqual(global_vars, [], msg='No modules were loaded.')
+        self.assertNotEqual(global_vars, {}, msg='No modules were loaded.')
 
         # get the names of the globals you should have
         func_name = inspect.stack()[1][3]
         names = next(six.itervalues(salt.utils.yaml.safe_load(getattr(self, func_name).__doc__)))
 
         # Now, test each module!
-        for item in global_vars:
+        for item in six.itervalues(global_vars):
             for name in names:
                 self.assertIn(name, list(item.keys()))
 

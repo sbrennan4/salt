@@ -756,7 +756,7 @@ def grains(opts, force_refresh=False, proxy=None):
         if not isinstance(ret, dict):
             continue
         if blist:
-            for key in ret.keys():
+            for key in list(ret.keys()):
                 for block in blist:
                     if salt.utils.stringutils.expr_match(key, block):
                         del ret[key]
@@ -1268,7 +1268,7 @@ class LazyLoader(salt.utils.lazy.LazyDict):
 
         # pass through authorize acl system - will noop unless enabled
         # xxx maybe this should be gated by an opt, unsure of performance impact
-        func = Authorize(tag=self.tag, item=item, opts=self.opts)(func)
+        func = Authorize(tag=self.tag, item=item, opts=self.opts, pack=self.pack)(func)
 
         return func
 
@@ -1758,8 +1758,10 @@ class LazyLoader(salt.utils.lazy.LazyDict):
         ))
 
         for attr in getattr(mod, '__load__', dir(mod)):
-            if attr.startswith('_'):
-                # private functions are skipped
+            if attr.startswith('_') and attr != '__call__':
+                # private functions are skipped,
+                # except __call__ which is default entrance
+                # for multi-function batch-like state syntax
                 continue
             func = getattr(mod, attr)
             if not inspect.isfunction(func) and not isinstance(func, functools.partial):
@@ -1808,7 +1810,7 @@ class LazyLoader(salt.utils.lazy.LazyDict):
         if not isinstance(key, six.string_types):
             raise KeyError('The key must be a string.')
         if '.' not in key:
-            raise KeyError('The key \'%s\' should contain a \'.\'', key)
+            raise KeyError('The key \'{0}\' should contain a \'.\''.format(key))
         mod_name, _ = key.split('.', 1)
         with self._lock:
             # It is possible that the key is in the dictionary after
