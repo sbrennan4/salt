@@ -34,7 +34,13 @@ class StatusBeaconTestCase(TestCase, LoaderModuleMockMixin):
         opts = salt.config.DEFAULT_MINION_OPTS
         module_globals = {
             '__opts__': opts,
-            '__salt__': 'autoload',
+            '__salt__': {
+                'status.loadavg': status_module.loadavg,
+                'status.cpustats': status_module.cpustats,
+                'status.meminfo': status_module.meminfo,
+                'status.vmstats': status_module.vmstats,
+                'status.time': status_module.time_,
+            },
             '__context__': {},
             '__grains__': {'kernel': 'Linux'}
         }
