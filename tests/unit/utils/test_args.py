@@ -13,7 +13,6 @@ import salt.utils.args
 # Import Salt Testing Libs
 from tests.support.unit import TestCase, skipIf
 from tests.support.mock import (
-    create_autospec,
     DEFAULT,
     NO_MOCK,
     NO_MOCK_REASON,
@@ -81,8 +80,7 @@ class ArgsTestCase(TestCase):
             self.assertRaises(SaltInvocationError, salt.utils.args.format_call, dummy_func, {'1': 2})
 
             # Make sure we warn on invalid kwargs
-            ret = salt.utils.args.format_call(dummy_func, {'first': 2, 'second': 2, 'third': 3})
-            self.assertGreaterEqual(len(ret['warnings']), 1)
+            self.assertRaises(SaltInvocationError, salt.utils.args.format_call, dummy_func, {'first': 2, 'seconds': 2, 'third': 3})
 
             ret = salt.utils.args.format_call(dummy_func, {'first': 2, 'second': 2, 'third': 3},
                                          expected_extra_kws=('first', 'second', 'third'))
@@ -127,11 +125,13 @@ class ArgsTestCase(TestCase):
         def _test_spec(arg1, arg2, kwarg1=None):
             pass
 
-        sys_mock = create_autospec(_test_spec)
-        test_functions = {'test_module.test_spec': sys_mock}
+        test_functions = {'test_module.test_spec': _test_spec}
         ret = salt.utils.args.argspec_report(test_functions, 'test_module.test_spec')
         self.assertDictEqual(ret, {'test_module.test_spec':
-                                       {'kwargs': True, 'args': None, 'defaults': None, 'varargs': True}})
+                                       {'kwargs': None,
+                                        'args': ['arg1', 'arg2', 'kwarg1'],
+                                        'defaults': (None, ),
+                                        'varargs': None}})
 
     def test_test_mode(self):
         self.assertTrue(salt.utils.args.test_mode(test=True))
@@ -265,3 +265,19 @@ class ArgsTestCase(TestCase):
         # the string contains a '#', so we need to test again here.
         self.assertEqual(_yamlify_arg('["foo", "bar"]'), ["foo", "bar"])
         self.assertEqual(_yamlify_arg('{"foo": "bar"}'), {"foo": "bar"})
+
+
+class KwargRegexTest(TestCase):
+    def test_arguments_regex(self):
+        argument_matches = (
+            ('pip=1.1', ('pip', '1.1')),
+            ('pip==1.1', None),
+            ('pip=1.2=1', ('pip', '1.2=1')),
+        )
+        for argument, match in argument_matches:
+            if match is None:
+                self.assertIsNone(salt.utils.args.KWARG_REGEX.match(argument))
+            else:
+                self.assertEqual(
+                    salt.utils.args.KWARG_REGEX.match(argument).groups(), match
+                )
