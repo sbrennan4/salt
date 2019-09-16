@@ -175,13 +175,11 @@ class SaltmodTestCase(TestCase, LoaderModuleMockMixin):
         name = 'state'
         tgt = 'larry'
 
-        comt = ('Function state will be executed'
-                ' on target {0} as test=False'.format(tgt))
-
         ret = {'name': name,
                'changes': {},
                'result': None,
-               'comment': comt}
+               'comment': 'Function state would be executed '
+                          'on target {0}'.format(tgt)}
 
         with patch.dict(saltmod.__opts__, {'test': True}):
             self.assertDictEqual(saltmod.function(name, tgt), ret)
@@ -260,7 +258,7 @@ class SaltmodTestCase(TestCase, LoaderModuleMockMixin):
         ret = {'changes': {'return': True}, 'name': 'state', 'result': True,
                'comment': 'Runner function \'state\' executed.',
                '__orchestration__': True}
-        runner_mock = MagicMock(return_value={'return': True})
+        runner_mock = MagicMock(return_value={'data':{'return': True}, 'success': True})
 
         with patch.dict(saltmod.__salt__, {'saltutil.runner': runner_mock}):
             self.assertDictEqual(saltmod.runner(name), ret)
@@ -275,7 +273,7 @@ class SaltmodTestCase(TestCase, LoaderModuleMockMixin):
         ret = {'changes': {'return': True}, 'name': 'state', 'result': True,
                'comment': 'Wheel function \'state\' executed.',
                '__orchestration__': True}
-        wheel_mock = MagicMock(return_value={'return': True})
+        wheel_mock = MagicMock(return_value={'data': {'return': True}})
 
         with patch.dict(saltmod.__salt__, {'saltutil.wheel': wheel_mock}):
             self.assertDictEqual(saltmod.wheel(name), ret)

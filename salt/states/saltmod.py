@@ -36,7 +36,6 @@ import salt.exceptions
 import salt.output
 import salt.utils.data
 import salt.utils.event
-import salt.utils.versions
 from salt.ext import six
 
 log = logging.getLogger(__name__)
@@ -110,7 +109,6 @@ def state(name,
         tgt,
         ssh=False,
         tgt_type='glob',
-        expr_form=None,
         ret='',
         ret_config=None,
         ret_kwargs=None,
@@ -118,12 +116,13 @@ def state(name,
         sls=None,
         top=None,
         saltenv=None,
-        test=False,
+        test=None,
         pillar=None,
         pillarenv=None,
         expect_minions=True,
         fail_minions=None,
         allow_fail=0,
+        exclude=None,
         concurrent=False,
         timeout=None,
         batch=None,
@@ -148,10 +147,6 @@ def state(name,
     tgt_type
         The target type to resolve, defaults to ``glob``
 
-    expr_form
-        .. deprecated:: 2017.7.0
-            Use tgt_type instead
-
     ret
         Optionally set a single or a list of returners to use
 
@@ -175,7 +170,10 @@ def state(name,
         containing a single sls file, or a list of sls files
 
     test
-        Pass ``test=true`` through to the state function
+        Pass ``test=true`` or ``test=false`` through to the state function. This
+        can be used to overide a test mode set in the minion's config file. If
+        left as the default of None and the 'test' mode is supplied on the
+        command line, that value is passed instead.
 
     pillar
         Pass the ``pillar`` kwarg through to the state function
@@ -204,6 +202,9 @@ def state(name,
         Pass in the number of minions to allow for failure before setting
         the result of the execution to False
 
+    exclude
+        Pass exclude kwarg to state
+
     concurrent
         Allow multiple state runs to occur at once.
 
@@ -230,7 +231,7 @@ def state(name,
         NOTE: This flag conflicts with subset and batch flags and cannot be
         used at the same time.
 
-        .. versionadded:: develop
+        .. versionadded:: neon
 
 
     Examples:
@@ -247,6 +248,18 @@ def state(name,
               - apache
               - django
               - core
+            - saltenv: prod
+
+    Run sls file via :py:func:`state.sls <salt.state.sls>` on target
+    minions with exclude:
+
+    .. code-block:: yaml
+
+        docker:
+          salt.state:
+            - tgt: 'docker*'
+            - sls: docker
+            - exclude: docker.swarm
             - saltenv: prod
 
     Run a full :py:func:`state.highstate <salt.state.highstate>` on target
@@ -280,26 +293,12 @@ def state(name,
         state_ret['comment'] = 'Passed invalid value for \'allow_fail\', must be an int'
         return state_ret
 
-    # remember to remove the expr_form argument from this function when
-    # performing the cleanup on this deprecation.
-    if expr_form is not None:
-        salt.utils.versions.warn_until(
-            'Fluorine',
-            'the target type should be passed using the \'tgt_type\' '
-            'argument instead of \'expr_form\'. Support for using '
-            '\'expr_form\' will be removed in Salt Fluorine.'
-        )
-        tgt_type = expr_form
-
     cmd_kw['tgt_type'] = tgt_type
     cmd_kw['ssh'] = ssh
+    if 'roster' in kwargs:
+        cmd_kw['roster'] = kwargs['roster']
     cmd_kw['expect_minions'] = expect_minions
     cmd_kw['asynchronous'] = kwargs.pop('asynchronous', False)
-    if 'eauth' in kwargs:
-        cmd_kw['eauth'] = kwargs.pop('eauth')
-    if 'eauth_opts' in kwargs:
-        cmd_kw['eauth_opts'] = kwargs.pop('eauth_opts')
-
     if highstate:
         fun = 'state.highstate'
     elif top:
@@ -315,8 +314,8 @@ def state(name,
         state_ret['result'] = False
         return state_ret
 
-    if test or __opts__.get('test'):
-        cmd_kw['kwarg']['test'] = True
+    if test is not None or __opts__.get('test'):
+        cmd_kw['kwarg']['test'] = test if test is not None else __opts__.get('test')
 
     if pillar:
         cmd_kw['kwarg']['pillar'] = pillar
@@ -326,6 +325,9 @@ def state(name,
 
     if saltenv is not None:
         cmd_kw['kwarg']['saltenv'] = saltenv
+
+    if exclude is not None:
+        cmd_kw['kwarg']['exclude'] = exclude
 
     cmd_kw['kwarg']['queue'] = queue
 
@@ -455,7 +457,6 @@ def function(
         tgt,
         ssh=False,
         tgt_type='glob',
-        expr_form=None,
         ret='',
         ret_config=None,
         ret_kwargs=None,
@@ -467,9 +468,7 @@ def function(
         timeout=None,
         batch=None,
         subset=None,
-        module_executors=None,
-        executor_opts=None,
-        **kwargs):
+        **kwargs):  # pylint: disable=unused-argument
     '''
     Execute a single module function on a remote minion via salt or salt-ssh
 
@@ -481,10 +480,6 @@ def function(
 
     tgt_type
         The target type, defaults to ``glob``
-
-    expr_form
-        .. deprecated:: 2017.7.0
-            Use tgt_type instead
 
     arg
         The list of arguments to pass into the function
@@ -525,36 +520,22 @@ def function(
     asynchronous
         Run the salt command but don't wait for a reply.
 
-    module_executors/executor_opts
-        Execute the given functions with specified executors and options
-
         .. versionadded:: neon
 
     '''
     func_ret = {'name': name,
-           'changes': {},
-           'comment': '',
-           'result': True}
+                'changes': {},
+                'comment': '',
+                'result': True}
     if kwarg is None:
         kwarg = {}
     if isinstance(arg, six.string_types):
-        func_ret['warnings'] = ['Please specify \'arg\' as a list, not a string. '
-                           'Modifying in place, but please update SLS file '
-                           'to remove this warning.']
+        func_ret['warnings'] = [
+            'Please specify \'arg\' as a list of arguments.'
+        ]
         arg = arg.split()
 
     cmd_kw = {'arg': arg or [], 'kwarg': kwarg, 'ret': ret, 'timeout': timeout}
-
-    # remember to remove the expr_form argument from this function when
-    # performing the cleanup on this deprecation.
-    if expr_form is not None:
-        salt.utils.versions.warn_until(
-            'Fluorine',
-            'the target type should be passed using the \'tgt_type\' '
-            'argument instead of \'expr_form\'. Support for using '
-            '\'expr_form\' will be removed in Salt Fluorine.'
-        )
-        tgt_type = expr_form
 
     if batch is not None:
         cmd_kw['batch'] = six.text_type(batch)
@@ -566,16 +547,6 @@ def function(
     cmd_kw['expect_minions'] = expect_minions
     cmd_kw['_cmd_meta'] = True
     cmd_kw['asynchronous'] = kwargs.pop('asynchronous', False)
-    if 'eauth' in kwargs:
-        cmd_kw['eauth'] = kwargs.pop('eauth')
-    if 'eauth_opts' in kwargs:
-        cmd_kw['eauth_opts'] = kwargs.pop('eauth_opts')
-
-    if module_executors:
-        cmd_kw['module_executors'] = module_executors
-
-    if executor_opts:
-        cmd_kw['executor_opts'] = executor_opts
 
     if ret_config:
         cmd_kw['ret_config'] = ret_config
@@ -585,9 +556,8 @@ def function(
 
     fun = name
     if __opts__['test'] is True:
-        func_ret['comment'] = (
-                'Function {0} will be executed on target {1} as test={2}'
-                ).format(fun, tgt, six.text_type(False))
+        func_ret['comment'] = \
+            'Function {0} would be executed on target {1}'.format(fun, tgt)
         func_ret['result'] = None
         return func_ret
     try:
@@ -646,15 +616,13 @@ def function(
         if not m_func:
             if minion not in fail_minions:
                 fail.add(minion)
-            changes[minion] = m_ret
-            continue
         changes[minion] = m_ret
     if not cmd_ret:
         func_ret['result'] = False
         func_ret['command'] = 'No minions responded'
     else:
         if changes:
-            func_ret['changes'] = changes
+            func_ret['changes'] = {'out': 'highstate', 'ret': changes}
         if fail:
             func_ret['result'] = False
             func_ret['comment'] = 'Running function {0} failed on minions: {1}'.format(name, ', '.join(fail))
@@ -769,7 +737,7 @@ def wait_for_event(
             log.debug("wait_for_event: Skipping unmatched event '%s'",
                       event['tag'])
 
-        if len(id_list) == 0:
+        if not id_list:
             ret['result'] = True
             ret['comment'] = 'All events seen in {0} seconds.'.format(
                     time.time() - starttime)
@@ -791,11 +759,6 @@ def runner(name, **kwargs):
 
     kwargs
         Any keyword arguments to pass to the runner function
-
-    timeout
-        How long the runner should run for before timing out. Default is Infinity
-
-        .. versionadded:: neon
 
     asynchronous
         Run the salt command but don't wait for a reply.
@@ -838,9 +801,10 @@ def runner(name, **kwargs):
 
     runner_return = out.get('data', {}).get('return')
     if isinstance(runner_return, dict) and ('Error' in runner_return or 'error' in runner_return):
-        out['success'] = False
+        success = False
+    else:
+        success = out.get('data', {}).get('success', True)
 
-    success = out.get('data', {}).get('success', True)
     ret = {'name': name,
            'changes': {'return': runner_return},
            'result': success}
@@ -856,7 +820,7 @@ def runner(name, **kwargs):
     return ret
 
 
-def parallel_runners(name, runners):
+def parallel_runners(name, runners, **kwargs):  # pylint: disable=unused-argument
     '''
     Executes multiple runner modules on the master in parallel.
 
@@ -1097,10 +1061,10 @@ def wheel(name, **kwargs):
         return ret
 
     wheel_return = out.get('data', {}).get('return')
-    if isinstance(wheel_return, dict) and ('Error' in wheel_return or 'error' in wheel_return):
-        out['success'] = False
-
-    success = out.get('data', {}).get('success', True)
+    if isinstance(wheel_return, dict) and 'Error' in wheel_return:
+        success = False
+    else:
+        success = out.get('data', {}).get('success', True)
     ret = {'name': name,
            'changes': {'return': wheel_return},
            'result': success}
