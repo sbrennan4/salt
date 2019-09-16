@@ -160,7 +160,7 @@ class LocalemodTestCase(TestCase, LoaderModuleMockMixin):
         '''
         with pytest.raises(CommandExecutionError) as err:
             localemod._localectl_status()
-        assert 'Unable to find "localectl"' in six.text_type(err)
+        assert 'Unable to find "localectl"' in six.text_type(err.value)
         assert not localemod.log.debug.called
 
     @patch('salt.utils.path.which', MagicMock(return_value="/usr/bin/localctl"))
@@ -168,14 +168,14 @@ class LocalemodTestCase(TestCase, LoaderModuleMockMixin):
     def test_localectl_status_parser_empty(self):
         with pytest.raises(CommandExecutionError) as err:
             localemod._localectl_status()
-        assert 'Unable to parse result of "localectl"' in six.text_type(err)
+        assert 'Unable to parse result of "localectl"' in six.text_type(err.value)
 
     @patch('salt.utils.path.which', MagicMock(return_value="/usr/bin/localctl"))
     @patch('salt.modules.localemod.__salt__', {'cmd.run': MagicMock(return_value=locale_ctl_out_broken)})
     def test_localectl_status_parser_broken(self):
         with pytest.raises(CommandExecutionError) as err:
             localemod._localectl_status()
-        assert 'Unable to parse result of "localectl"' in six.text_type(err)
+        assert 'Unable to parse result of "localectl"' in six.text_type(err.value)
 
     @patch('salt.utils.path.which', MagicMock(return_value="/usr/bin/localctl"))
     @patch('salt.modules.localemod.__salt__', {'cmd.run': MagicMock(return_value=locale_ctl_out_structure)})
@@ -293,7 +293,7 @@ class LocalemodTestCase(TestCase, LoaderModuleMockMixin):
         '''
         with pytest.raises(CommandExecutionError) as err:
             localemod.get_locale()
-        assert '"DrunkDragon" is unsupported' in six.text_type(err)
+        assert '"DrunkDragon" is unsupported' in six.text_type(err.value)
 
     @patch('salt.utils.path.which', MagicMock(return_value="/usr/bin/localctl"))
     @patch('salt.modules.localemod.__grains__', {'os_family': 'Ubuntu', 'osmajorrelease': 42})
@@ -396,7 +396,7 @@ class LocalemodTestCase(TestCase, LoaderModuleMockMixin):
         with pytest.raises(CommandExecutionError) as err:
             localemod.set_locale(loc)
         assert not localemod._localectl_set.called
-        assert 'Cannot set locale: "update-locale" was not found.' in six.text_type(err)
+        assert 'Cannot set locale: "update-locale" was not found.' in six.text_type(err.value)
 
     @patch('salt.utils.path.which', MagicMock(return_value=None))
     @patch('salt.modules.localemod.__grains__', {'os_family': 'Gentoo', 'osmajorrelease': 42})
@@ -467,7 +467,7 @@ class LocalemodTestCase(TestCase, LoaderModuleMockMixin):
         '''
         with pytest.raises(CommandExecutionError) as err:
             localemod.set_locale('de_DE.utf8')
-        assert 'Unsupported platform' in six.text_type(err)
+        assert 'Unsupported platform' in six.text_type(err.value)
 
     @patch('salt.utils.locales.normalize_locale', MagicMock(return_value='en_US.UTF-8 UTF-8'))
     @patch('salt.modules.localemod.__salt__', {'locale.list_avail': MagicMock(return_value=['A', 'B'])})
@@ -537,7 +537,7 @@ class LocalemodTestCase(TestCase, LoaderModuleMockMixin):
         '''
         with pytest.raises(CommandExecutionError) as err:
             localemod.gen_locale('de_DE.utf8')
-        assert 'Command "locale-gen" or "localedef" was not found on this system.' in six.text_type(err)
+        assert 'Command "locale-gen" or "localedef" was not found on this system.' in six.text_type(err.value)
 
     def test_gen_locale_debian(self):
         '''
