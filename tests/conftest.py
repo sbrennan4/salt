@@ -219,7 +219,7 @@ def pytest_configure(config):
     for kind in ('cli', 'client', 'cloud', 'fileserver', 'loader', 'minion', 'modules',
                  'netapi', 'output', 'reactor', 'renderers', 'runners', 'sdb', 'shell',
                  'ssh', 'states', 'utils', 'wheel', 'acl', 'beacons', 'cli', 'cloud',
-                 'config', 'grains', 'serializers', 'templates', 'transport'):
+                 'config', 'grains', 'serializers', 'templates', 'transport', 'pillar'):
         config.addinivalue_line("markers", '{0}: {0} tests'.format(kind))
 
     # Provide a global timeout for each test(pytest-timeout).
