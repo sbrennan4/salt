@@ -27,6 +27,8 @@ PASS_DATA = (
 
 
 @skipIf(NO_MOCK, NO_MOCK_REASON)
+@skipIf(not ec2.HAS_M2, 'missing m2crypto lib')
+@skipIf(not ec2.HAS_PYCRYPTO, 'missing pycrpyto lib')
 class EC2TestCase(TestCase, LoaderModuleMockMixin):
     '''
     Unit TestCase for salt.cloud.clouds.ec2 module.
