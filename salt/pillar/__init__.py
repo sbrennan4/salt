@@ -387,7 +387,6 @@ class Pillar(object):
         self.opts = self.__gen_opts(opts, grains, saltenv=saltenv, pillarenv=pillarenv)
         self.saltenv = saltenv
         self.client = salt.fileclient.get_file_client(self.opts, True)
-        self.avail = self.__gather_avail()
 
         if opts.get('file_client', '') == 'local':
             opts['grains'] = grains
@@ -424,6 +423,7 @@ class Pillar(object):
             self.extra_minion_data = {}
             log.error('Extra minion data must be a dictionary')
         self._closing = False
+        self.avail = self.__gather_avail()
 
     def __valid_on_demand_ext_pillar(self, opts):
         '''
