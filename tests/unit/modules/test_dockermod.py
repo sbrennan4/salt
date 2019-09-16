@@ -169,7 +169,9 @@ class DockerTestCase(TestCase, LoaderModuleMockMixin):
                                  'cp.cache_file': MagicMock(return_value=False)}):
                     with patch.dict(docker_mod.__utils__,
                                     {'docker.get_client_args': client_args_mock}):
+                        client_args_mock.__name__ = 'get_client_args'
                         with patch.object(docker_mod, '_get_client', client):
+                            client.__name__ = '_get_client'
                             command('container', *args)
                 mine_send.assert_called_with('docker.ps', verbose=True, all=True,
                                              host=True)
