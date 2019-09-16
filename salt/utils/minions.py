@@ -1069,8 +1069,6 @@ class CkMinions(object):
         '''
         Check special API permissions
         '''
-        log.error("WUT")
-        log.error(auth_list)
         if not auth_list:
             return False
         if form != 'cloud':
