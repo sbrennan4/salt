@@ -705,7 +705,14 @@ class CkMinions(object):
         try:
             if expr is None:
                 expr = ''
+
+            # special case: permit opts['id'] to be valid in list context, it
+            # maps to the master minion for orch eauth
+            if tgt_type== 'compound' and expr == self.opts['id']:
+                return {'minions': [self.opts['id']], 'missing': []}
+
             check_func = getattr(self, '_check_{0}_minions'.format(tgt_type), None)
+
             if tgt_type in ('grain',
                              'grain_pcre',
                              'pillar',
@@ -933,6 +940,7 @@ class CkMinions(object):
         '''
         if self.opts.get('auth.enable_expanded_auth_matching', False):
             return self.auth_check_expanded(auth_list, funs, args, tgt, tgt_type, groups, publish_validate)
+        log.error("HERE")
         if publish_validate:
             v_tgt_type = tgt_type
             if tgt_type.lower() in ('pillar', 'pillar_pcre'):
@@ -951,11 +959,13 @@ class CkMinions(object):
             # problem
             if mismatch:
                 return False
+        log.error("THERE")
         # compound commands will come in a list so treat everything as a list
         if not isinstance(funs, list):
             funs = [funs]
             args = [args]
         try:
+            log.error(funs)
             for num, fun in enumerate(funs):
                 if whitelist and fun in whitelist:
                     return True
@@ -1062,6 +1072,8 @@ class CkMinions(object):
         '''
         Check special API permissions
         '''
+        log.error("WUT")
+        log.error(auth_list)
         if not auth_list:
             return False
         if form != 'cloud':
