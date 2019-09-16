@@ -18,6 +18,7 @@ NO_DATEUTIL_REASON = 'python-dateutil is not installed'
 # Import Salt Testing libs
 from tests.support.mixins import LoaderModuleMockMixin
 from tests.support.unit import skipIf, TestCase
+from tests.support.runtests import RUNTIME_VARS
 from tests.support.mock import (
     NO_MOCK,
     NO_MOCK_REASON,
@@ -38,6 +39,8 @@ import salt.serializers.python as pythonserializer
 from salt.exceptions import CommandExecutionError
 import salt.utils.win_functions
 
+CACHE_ROOT = os.path.join(RUNTIME_VARS.TMP, 'fileclient_cache_root')
+
 
 @skipIf(NO_MOCK, NO_MOCK_REASON)
 class TestFileState(TestCase, LoaderModuleMockMixin):
@@ -52,7 +55,7 @@ class TestFileState(TestCase, LoaderModuleMockMixin):
                     'python.serialize': pythonserializer.serialize,
                     'json.serialize': jsonserializer.serialize
                 },
-                '__opts__': {'test': False, 'cachedir': ''},
+                '__opts__': {'test': False, 'cachedir': CACHE_ROOT},
                 '__instance_id__': '',
                 '__low__': {},
                 '__utils__': {},
