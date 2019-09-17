@@ -16,7 +16,7 @@ from salt.exceptions import CommandExecutionError, SaltInvocationError
 
 log = logging.getLogger(__name__)
 
-def acl(eauth_opts=None, username=None):
+def acl(eauth_opts=None, username=None, **kwargs):
     '''
     given eauth_opts specifying another user to run privileges under, return that acl
     IMPORTANT NOTE: this eauth lives within the token system built into salt,
