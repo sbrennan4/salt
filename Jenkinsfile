@@ -46,7 +46,6 @@ pipeline {
             post {
                 cleanup {
                     script {
-                        deleteDir() /* clean up our workspace */
                         sh "docker stop ${unique_container_name}"
                     }
                 }
