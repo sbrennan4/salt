@@ -4,26 +4,20 @@ unit tests for the script engine
 '''
 # Import Python libs
 from __future__ import absolute_import, print_function, unicode_literals
-import subprocess
-import tempfile
 
 # Import Salt Testing Libs
 from tests.support.mixins import LoaderModuleMockMixin
-from tests.support.paths import TMP
-from tests.support.unit import skipIf, TestCase, expectedFailure
+from tests.support.unit import skipIf, TestCase
 from tests.support.mock import (
-    PropertyMock,
     NO_MOCK,
     NO_MOCK_REASON,
-    MagicMock,
-    mock_open,
     patch)
 
 # Import Salt Libs
-import salt.engines.script as script
 import salt.config
-import salt.utils.stringutils
+import salt.engines.script as script
 from salt.exceptions import CommandExecutionError
+
 
 @skipIf(NO_MOCK, NO_MOCK_REASON)
 class EngineScriptTestCase(TestCase, LoaderModuleMockMixin):
@@ -31,28 +25,25 @@ class EngineScriptTestCase(TestCase, LoaderModuleMockMixin):
     Test cases for salt.engine.script
     '''
 
-
     def setup_loader_modules(self):
+
+        opts = salt.config.DEFAULT_MASTER_OPTS.copy()
         return {
             script: {
-                '__opts__': {
-                    '__role': '',
-                    'extension_modules' : '',
-                }
+                '__opts__': opts
              }
         }
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test__get_serializer(self):
         '''
         Test known serializer is returned or exception is raised
         if unknown serializer
         '''
-        self.assertTrue( script._get_serializer('yaml') )
+        for serializers in ('json', 'yaml', 'msgpack'):
+            self.assertTrue(script._get_serializer(serializers))
 
         with self.assertRaises(CommandExecutionError):
             script._get_serializer('bad')
-
 
     def test__read_stdout(self):
         '''
@@ -61,4 +52,3 @@ class EngineScriptTestCase(TestCase, LoaderModuleMockMixin):
         with patch('subprocess.Popen') as popen_mock:
             popen_mock.stdout.readline.return_value = 'test'
             self.assertEqual(next(script._read_stdout(popen_mock)), 'test')
-

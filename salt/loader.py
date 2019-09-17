@@ -35,6 +35,7 @@ import salt.utils.odict
 import salt.utils.platform
 import salt.utils.thread_local_proxy
 import salt.utils.versions
+import salt.utils.stringutils
 from salt.exceptions import LoaderError
 from salt.template import check_render_pipe_str
 from salt.utils.decorators import Depends, Authorize
@@ -742,6 +743,7 @@ def grains(opts, force_refresh=False, proxy=None):
         opts['grains'] = {}
 
     grains_data = {}
+    blist = opts.get('grains_blacklist', [])
     funcs = grain_funcs(opts, proxy=proxy)
     if force_refresh:  # if we refresh, lets reload grain modules
         funcs.clear()
@@ -753,6 +755,14 @@ def grains(opts, force_refresh=False, proxy=None):
         ret = funcs[key]()
         if not isinstance(ret, dict):
             continue
+        if blist:
+            for key in list(ret.keys()):
+                for block in blist:
+                    if salt.utils.stringutils.expr_match(key, block):
+                        del ret[key]
+                        log.trace('Filtering %s grain', key)
+            if not ret:
+                continue
         if grains_deep_merge:
             salt.utils.dictupdate.update(grains_data, ret)
         else:
@@ -785,6 +795,14 @@ def grains(opts, force_refresh=False, proxy=None):
             continue
         if not isinstance(ret, dict):
             continue
+        if blist:
+            for key in ret.keys():
+                for block in blist:
+                    if salt.utils.stringutils.expr_match(key, block):
+                        del ret[key]
+                        log.trace('Filtering %s grain', key)
+            if not ret:
+                continue
         if grains_deep_merge:
             salt.utils.dictupdate.update(grains_data, ret)
         else:
@@ -1250,7 +1268,7 @@ class LazyLoader(salt.utils.lazy.LazyDict):
 
         # pass through authorize acl system - will noop unless enabled
         # xxx maybe this should be gated by an opt, unsure of performance impact
-        func = Authorize(tag=self.tag, item=item, opts=self.opts)(func)
+        func = Authorize(tag=self.tag, item=item, opts=self.opts, pack=self.pack)(func)
 
         return func
 
@@ -1740,8 +1758,10 @@ class LazyLoader(salt.utils.lazy.LazyDict):
         ))
 
         for attr in getattr(mod, '__load__', dir(mod)):
-            if attr.startswith('_'):
-                # private functions are skipped
+            if attr.startswith('_') and attr != '__call__':
+                # private functions are skipped,
+                # except __call__ which is default entrance
+                # for multi-function batch-like state syntax
                 continue
             func = getattr(mod, attr)
             if not inspect.isfunction(func) and not isinstance(func, functools.partial):
@@ -1790,7 +1810,7 @@ class LazyLoader(salt.utils.lazy.LazyDict):
         if not isinstance(key, six.string_types):
             raise KeyError('The key must be a string.')
         if '.' not in key:
-            raise KeyError('The key \'%s\' should contain a \'.\'', key)
+            raise KeyError('The key \'{0}\' should contain a \'.\''.format(key))
         mod_name, _ = key.split('.', 1)
         with self._lock:
             # It is possible that the key is in the dictionary after

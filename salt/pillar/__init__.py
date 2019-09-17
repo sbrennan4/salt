@@ -19,8 +19,7 @@ import inspect
 import salt.loader
 import salt.fileclient
 import salt.minion
-import salt.crypt
-import salt.transport
+import salt.transport.client
 import salt.utils.args
 import salt.utils.cache
 import salt.utils.crypt
@@ -156,6 +155,7 @@ class AsyncRemotePillar(RemotePillarMixin):
                                      self.get_ext_pillar_extra_minion_data(opts),
                                      recursive_update=True,
                                      merge_lists=True)
+        self._closing = False
 
     @tornado.gen.coroutine
     def compile_pillar(self):
@@ -177,7 +177,7 @@ class AsyncRemotePillar(RemotePillarMixin):
                 load,
                 dictkey='pillar',
             )
-        except:
+        except Exception:
             log.exception('Exception getting pillar:')
             raise SaltClientError('Exception getting pillar.')
 
@@ -188,6 +188,16 @@ class AsyncRemotePillar(RemotePillarMixin):
             # raise an exception! Pillar isn't empty, we can't sync it!
             raise SaltClientError(msg)
         raise tornado.gen.Return(ret_pillar)
+
+    def destroy(self):
+        if self._closing:
+            return
+
+        self._closing = True
+        self.channel.close()
+
+    def __del__(self):
+        self.destroy()
 
 
 class RemotePillar(RemotePillarMixin):
@@ -201,7 +211,7 @@ class RemotePillar(RemotePillarMixin):
         self.ext = ext
         self.grains = grains
         self.minion_id = minion_id
-        self.channel = salt.transport.Channel.factory(opts)
+        self.channel = salt.transport.client.ReqChannel.factory(opts)
         if pillarenv is not None:
             self.opts['pillarenv'] = pillarenv
         self.pillar_override = pillar_override or {}
@@ -216,6 +226,7 @@ class RemotePillar(RemotePillarMixin):
                                      self.get_ext_pillar_extra_minion_data(opts),
                                      recursive_update=True,
                                      merge_lists=True)
+        self._closing = False
 
     def compile_pillar(self):
         '''
@@ -242,6 +253,16 @@ class RemotePillar(RemotePillarMixin):
             )
             return {}
         return ret_pillar
+
+    def destroy(self):
+        if hasattr(self, '_closing') and self._closing:
+            return
+
+        self._closing = True
+        self.channel.close()
+
+    def __del__(self):
+        self.destroy()
 
 
 class PillarCache(object):
@@ -362,8 +383,6 @@ class Pillar(object):
         if pillarenv is None:
             if opts.get('pillarenv_from_saltenv', False):
                 opts['pillarenv'] = saltenv
-        # Store the file_roots path so we can restore later. Issue 5449
-        self.actual_file_roots = opts['file_roots']
         # use the local file client
         self.opts = self.__gen_opts(opts, grains, saltenv=saltenv, pillarenv=pillarenv)
         self.saltenv = saltenv
@@ -382,12 +401,10 @@ class Pillar(object):
         else:
             self.functions = functions
 
+        self.opts['minion_id'] = minion_id
         self.matcher = salt.minion.Matcher(self.opts, self.functions)
         self.rend = salt.loader.render(self.opts, self.functions)
         ext_pillar_opts = copy.deepcopy(self.opts)
-        # Fix self.opts['file_roots'] so that ext_pillars know the real
-        # location of file_roots. Issue 5951
-        ext_pillar_opts['file_roots'] = self.actual_file_roots
         # Keep the incoming opts ID intact, ie, the master id
         if 'id' in opts:
             ext_pillar_opts['id'] = opts['id']
@@ -405,10 +422,8 @@ class Pillar(object):
         if not isinstance(self.extra_minion_data, dict):
             self.extra_minion_data = {}
             log.error('Extra minion data must be a dictionary')
-
-        # this must come last as it has a dependency on ext_pillars
-        self.avail = self.__gather_avail()
         self._closing = False
+        self.avail = self.__gather_avail()
 
     def __valid_on_demand_ext_pillar(self, opts):
         '''
@@ -458,7 +473,6 @@ class Pillar(object):
         The options need to be altered to conform to the file client
         '''
         opts = copy.deepcopy(opts_in)
-        opts['file_roots'] = opts['pillar_roots']
         opts['file_client'] = 'local'
         if not grains:
             opts['grains'] = {}
@@ -483,15 +497,15 @@ class Pillar(object):
                 opts['ext_pillar'].append(self.ext)
             else:
                 opts['ext_pillar'] = [self.ext]
-        if '__env__' in opts['file_roots']:
+        if '__env__' in opts['pillar_roots']:
             env = opts.get('pillarenv') or opts.get('saltenv') or 'base'
-            if env not in opts['file_roots']:
+            if env not in opts['pillar_roots']:
                 log.debug("pillar environment '%s' maps to __env__ pillar_roots directory", env)
-                opts['file_roots'][env] = opts['file_roots'].pop('__env__')
+                opts['pillar_roots'][env] = opts['pillar_roots'].pop('__env__')
             else:
                 log.debug("pillar_roots __env__ ignored (environment '%s' found in pillar_roots)",
                           env)
-                opts['file_roots'].pop('__env__')
+                opts['pillar_roots'].pop('__env__')
         return opts
 
     def _get_envs(self):
@@ -503,8 +517,8 @@ class Pillar(object):
             return self.ext_pillars['environments'](self.minion_id, {}).get('environments', [])
 
         envs = set(['base'])
-        if 'file_roots' in self.opts:
-            envs.update(list(self.opts['file_roots']))
+        if 'pillar_roots' in self.opts:
+            envs.update(list(self.opts['pillar_roots']))
         return envs
 
     def get_tops(self):
@@ -517,52 +531,35 @@ class Pillar(object):
         errors = []
         # Gather initial top files
         try:
+            saltenvs = set()
             if self.opts['pillarenv']:
                 # If the specified pillarenv is not present in the available
                 # pillar environments, do not cache the pillar top file.
-                if self.opts['pillarenv'] not in self.opts['file_roots']:
+                if self.opts['pillarenv'] not in self.opts['pillar_roots']:
                     log.debug(
                         'pillarenv \'%s\' not found in the configured pillar '
                         'environments (%s)',
-                        self.opts['pillarenv'], ', '.join(self.opts['file_roots'])
+                        self.opts['pillarenv'], ', '.join(self.opts['pillar_roots'])
                     )
                 else:
-                    top = self.client.cache_file(self.opts['state_top'], self.opts['pillarenv'])
-                    if top:
-                        tops[self.opts['pillarenv']] = [
-                                compile_template(
-                                    top,
-                                    self.rend,
-                                    self.opts['renderer'],
-                                    self.opts['renderer_blacklist'],
-                                    self.opts['renderer_whitelist'],
-                                    self.opts['pillarenv'],
-                                    _pillar_rend=True,
-                                    )
-                                ]
+                    saltenvs.add(self.opts['pillarenv'])
             else:
-                for saltenv in self._get_envs():
-                    if self.opts.get('pillar_source_merging_strategy', None) == "none":
-                        if self.saltenv and saltenv != self.saltenv:
-                            continue
-                        if not self.saltenv and not saltenv == 'base':
-                            continue
-                    top = self.client.cache_file(
-                            self.opts['state_top'],
-                            saltenv
-                            )
-                    if top:
-                        tops[saltenv].append(
-                                compile_template(
-                                    top,
-                                    self.rend,
-                                    self.opts['renderer'],
-                                    self.opts['renderer_blacklist'],
-                                    self.opts['renderer_whitelist'],
-                                    saltenv=saltenv,
-                                    _pillar_rend=True,
-                                    )
-                                )
+                saltenvs = self._get_envs()
+                if self.opts.get('pillar_source_merging_strategy', None) == "none":
+                    saltenvs &= set([self.saltenv or 'base'])
+
+            for saltenv in saltenvs:
+                top = self.client.cache_file(self.opts['state_top'], saltenv)
+                if top:
+                    tops[saltenv].append(compile_template(
+                        top,
+                        self.rend,
+                        self.opts['renderer'],
+                        self.opts['renderer_blacklist'],
+                        self.opts['renderer_whitelist'],
+                        saltenv=saltenv,
+                        _pillar_rend=True,
+                    ))
         except Exception as exc:
             errors.append(
                     ('Rendering Primary Top file failed, render error:\n{0}'
@@ -629,6 +626,9 @@ class Pillar(object):
                         states = OrderedDict()
                         orders[saltenv][tgt] = 0
                         ignore_missing = False
+                        # handle a pillar sls target written in shorthand form
+                        if isinstance(ctop[saltenv][tgt], six.string_types):
+                            ctop[saltenv][tgt] = [ctop[saltenv][tgt]]
                         for comp in ctop[saltenv][tgt]:
                             if isinstance(comp, dict):
                                 if 'match' in comp:
@@ -686,6 +686,7 @@ class Pillar(object):
 
         Returns:
         {'saltenv': ['state1', 'state2', ...]}
+
         '''
         matches = {}
         for saltenv, body in six.iteritems(top):
@@ -715,7 +716,8 @@ class Pillar(object):
             defaults = {}
         err = ''
         errors = []
-        fn_ = self.client.get_state(sls, saltenv).get('dest', False)
+        state_data = self.client.get_state(sls, saltenv)
+        fn_ = state_data.get('dest', False)
         if not fn_:
             if sls in self.ignored_pillars.get(saltenv, []):
                 log.debug('Skipping ignored and missing SLS \'%s\' in '
@@ -794,32 +796,49 @@ class Pillar(object):
                                 key = v.get('key', None)
                             else:
                                 key = None
-                            if sub_sls not in mods:
-                                nstate, mods, err = self.render_pstate(
-                                        sub_sls,
-                                        saltenv,
-                                        mods,
-                                        defaults
-                                        )
-                                if nstate:
-                                    if key:
-                                        # If key is x:y, convert it to {x: {y: nstate}}
-                                        for key_fragment in reversed(key.split(":")):
-                                            nstate = {
-                                                key_fragment: nstate
-                                            }
-                                    if not self.opts.get('pillar_includes_override_sls', False):
-                                        include_states.append(nstate)
+                            try:
+                                if sub_sls.startswith('.'):
+                                    if state_data.get('source', '').endswith('/init.sls'):
+                                        include_parts = sls.split('.')
                                     else:
-                                        state = merge(
-                                            state,
-                                            nstate,
-                                            self.merge_strategy,
-                                            self.opts.get('renderer', 'yaml'),
-                                            self.opts.get('pillar_merge_lists', False))
-                                if err:
-                                    errors += err
-
+                                        include_parts = sls.split('.')[:-1]
+                                    sub_sls = '.'.join(include_parts+[sub_sls[1:]])
+                                matched_pstates = fnmatch.filter(
+                                    self.avail[saltenv],
+                                    sub_sls.lstrip('.').replace('/', '.'),
+                                )
+                            except KeyError:
+                                errors.extend(
+                                    ['No matching pillar environment for environment '
+                                     '\'{0}\' found'.format(saltenv)]
+                                )
+                                matched_pstates = [sub_sls]
+                            for m_sub_sls in matched_pstates:
+                                if m_sub_sls not in mods:
+                                    nstate, mods, err = self.render_pstate(
+                                            m_sub_sls,
+                                            saltenv,
+                                            mods,
+                                            defaults
+                                            )
+                                    if nstate:
+                                        if key:
+                                            # If key is x:y, convert it to {x: {y: nstate}}
+                                            for key_fragment in reversed(key.split(":")):
+                                                nstate = {
+                                                    key_fragment: nstate
+                                                }
+                                        if not self.opts.get('pillar_includes_override_sls', False):
+                                            include_states.append(nstate)
+                                        else:
+                                            state = merge(
+                                                state,
+                                                nstate,
+                                                self.merge_strategy,
+                                                self.opts.get('renderer', 'yaml'),
+                                                self.opts.get('pillar_merge_lists', False))
+                                    if err:
+                                        errors += err
                         if not self.opts.get('pillar_includes_override_sls', False):
                             # merge included state(s) with the current state
                             # merged last to ensure that its values are
@@ -992,7 +1011,7 @@ class Pillar(object):
                         )
                     )
                     log.error(
-                        'Execption caught loading ext_pillar \'%s\':\n%s',
+                        'Exception caught loading ext_pillar \'%s\':\n%s',
                         key, ''.join(traceback.format_tb(sys.exc_info()[2]))
                     )
             if ext:
@@ -1034,8 +1053,6 @@ class Pillar(object):
             mopts = dict(self.opts)
             if 'grains' in mopts:
                 mopts.pop('grains')
-            # Restore the actual file_roots path. Issue 5449
-            mopts['file_roots'] = self.actual_file_roots
             mopts['saltversion'] = __version__
             pillar['master'] = mopts
         if 'pillar' in self.opts and self.opts.get('ssh_merge_pillar', False):
@@ -1062,10 +1079,6 @@ class Pillar(object):
         if decrypt_errors:
             pillar.setdefault('_errors', []).extend(decrypt_errors)
 
-        # Reset the file_roots for the renderers
-        for mod_name in sys.modules:
-            if mod_name.startswith('salt.loaded.int.render.'):
-                sys.modules[mod_name].__opts__['file_roots'] = self.actual_file_roots
         return pillar
 
     def decrypt_pillar(self, pillar):
@@ -1127,6 +1140,17 @@ class Pillar(object):
                     errors.append(msg)
                     log.error(msg, exc_info=True)
         return errors
+
+    def destroy(self):
+        '''
+        This method exist in order to be API compatible with RemotePillar
+        '''
+        if self._closing:
+            return
+        self._closing = True
+
+    def __del__(self):
+        self.destroy()
 
 
 # TODO: actually migrate from Pillar to AsyncPillar to allow for futures in

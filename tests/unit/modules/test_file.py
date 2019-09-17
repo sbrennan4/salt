@@ -11,7 +11,7 @@ import textwrap
 from tests.support.runtests import RUNTIME_VARS
 from tests.support.helpers import with_tempfile
 from tests.support.mixins import LoaderModuleMockMixin
-from tests.support.unit import TestCase, skipIf, expectedFailure
+from tests.support.unit import TestCase, skipIf
 from tests.support.mock import MagicMock, Mock, patch, mock_open, DEFAULT
 
 try:
@@ -1103,7 +1103,6 @@ class FilemodLineTests(TestCase, LoaderModuleMockMixin):
                 with patch('salt.utils.atomicfile.atomic_open', atomic_opener):
                     self.assertFalse(filemod.line('foo', content='foo', match=match, mode=mode))
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     @patch('os.path.realpath', MagicMock(wraps=lambda x: x))
     @patch('os.path.isfile', MagicMock(return_value=True))
     def test_line_modecheck_failure(self):
@@ -1115,9 +1114,8 @@ class FilemodLineTests(TestCase, LoaderModuleMockMixin):
         for mode, err_msg in [(None, 'How to process the file'), ('nonsense', 'Unknown mode')]:
             with pytest.raises(CommandExecutionError) as cmd_err:
                 filemod.line('foo', mode=mode)
-            self.assertIn(err_msg, six.text_type(cmd_err))
+            self.assertIn(err_msg, six.text_type(cmd_err.value))
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     @patch('os.path.realpath', MagicMock(wraps=lambda x: x))
     @patch('os.path.isfile', MagicMock(return_value=True))
     def test_line_no_content(self):
@@ -1129,9 +1127,8 @@ class FilemodLineTests(TestCase, LoaderModuleMockMixin):
             with pytest.raises(CommandExecutionError) as cmd_err:
                 filemod.line('foo', mode=mode)
             self.assertIn('Content can only be empty if mode is "delete"',
-                          six.text_type(cmd_err))
+                          six.text_type(cmd_err.value))
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     @patch('os.path.realpath', MagicMock(wraps=lambda x: x))
     @patch('os.path.isfile', MagicMock(return_value=True))
     @patch('os.stat', MagicMock())
@@ -1145,7 +1142,7 @@ class FilemodLineTests(TestCase, LoaderModuleMockMixin):
             with pytest.raises(CommandExecutionError) as cmd_err:
                 filemod.line('foo', content='test content', mode='insert')
             self.assertIn('"location" or "before/after"',
-                          six.text_type(cmd_err))
+                          six.text_type(cmd_err.value))
 
     def test_util_starts_till(self):
         '''
@@ -1670,7 +1667,6 @@ class FilemodLineTests(TestCase, LoaderModuleMockMixin):
                 # No changes should have been made
                 assert result is False
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     @patch('os.path.realpath', MagicMock(wraps=lambda x: x))
     @patch('os.path.isfile', MagicMock(return_value=True))
     @patch('os.stat', MagicMock())
@@ -1696,7 +1692,7 @@ class FilemodLineTests(TestCase, LoaderModuleMockMixin):
                         filemod.line('foo', content=cfg_content, after=_after, before=_before, mode='ensure')
             self.assertIn(
                 'Found more than one line between boundaries "before" and "after"',
-                six.text_type(cmd_err))
+                six.text_type(cmd_err.value))
 
     @with_tempfile()
     def test_line_delete(self, name):

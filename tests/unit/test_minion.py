@@ -9,7 +9,7 @@ import copy
 import os
 
 # Import Salt Testing libs
-from tests.support.unit import TestCase, skipIf, expectedFailure
+from tests.support.unit import TestCase, skipIf
 from tests.support.mock import NO_MOCK, NO_MOCK_REASON, patch, MagicMock
 from tests.support.mixins import AdaptedConfigurationTestCaseMixin
 from tests.support.helpers import skip_if_not_root
@@ -313,7 +313,6 @@ class MinionAsyncTestCase(TestCase, AdaptedConfigurationTestCaseMixin, tornado.t
                 result = False
         self.assertTrue(result)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_multi_master_uri_list(self):
         '''
         master_uri_list is a generated opts attr used to represent ready to feed uri's

@@ -316,7 +316,6 @@ def has_feature_flags():
     )) if man else False
 
 
-@real_memoize
 def property_data_zpool():
     '''
     Return a dict of zpool properties

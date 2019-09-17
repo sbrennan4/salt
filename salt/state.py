@@ -25,6 +25,10 @@ import traceback
 import re
 import time
 import random
+try:
+    from collections.abc import Mapping
+except ImportError:
+    from collections import Mapping
 
 # Import salt libs
 import salt.loader
@@ -33,16 +37,19 @@ import salt.pillar
 import salt.fileclient
 import salt.utils.args
 import salt.utils.crypt
+import salt.utils.data
 import salt.utils.decorators.state
 import salt.utils.dictupdate
 import salt.utils.event
 import salt.utils.files
+import salt.utils.hashutils
 import salt.utils.immutabletypes as immutabletypes
 import salt.utils.msgpack as msgpack
 import salt.utils.platform
 import salt.utils.process
 import salt.utils.url
 import salt.syspaths as syspaths
+import salt.transport.client
 from salt.serializers.msgpack import serialize as msgpack_serialize, deserialize as msgpack_deserialize
 from salt.template import compile_template, compile_template_str
 from salt.exceptions import (
@@ -50,7 +57,6 @@ from salt.exceptions import (
     SaltReqTimeoutError
 )
 from salt.utils.odict import OrderedDict, DefaultOrderedDict
-from salt.utils.locales import sdecode
 # Explicit late import to avoid circular import. DO NOT MOVE THIS.
 import salt.utils.yamlloader as yamlloader
 
@@ -116,8 +122,11 @@ STATE_RUNTIME_KEYWORDS = frozenset([
     '__orchestration_jid__',
     '__pub_user',
     '__pub_arg',
+    '__pub_id',
     '__pub_jid',
     '__pub_fun',
+    '__pub_fun_args',
+    '__pub_schedule',
     '__pub_tgt',
     '__pub_ret',
     '__pub_pid',
@@ -607,7 +616,7 @@ class Compiler(object):
                 chunk['order'] = chunk['order'] + chunk.pop('name_order') / 10000.0
             if chunk['order'] < 0:
                 chunk['order'] = cap + 1000000 + chunk['order']
-            chunk['name'] = sdecode(chunk['name'])
+            chunk['name'] = salt.utils.data.decode(chunk['name'])
         chunks.sort(key=lambda chunk: (chunk['order'], '{0[state]}{0[name]}{0[fun]}'.format(chunk)))
         return chunks
 
@@ -732,6 +741,7 @@ class State(object):
             except AttributeError:
                 pillar_enc = six.text_type(pillar_enc).lower()
         self._pillar_enc = pillar_enc
+        log.debug('Gathering pillar data for state run')
         if initial_pillar and not self._pillar_override:
             self.opts['pillar'] = initial_pillar
         else:
@@ -745,6 +755,7 @@ class State(object):
                     self.opts.get('pillar_source_merging_strategy', 'smart'),
                     self.opts.get('renderer', 'yaml'),
                     self.opts.get('pillar_merge_lists', False))
+        log.debug('Finished gathering pillar data for state run')
         self.state_con = context or {}
         self.load_modules()
         self.active = set()
@@ -843,51 +854,124 @@ class State(object):
         '''
         Check that unless doesn't return 0, and that onlyif returns a 0.
         '''
-        ret = {'result': False}
+        ret = {'result': False, 'comment': []}
         cmd_opts = {}
 
         if 'shell' in self.opts['grains']:
             cmd_opts['shell'] = self.opts['grains'].get('shell')
+
         if 'onlyif' in low_data:
-            if not isinstance(low_data['onlyif'], list):
-                low_data_onlyif = [low_data['onlyif']]
-            else:
-                low_data_onlyif = low_data['onlyif']
-            for entry in low_data_onlyif:
-                if not isinstance(entry, six.string_types):
-                    ret.update({'comment': 'onlyif execution failed, bad type passed', 'result': False})
-                    return ret
+            _ret = self._run_check_onlyif(low_data, cmd_opts)
+            ret['result'] = _ret['result']
+            ret['comment'].append(_ret['comment'])
+            if 'skip_watch' in _ret:
+                ret['skip_watch'] = _ret['skip_watch']
+
+        if 'unless' in low_data:
+            _ret = self._run_check_unless(low_data, cmd_opts)
+            # If either result is True, the returned result should be True
+            ret['result'] = _ret['result'] or ret['result']
+            ret['comment'].append(_ret['comment'])
+            if 'skip_watch' in _ret:
+                # If either result is True, the returned result should be True
+                ret['skip_watch'] = _ret['skip_watch'] or ret['skip_watch']
+
+        return ret
+
+    def _run_check_onlyif(self, low_data, cmd_opts):
+        '''
+        Check that unless doesn't return 0, and that onlyif returns a 0.
+        '''
+        ret = {'result': False}
+
+        if not isinstance(low_data['onlyif'], list):
+            low_data_onlyif = [low_data['onlyif']]
+        else:
+            low_data_onlyif = low_data['onlyif']
+
+        def _check_cmd(cmd):
+            if cmd != 0 and ret['result'] is False:
+                ret.update({'comment': 'onlyif condition is false',
+                            'skip_watch': True,
+                            'result': True})
+            elif cmd == 0:
+                ret.update({'comment': 'onlyif condition is true', 'result': False})
+
+        for entry in low_data_onlyif:
+            if isinstance(entry, six.string_types):
                 cmd = self.functions['cmd.retcode'](
                     entry, ignore_retcode=True, python_shell=True, **cmd_opts)
                 log.debug('Last command return code: %s', cmd)
-                if cmd != 0 and ret['result'] is False:
+                _check_cmd(cmd)
+            elif isinstance(entry, dict):
+                if 'fun' not in entry:
+                    ret['comment'] = 'no `fun` argument in onlyif: {0}'.format(entry)
+                    log.warning(ret['comment'])
+                    return ret
+
+                if 'args' in entry:
+                    result = self.functions[entry.pop('fun')](*entry.pop('args'), **entry)
+                else:
+                    result = self.functions[entry.pop('fun')](**entry)
+                if self.state_con.get('retcode', 0):
+                    _check_cmd(self.state_con['retcode'])
+                elif not result:
                     ret.update({'comment': 'onlyif condition is false',
                                 'skip_watch': True,
                                 'result': True})
-                    return ret
-                elif cmd == 0:
-                    ret.update({'comment': 'onlyif condition is true', 'result': False})
-            return ret
+                else:
+                    ret.update({'comment': 'onlyif condition is true',
+                                'result': False})
 
-        if 'unless' in low_data:
-            if not isinstance(low_data['unless'], list):
-                low_data_unless = [low_data['unless']]
             else:
-                low_data_unless = low_data['unless']
-            for entry in low_data_unless:
-                if not isinstance(entry, six.string_types):
-                    ret.update({'comment': 'unless condition is false, bad type passed', 'result': False})
-                    return ret
-                cmd = self.functions['cmd.retcode'](
-                    entry, ignore_retcode=True, python_shell=True, **cmd_opts)
+                ret.update({'comment': 'onlyif execution failed, bad type passed', 'result': False})
+        return ret
+
+    def _run_check_unless(self, low_data, cmd_opts):
+        '''
+        Check that unless doesn't return 0, and that onlyif returns a 0.
+        '''
+        ret = {'result': False}
+
+        if not isinstance(low_data['unless'], list):
+            low_data_unless = [low_data['unless']]
+        else:
+            low_data_unless = low_data['unless']
+
+        def _check_cmd(cmd):
+            if cmd == 0 and ret['result'] is False:
+                ret.update({'comment': 'unless condition is true',
+                            'skip_watch': True,
+                            'result': True})
+            elif cmd != 0:
+                ret.update({'comment': 'unless condition is false', 'result': False})
+
+        for entry in low_data_unless:
+            if isinstance(entry, six.string_types):
+                cmd = self.functions['cmd.retcode'](entry, ignore_retcode=True, python_shell=True, **cmd_opts)
                 log.debug('Last command return code: %s', cmd)
-                if cmd == 0 and ret['result'] is False:
+                _check_cmd(cmd)
+            elif isinstance(entry, dict):
+                if 'fun' not in entry:
+                    ret['comment'] = 'no `fun` argument in unless: {0}'.format(entry)
+                    log.warning(ret['comment'])
+                    return ret
+
+                if 'args' in entry:
+                    result = self.functions[entry.pop('fun')](*entry.pop('args'), **entry)
+                else:
+                    result = self.functions[entry.pop('fun')](**entry)
+                if self.state_con.get('retcode', 0):
+                    _check_cmd(self.state_con['retcode'])
+                elif result:
                     ret.update({'comment': 'unless condition is true',
                                 'skip_watch': True,
                                 'result': True})
-                elif cmd != 0:
-                    ret.update({'comment': 'unless condition is false', 'result': False})
-                    return ret
+                else:
+                    ret.update({'comment': 'unless condition is false',
+                                'result': False})
+            else:
+                ret.update({'comment': 'unless condition is false, bad type passed', 'result': False})
 
         # No reason to stop, return ret
         return ret
@@ -1326,8 +1410,9 @@ class State(object):
                 names = []
                 if state.startswith('__'):
                     continue
-                chunk = {'state': state,
-                         'name': name}
+                chunk = OrderedDict()
+                chunk['state'] = state
+                chunk['name'] = name
                 if orchestration_jid is not None:
                     chunk['__orchestration_jid__'] = orchestration_jid
                 if '__sls__' in body:
@@ -1489,26 +1574,13 @@ class State(object):
         '''
         Extend the data reference with requisite_in arguments
         '''
-        req_in = set([
-            'require_in',
-            'watch_in',
-            'onfail_in',
-            'onchanges_in',
-            'use',
-            'use_in',
-            'prereq',
-            'prereq_in',
-            ])
-        req_in_all = req_in.union(
-                set([
-                    'require',
-                    'watch',
-                    'onfail',
-                    'onfail_stop',
-                    'onchanges',
-                    ]))
+        req_in = {'require_in', 'watch_in', 'onfail_in', 'onchanges_in', 'use', 'use_in', 'prereq', 'prereq_in'}
+        req_in_all = req_in.union({'require', 'watch', 'onfail', 'onfail_stop', 'onchanges'})
         extend = {}
         errors = []
+        disabled_reqs = self.opts.get('disabled_requisites', [])
+        if not isinstance(disabled_reqs, list):
+            disabled_reqs = [disabled_reqs]
         for id_, body in six.iteritems(high):
             if not isinstance(body, dict):
                 continue
@@ -1519,13 +1591,16 @@ class State(object):
                     if isinstance(arg, dict):
                         # It is not a function, verify that the arg is a
                         # requisite in statement
-                        if len(arg) < 1:
+                        if not arg:
                             # Empty arg dict
                             # How did we get this far?
                             continue
                         # Split out the components
                         key = next(iter(arg))
                         if key not in req_in:
+                            continue
+                        if key in disabled_reqs:
+                            log.warning('The %s requisite has been disabled, Ignoring.', key)
                             continue
                         rkey = key.split('_')[0]
                         items = arg[key]
@@ -1594,7 +1669,7 @@ class State(object):
                                                             found = True
                                         if not found:
                                             continue
-                                if len(ind) < 1:
+                                if not ind:
                                     continue
                                 pstate = next(iter(ind))
                                 pname = ind[pstate]
@@ -1734,14 +1809,15 @@ class State(object):
         try:
             ret = self.states[cdata['full']](*cdata['args'],
                                              **cdata['kwargs'])
-        except Exception:
+        except Exception as exc:
+            log.debug('An exception occurred in this state: %s', exc,
+                      exc_info_on_loglevel=logging.DEBUG)
             trb = traceback.format_exc()
             ret = {
                 'result': False,
                 'name': name,
                 'changes': {},
-                'comment': 'An exception occurred in this state: {0}'.format(
-                    trb)
+                'comment': 'An exception occurred in this state: {0}'.format(trb)
             }
 
         utc_finish_time = datetime.datetime.utcnow()
@@ -1751,7 +1827,9 @@ class State(object):
         ret['duration'] = duration
 
         troot = os.path.join(self.opts['cachedir'], self.jid)
-        tfile = os.path.join(troot, _clean_tag(tag))
+        tfile = os.path.join(
+            troot,
+            salt.utils.hashutils.sha1_digest(tag))
         if not os.path.isdir(troot):
             try:
                 os.makedirs(troot)
@@ -1792,6 +1870,11 @@ class State(object):
         Call a state directly with the low data structure, verify data
         before processing.
         '''
+        use_uptime = False
+        if os.path.isfile('/proc/uptime'):
+            use_uptime = True
+            with salt.utils.files.fopen('/proc/uptime', 'r') as fp_:
+                start_uptime = float(fp_.readline().split()[0])
         utc_start_time = datetime.datetime.utcnow()
         local_start_time = utc_start_time - (datetime.datetime.utcnow() - datetime.datetime.now())
         log.info('Running state [%s] at time %s',
@@ -1910,12 +1993,18 @@ class State(object):
                         ret = self.call_parallel(cdata, low)
                     else:
                         self.format_slots(cdata)
-                        ret = self.states[cdata['full']](*cdata['args'],
-                                                         **cdata['kwargs'])
+                        if cdata['full'].split('.')[-1] == '__call__':
+                            # __call__ requires OrderedDict to preserve state order
+                            # kwargs are also invalid overall
+                            ret = self.states[cdata['full']](cdata['args'], module=None, state=cdata['kwargs'])
+                        else:
+                            ret = self.states[cdata['full']](*cdata['args'], **cdata['kwargs'])
                 self.states.inject_globals = {}
             if 'check_cmd' in low and '{0[state]}.mod_run_check_cmd'.format(low) not in self.states:
                 ret.update(self._run_check_cmd(low))
-        except Exception:
+        except Exception as exc:
+            log.debug('An exception occurred in this state: %s', exc,
+                      exc_info_on_loglevel=logging.DEBUG)
             trb = traceback.format_exc()
             # There are a number of possibilities to not have the cdata
             # populated with what we might have expected, so just be smart
@@ -1930,8 +2019,7 @@ class State(object):
                 'result': False,
                 'name': name,
                 'changes': {},
-                'comment': 'An exception occurred in this state: {0}'.format(
-                    trb)
+                'comment': 'An exception occurred in this state: {0}'.format(trb)
             }
         finally:
             if low.get('__prereq__'):
@@ -1959,14 +2047,20 @@ class State(object):
         self.__run_num += 1
         format_log(ret)
         self.check_refresh(low, ret)
+        if use_uptime:
+            with salt.utils.files.fopen('/proc/uptime', 'r') as fp_:
+                finish_uptime = float(fp_.readline().split()[0])
         utc_finish_time = datetime.datetime.utcnow()
         timezone_delta = datetime.datetime.utcnow() - datetime.datetime.now()
         local_finish_time = utc_finish_time - timezone_delta
         local_start_time = utc_start_time - timezone_delta
         ret['start_time'] = local_start_time.time().isoformat()
-        delta = (utc_finish_time - utc_start_time)
-        # duration in milliseconds.microseconds
-        duration = (delta.seconds * 1000000 + delta.microseconds) / 1000.0
+        if use_uptime:
+            duration = (finish_uptime - start_uptime) * 1000.0
+        else:
+            delta = (utc_finish_time - utc_start_time)
+            # duration in milliseconds.microseconds
+            duration = (delta.seconds * 1000000 + delta.microseconds) / 1000.0
         ret['duration'] = duration
         ret['__id__'] = low['__id__']
         log.info(
@@ -2034,23 +2128,96 @@ class State(object):
                         'test.arg(\'arg\', kw=\'kwarg\')')
             return slot
         log.debug('Calling slot: %s(%s, %s)', fun, args, kwargs)
-        return self.functions[fun](*args, **kwargs)
+        slot_return = self.functions[fun](*args, **kwargs)
+
+        # Given input  __slot__:salt:test.arg(somekey="value").not.exist ~ /appended
+        # slot_text should be __slot...).not.exist
+        # append_data should be ~ /appended
+        slot_text = fmt[2].split('~')[0]
+        append_data = fmt[2].split('~', 1)[1:]
+        log.debug('slot_text: %s', slot_text)
+        log.debug('append_data: %s', append_data)
+
+        # Support parsing slot dict response
+        # return_get should result in a kwargs.nested.dict path by getting
+        # everything after first closing paren: )
+        return_get = None
+        try:
+            return_get = slot_text[slot_text.rindex(')')+1:]
+        except ValueError:
+            pass
+        if return_get:
+            #remove first period
+            return_get = return_get.split('.', 1)[1].strip()
+            log.debug('Searching slot result %s for %s', slot_return, return_get)
+            slot_return = salt.utils.data.traverse_dict_and_list(slot_return,
+                                                                 return_get,
+                                                                 default=None,
+                                                                 delimiter='.'
+                                                                )
+
+        if append_data:
+            if isinstance(slot_return, six.string_types):
+                # Append text to slot string result
+                append_data = ' '.join(append_data).strip()
+                log.debug('appending to slot result: %s', append_data)
+                slot_return += append_data
+            else:
+                log.error('Ignoring slot append, slot result is not a string')
+
+        return slot_return
 
     def format_slots(self, cdata):
         '''
         Read in the arguments from the low level slot syntax to make a last
         minute runtime call to gather relevant data for the specific routine
+
+        Will parse strings, first level of dictionary values, and strings and
+        first level dict values inside of lists
         '''
         # __slot__:salt.cmd.run(foo, bar, baz=qux)
+        SLOT_TEXT = '__slot__:'
         ctx = (('args', enumerate(cdata['args'])),
                ('kwargs', cdata['kwargs'].items()))
         for atype, avalues in ctx:
             for ind, arg in avalues:
-                arg = sdecode(arg)
-                if not isinstance(arg, six.string_types) or not arg.startswith('__slot__:'):
+                arg = salt.utils.data.decode(arg, keep=True)
+                if isinstance(arg, dict):
+                    # Search dictionary values for __slot__:
+                    for key, value in arg.items():
+                        try:
+                            if value.startswith(SLOT_TEXT):
+                                log.trace("Slot processsing dict value %s", value)
+                                cdata[atype][ind][key] = self.__eval_slot(value)
+                        except AttributeError:
+                            # Not a string/slot
+                            continue
+                elif isinstance(arg, list):
+                    for idx, listvalue in enumerate(arg):
+                        log.trace("Slot processing list value: %s", listvalue)
+                        if isinstance(listvalue, dict):
+                            # Search dict values in list for __slot__:
+                            for key, value in listvalue.items():
+                                try:
+                                    if value.startswith(SLOT_TEXT):
+                                        log.trace("Slot processsing nested dict value %s", value)
+                                        cdata[atype][ind][idx][key] = self.__eval_slot(value)
+                                except AttributeError:
+                                    # Not a string/slot
+                                    continue
+                        if isinstance(listvalue, six.text_type):
+                            # Search strings in a list for __slot__:
+                            if listvalue.startswith(SLOT_TEXT):
+                                log.trace("Slot processsing nested string %s", listvalue)
+                                cdata[atype][ind][idx] = self.__eval_slot(listvalue)
+                elif isinstance(arg, six.text_type) \
+                        and arg.startswith(SLOT_TEXT):
+                    # Search strings for __slot__:
+                    log.trace("Slot processsing %s", arg)
+                    cdata[atype][ind] = self.__eval_slot(arg)
+                else:
                     # Not a slot, skip it
                     continue
-                cdata[atype][ind] = self.__eval_slot(arg)
 
     def verify_retry_data(self, retry_data):
         '''
@@ -2145,7 +2312,7 @@ class State(object):
         tag = _gen_tag(low)
         if self.opts.get('test', False):
             return False
-        if (low.get('failhard', False) or self.opts['failhard']) and tag in running:
+        if low.get('failhard', self.opts['failhard']) and tag in running:
             if running[tag]['result'] is None:
                 return False
             return not running[tag]['result']
@@ -2205,7 +2372,10 @@ class State(object):
             proc = running[tag].get('proc')
             if proc:
                 if not proc.is_alive():
-                    ret_cache = os.path.join(self.opts['cachedir'], self.jid, _clean_tag(tag))
+                    ret_cache = os.path.join(
+                        self.opts['cachedir'],
+                        self.jid,
+                        salt.utils.hashutils.sha1_digest(tag))
                     if not os.path.isfile(ret_cache):
                         ret = {'result': False,
                                'comment': 'Parallel process failed to return',
@@ -2230,6 +2400,9 @@ class State(object):
         Look into the running data to check the status of all requisite
         states
         '''
+        disabled_reqs = self.opts.get('disabled_requisites', [])
+        if not isinstance(disabled_reqs, list):
+            disabled_reqs = [disabled_reqs]
         present = False
         # If mod_watch is not available make it a require
         if 'watch' in low:
@@ -2284,6 +2457,9 @@ class State(object):
             reqs['prerequired'] = []
         for r_state in reqs:
             if r_state in low and low[r_state] is not None:
+                if r_state in disabled_reqs:
+                    log.warning('The %s requisite has been disabled, Ignoring.', r_state)
+                    continue
                 for req in low[r_state]:
                     if isinstance(req, six.string_types):
                         req = {'id': req}
@@ -2671,6 +2847,7 @@ class State(object):
             else:
                 running[tag] = self.call(low, chunks, running)
         if tag in running:
+            running[tag]['__saltfunc__'] = '{0}.{1}'.format(low['state'], low['fun'])
             self.event(running[tag], len(chunks), fire_event=low.get('fire_event'))
         return running
 
@@ -2747,10 +2924,33 @@ class State(object):
         running.update(errors)
         return running
 
+    def inject_default_call(self, high):
+        '''
+        Sets .call function to a state, if not there.
+
+        :param high:
+        :return:
+        '''
+        for chunk in high:
+            state = high[chunk]
+            if not isinstance(state, Mapping):
+                continue
+            for state_ref in state:
+                needs_default = True
+                if not isinstance(state[state_ref], list):
+                    continue
+                for argset in state[state_ref]:
+                    if isinstance(argset, six.string_types):
+                        needs_default = False
+                        break
+                if needs_default:
+                    state[state_ref].insert(-1, '__call__')
+
     def call_high(self, high, orchestration_jid=None):
         '''
         Process a high data call and ensure the defined states.
         '''
+        self.inject_default_call(high)
         errors = []
         # If there is extension data reconcile it
         high, ext_errors = self.reconcile_extend(high)
@@ -2947,7 +3147,7 @@ class BaseHighState(object):
         mopts = self.client.master_opts()
         if not isinstance(mopts, dict):
             # An error happened on the master
-            opts['renderer'] = 'yaml_jinja'
+            opts['renderer'] = 'jinja|yaml'
             opts['failhard'] = False
             opts['state_top'] = salt.utils.url.create('top.sls')
             opts['nodegroups'] = {}
@@ -3390,7 +3590,7 @@ class BaseHighState(object):
         ext_matches = self._master_tops()
         for saltenv in ext_matches:
             top_file_matches = matches.get(saltenv, [])
-            if self.opts['master_tops_first']:
+            if self.opts.get('master_tops_first'):
                 first = ext_matches[saltenv]
                 second = top_file_matches
             else:
@@ -3605,6 +3805,7 @@ class BaseHighState(object):
                     log.critical('Could not render SLS %s. Syntax error detected.', sls)
         else:
             state = {}
+
         return state, errors
 
     def _handle_iorder(self, state):
@@ -3631,7 +3832,7 @@ class BaseHighState(object):
 
                     for arg in state[name][s_dec]:
                         if isinstance(arg, dict):
-                            if len(arg) > 0:
+                            if arg:
                                 if next(six.iterkeys(arg)) == 'order':
                                     found = True
                     if not found:
@@ -3764,18 +3965,14 @@ class BaseHighState(object):
             for sls_match in states:
                 statefiles = []
                 for saltenv in saltenvs:
-                    try:
-                        matches = fnmatch.filter(self.avail[saltenv], sls_match)
-
-                        if matches:
-                            for match in matches:
-                                statefiles.append((saltenv, match))
-                            break
-
-                    except KeyError:
-                        all_errors.extend(
-                            ['No matching salt environment for environment '
-                             '\'{0}\' found'.format(saltenv)]
+                    if saltenv in self.avail:
+                        statefiles = [(saltenv, _sls) for _sls in fnmatch.filter(self.avail[saltenv], sls_match)]
+                    elif '__env__' in self.avail:
+                        statefiles = [(saltenv, _sls) for _sls in fnmatch.filter(self.avail['__env__'], sls_match)]
+                    else:
+                        all_errors.append(
+                            'No matching salt environment for environment '
+                            '\'{0}\' found'.format(saltenv)
                         )
 
                 # if we did not found any sls in the fileserver listing, this
@@ -3912,7 +4109,8 @@ class BaseHighState(object):
         err += self.verify_tops(top)
         matches = self.top_matches(top)
         if not matches:
-            msg = 'No Top file or master_tops data matches found.'
+            msg = ('No Top file or master_tops data matches found. Please see '
+                   'master log for details.')
             ret[tag_name]['comment'] = msg
             return ret
         matches = self.matches_whitelist(matches, whitelist)
@@ -4067,8 +4265,8 @@ class HighState(BaseHighState):
                            mocked=mocked,
                            loader=loader,
                            initial_pillar=initial_pillar)
-        self.matcher = salt.minion.Matcher(self.opts)
         self.proxy = proxy
+        self.matcher = salt.minion.Matcher(self.opts)
 
         # tracks all pydsl state declarations globally across sls files
         self._pydsl_all_decls = {}
@@ -4148,12 +4346,14 @@ class RemoteHighState(object):
     '''
     Manage gathering the data from the master
     '''
+    # XXX: This class doesn't seem to be used anywhere
     def __init__(self, opts, grains):
         self.opts = opts
         self.grains = grains
         self.serial = salt.payload.Serial(self.opts)
         # self.auth = salt.crypt.SAuth(opts)
-        self.channel = salt.transport.Channel.factory(self.opts['master_uri'])
+        self.channel = salt.transport.client.ReqChannel.factory(self.opts['master_uri'])
+        self._closing = False
 
     def compile_master(self):
         '''
@@ -4166,3 +4366,13 @@ class RemoteHighState(object):
             return self.channel.send(load, tries=3, timeout=72000)
         except SaltReqTimeoutError:
             return {}
+
+    def destroy(self):
+        if self._closing:
+            return
+
+        self._closing = True
+        self.channel.close()
+
+    def __del__(self):
+        self.destroy()

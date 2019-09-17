@@ -8,7 +8,7 @@ import sys
 import salt.utils.minions
 
 # Import Salt Testing Libs
-from tests.support.unit import TestCase, skipIf, expectedFailure
+from tests.support.unit import TestCase, skipIf
 from tests.support.mock import (
     patch,
     MagicMock,
@@ -271,7 +271,6 @@ class CkMinionsTestCase(TestCase):
         ret = self.ckminions.spec_check(auth_list, 'jobs.active', {}, 'runner')
         self.assertFalse(ret)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     @patch('salt.utils.minions.CkMinions._pki_minions', MagicMock(return_value=['alpha', 'beta', 'gamma']))
     def test_auth_check(self):
         # Test function-only rule

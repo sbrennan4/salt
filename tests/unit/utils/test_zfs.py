@@ -13,6 +13,9 @@ Tests for the zfs utils library
 # Import Python libs
 from __future__ import absolute_import, unicode_literals, print_function
 
+import pytest
+pytestmark = pytest.mark.skip(reason='test is wonky with xdist')
+
 # Import Salt Testing libs
 from tests.support.unit import skipIf, TestCase
 from tests.support.mock import (

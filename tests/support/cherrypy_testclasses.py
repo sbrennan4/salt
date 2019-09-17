@@ -11,13 +11,13 @@ import os
 
 import salt.config
 from tests.support.mock import patch
-from tests.support.paths import TMP_CONF_DIR
+from tests.support.runtests import RUNTIME_VARS
 
 if HAS_CHERRYPY:
     from tests.support.cptestcase import BaseCherryPyTestCase
     from salt.netapi.rest_cherrypy import app
 else:
-    from tests.support.unit import TestCase, skipIf, expectedFailure
+    from tests.support.unit import TestCase, skipIf
 
     @skipIf(HAS_CHERRYPY is False, 'The CherryPy python package needs to be installed')
     class BaseCherryPyTestCase(TestCase):
@@ -39,7 +39,7 @@ class BaseRestCherryPyTest(BaseCherryPyTestCase):
 
     @classmethod
     def setUpClass(cls):
-        master_conf = os.path.join(TMP_CONF_DIR, 'master')
+        master_conf = os.path.join(RUNTIME_VARS.TMP_CONF_DIR, 'master')
         cls.config = salt.config.client_config(master_conf)
         cls.base_opts = {}
         cls.base_opts.update(cls.config)
@@ -54,7 +54,7 @@ class BaseRestCherryPyTest(BaseCherryPyTestCase):
         self.app = app
         self.addCleanup(delattr, self, 'app')
 
-        master_conf = os.path.join(TMP_CONF_DIR, 'master')
+        master_conf = os.path.join(RUNTIME_VARS.TMP_CONF_DIR, 'master')
         client_config = salt.config.client_config(master_conf)
         base_opts = {}
         base_opts.update(client_config)

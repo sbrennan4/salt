@@ -28,11 +28,12 @@ class Authorize(object):
     # we don't have access to it here
     ckminions = None
 
-    def __init__(self, tag, item, opts):
+    def __init__(self, tag, item, opts, pack):
         log.trace('Authorized decorator - tag %s applied', tag)
         self.tag = tag
         self.item = item
         self.opts = opts
+        self.pack = pack
 
     def __call__(self, f):
         @wraps(f)
@@ -115,6 +116,12 @@ class Authorize(object):
 
             # this invocation is the default for lazyloader tags that are unenforced, i.e. no-op
             return f(*args, **kwargs)
+
+        # proxy some values from the real loader
+        for (dunder, func)  in self.pack.items():
+            wrapper.__globals__[dunder] = func
+
+        wrapper.__globals__['__opts__'] = self.opts
 
         return wrapper
 

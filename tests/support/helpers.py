@@ -331,6 +331,9 @@ class TestsLoggingHandler(object):
             handler.messages    # here are the emitted log messages
 
     '''
+    __test__ = False
+
+
     def __init__(self, level=0, format='%(levelname)s:%(message)s'):
         self.level = level
         self.format = format

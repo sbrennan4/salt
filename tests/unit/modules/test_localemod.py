@@ -8,7 +8,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 # Import Salt Testing Libs
 from tests.support.mixins import LoaderModuleMockMixin
-from tests.support.unit import TestCase, skipIf, expectedFailure
+from tests.support.unit import TestCase, skipIf
 from tests.support.mock import (
     MagicMock,
     Mock,
@@ -151,7 +151,6 @@ class LocalemodTestCase(TestCase, LoaderModuleMockMixin):
             assert msg == ('Odd locale parameter "Fatal error right in front of screen" detected in dbus locale output.'
                            ' This should not happen. You should probably investigate what caused this.')
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     @patch('salt.utils.path.which', MagicMock(return_value=None))
     @patch('salt.modules.localemod.log', MagicMock())
     def test_localectl_status_parser_no_systemd(self):
@@ -161,24 +160,22 @@ class LocalemodTestCase(TestCase, LoaderModuleMockMixin):
         '''
         with pytest.raises(CommandExecutionError) as err:
             localemod._localectl_status()
-        assert 'Unable to find "localectl"' in six.text_type(err)
+        assert 'Unable to find "localectl"' in six.text_type(err.value)
         assert not localemod.log.debug.called
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     @patch('salt.utils.path.which', MagicMock(return_value="/usr/bin/localctl"))
     @patch('salt.modules.localemod.__salt__', {'cmd.run': MagicMock(return_value=locale_ctl_out_empty)})
     def test_localectl_status_parser_empty(self):
         with pytest.raises(CommandExecutionError) as err:
             localemod._localectl_status()
-        assert 'Unable to parse result of "localectl"' in six.text_type(err)
+        assert 'Unable to parse result of "localectl"' in six.text_type(err.value)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     @patch('salt.utils.path.which', MagicMock(return_value="/usr/bin/localctl"))
     @patch('salt.modules.localemod.__salt__', {'cmd.run': MagicMock(return_value=locale_ctl_out_broken)})
     def test_localectl_status_parser_broken(self):
         with pytest.raises(CommandExecutionError) as err:
             localemod._localectl_status()
-        assert 'Unable to parse result of "localectl"' in six.text_type(err)
+        assert 'Unable to parse result of "localectl"' in six.text_type(err.value)
 
     @patch('salt.utils.path.which', MagicMock(return_value="/usr/bin/localctl"))
     @patch('salt.modules.localemod.__salt__', {'cmd.run': MagicMock(return_value=locale_ctl_out_structure)})
@@ -284,7 +281,6 @@ class LocalemodTestCase(TestCase, LoaderModuleMockMixin):
         localemod.get_locale()
         assert localemod.__salt__['cmd.run'].call_args[0][0] == 'grep "^LANG=" /etc/default/init'
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     @patch('salt.utils.path.which', MagicMock(return_value=None))
     @patch('salt.modules.localemod.__grains__', {'os_family': 'BSD', 'osmajorrelease': 8, 'oscodename': 'DrunkDragon'})
     @patch('salt.modules.localemod.dbus', None)
@@ -297,7 +293,7 @@ class LocalemodTestCase(TestCase, LoaderModuleMockMixin):
         '''
         with pytest.raises(CommandExecutionError) as err:
             localemod.get_locale()
-        assert '"DrunkDragon" is unsupported' in six.text_type(err)
+        assert '"DrunkDragon" is unsupported' in six.text_type(err.value)
 
     @patch('salt.utils.path.which', MagicMock(return_value="/usr/bin/localctl"))
     @patch('salt.modules.localemod.__grains__', {'os_family': 'Ubuntu', 'osmajorrelease': 42})
@@ -384,7 +380,6 @@ class LocalemodTestCase(TestCase, LoaderModuleMockMixin):
         assert localemod.__salt__['file.replace'].call_args[0][1] == '^LANG=.*'
         assert localemod.__salt__['file.replace'].call_args[0][2] == 'LANG="{}"'.format(loc)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     @patch('salt.utils.path.which', MagicMock(return_value=None))
     @patch('salt.utils.path.which', MagicMock(return_value=None))
     @patch('salt.modules.localemod.__grains__', {'os_family': 'Debian', 'osmajorrelease': 42})
@@ -401,7 +396,7 @@ class LocalemodTestCase(TestCase, LoaderModuleMockMixin):
         with pytest.raises(CommandExecutionError) as err:
             localemod.set_locale(loc)
         assert not localemod._localectl_set.called
-        assert 'Cannot set locale: "update-locale" was not found.' in six.text_type(err)
+        assert 'Cannot set locale: "update-locale" was not found.' in six.text_type(err.value)
 
     @patch('salt.utils.path.which', MagicMock(return_value=None))
     @patch('salt.modules.localemod.__grains__', {'os_family': 'Gentoo', 'osmajorrelease': 42})
@@ -465,7 +460,6 @@ class LocalemodTestCase(TestCase, LoaderModuleMockMixin):
                                                'file.replace': MagicMock()})
     @patch('salt.modules.localemod._localectl_set', MagicMock())
     @patch('salt.utils.systemd.booted', MagicMock(return_value=False))
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_set_locale_with_no_systemd_unknown(self):
         '''
         Test setting current system locale without systemd on unknown system.
@@ -473,7 +467,7 @@ class LocalemodTestCase(TestCase, LoaderModuleMockMixin):
         '''
         with pytest.raises(CommandExecutionError) as err:
             localemod.set_locale('de_DE.utf8')
-        assert 'Unsupported platform' in six.text_type(err)
+        assert 'Unsupported platform' in six.text_type(err.value)
 
     @patch('salt.utils.locales.normalize_locale', MagicMock(return_value='en_US.UTF-8 UTF-8'))
     @patch('salt.modules.localemod.__salt__', {'locale.list_avail': MagicMock(return_value=['A', 'B'])})
@@ -529,7 +523,6 @@ class LocalemodTestCase(TestCase, LoaderModuleMockMixin):
         assert localemod.__salt__['cmd.run_all'].call_args[0][0] == ['localedef', '--force', '-i', 'de_DE',
                                                                      '-f', 'utf8', 'de_DE.utf8', '--quiet']
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     @patch('salt.modules.localemod.log', MagicMock())
     @patch('salt.modules.localemod.__grains__', {'os_family': 'Suse'})
     @patch('salt.modules.localemod.__salt__', {'cmd.run_all': MagicMock(return_value={'retcode': 0})})
@@ -544,7 +537,7 @@ class LocalemodTestCase(TestCase, LoaderModuleMockMixin):
         '''
         with pytest.raises(CommandExecutionError) as err:
             localemod.gen_locale('de_DE.utf8')
-        assert 'Command "locale-gen" or "localedef" was not found on this system.' in six.text_type(err)
+        assert 'Command "locale-gen" or "localedef" was not found on this system.' in six.text_type(err.value)
 
     def test_gen_locale_debian(self):
         '''

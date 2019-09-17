@@ -11,14 +11,14 @@ import tempfile
 
 # Import Salt Testing libs
 import tests.integration as integration
-from tests.support.unit import TestCase, skipIf, expectedFailure
+from tests.support.unit import TestCase, skipIf
 from tests.support.mock import (
     NO_MOCK,
     NO_MOCK_REASON,
     MagicMock,
     patch)
 from tests.support.mixins import AdaptedConfigurationTestCaseMixin
-from tests.support.paths import BASE_FILES
+from tests.support.runtests import RUNTIME_VARS
 
 # Import Salt libs
 import salt.exceptions
@@ -73,6 +73,134 @@ class StateCompilerTestCase(TestCase, AdaptedConfigurationTestCaseMixin):
             with self.assertRaises(salt.exceptions.SaltRenderError):
                 state_obj.call_high(high_data)
 
+    def test_render_requisite_require_disabled(self):
+        '''
+        Test that the state compiler correctly deliver a rendering
+        exception when a requisite cannot be resolved
+        '''
+        with patch('salt.state.State._gather_pillar') as state_patch:
+            high_data = {
+                'step_one': OrderedDict([
+                        ('test', [
+                            OrderedDict([
+                                ('require', [
+                                    OrderedDict([
+                                        ('test', 'step_two')])])]),
+                            'succeed_with_changes', {'order': 10000}]),
+                        ('__sls__', 'test.disable_require'),
+                        ('__env__', 'base')]),
+                'step_two': {'test': ['succeed_with_changes',
+                                      {'order': 10001}],
+                             '__env__': 'base',
+                             '__sls__': 'test.disable_require'}}
+
+            minion_opts = self.get_temp_config('minion')
+            minion_opts['disabled_requisites'] = ['require']
+            state_obj = salt.state.State(minion_opts)
+            ret = state_obj.call_high(high_data)
+            run_num = ret['test_|-step_one_|-step_one_|-succeed_with_changes']['__run_num__']
+            self.assertEqual(run_num, 0)
+
+    def test_render_requisite_require_in_disabled(self):
+        '''
+        Test that the state compiler correctly deliver a rendering
+        exception when a requisite cannot be resolved
+        '''
+        with patch('salt.state.State._gather_pillar') as state_patch:
+            high_data = {
+                'step_one': {'test': ['succeed_with_changes',
+                                      {'order': 10000}],
+                             '__env__': 'base',
+                             '__sls__': 'test.disable_require_in'},
+                'step_two': OrderedDict([
+                    ('test', [
+                        OrderedDict([
+                            ('require_in', [
+                                    OrderedDict([
+                                        ('test', 'step_one')])])]),
+                        'succeed_with_changes', {'order': 10001}]),
+                    ('__sls__', 'test.disable_require_in'),
+                    ('__env__', 'base')])}
+
+            minion_opts = self.get_temp_config('minion')
+            minion_opts['disabled_requisites'] = ['require_in']
+            state_obj = salt.state.State(minion_opts)
+            ret = state_obj.call_high(high_data)
+            run_num = ret['test_|-step_one_|-step_one_|-succeed_with_changes']['__run_num__']
+            self.assertEqual(run_num, 0)
+
+    def test_verify_onlyif_parse(self):
+        low_data = {
+            "onlyif": [
+                {
+                    "fun": "file.search",
+                    "args": [
+                        "/etc/crontab",
+                        "run-parts"
+                    ]
+                }
+            ],
+            "name": "mysql-server-5.7",
+            "state": "debconf",
+            "__id__": "set root password",
+            "fun": "set",
+            "__env__": "base",
+            "__sls__": "debconf",
+            "data": {
+                "mysql-server/root_password": {
+                    "type": "password",
+                    "value": "temp123"
+                }
+            },
+            "order": 10000
+        }
+        expected_result = {'comment': 'onlyif condition is true', 'result': False}
+
+        with patch('salt.state.State._gather_pillar') as state_patch:
+            mock = MagicMock(return_value=True)
+            mock.__name__ = 'file'
+            minion_opts = self.get_temp_config('minion')
+            state_obj = salt.state.State(minion_opts)
+            with patch.dict(state_obj.functions, {'file.search': mock}):
+                return_result = state_obj._run_check_onlyif(low_data, '')
+                self.assertEqual(expected_result, return_result)
+
+    def test_verify_unless_parse(self):
+        low_data = {
+            "unless": [
+                {
+                    "fun": "file.search",
+                    "args": [
+                        "/etc/crontab",
+                        "run-parts"
+                    ]
+                }
+            ],
+            "name": "mysql-server-5.7",
+            "state": "debconf",
+            "__id__": "set root password",
+            "fun": "set",
+            "__env__": "base",
+            "__sls__": "debconf",
+            "data": {
+                "mysql-server/root_password": {
+                    "type": "password",
+                    "value": "temp123"
+                }
+            },
+            "order": 10000
+        }
+        expected_result = {'comment': 'unless condition is true', 'result': True, 'skip_watch': True}
+
+        with patch('salt.state.State._gather_pillar') as state_patch:
+            mock = MagicMock(return_value=True)
+            mock.__name__ = 'fun'
+            minion_opts = self.get_temp_config('minion')
+            state_obj = salt.state.State(minion_opts)
+            with patch.dict(state_obj.functions, {'file.search': mock}):
+                return_result = state_obj._run_check_unless(low_data, '')
+                self.assertEqual(expected_result, return_result)
+
 
 class HighStateTestCase(TestCase, AdaptedConfigurationTestCaseMixin):
     def setUp(self):
@@ -100,32 +228,27 @@ class HighStateTestCase(TestCase, AdaptedConfigurationTestCaseMixin):
     def tearDown(self):
         self.highstate.pop_active()
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
     def test_top_matches_with_list(self):
         top = {'env': {'match': ['state1', 'state2'], 'nomatch': ['state3']}}
         matches = self.highstate.top_matches(top)
         self.assertEqual(matches, {'env': ['state1', 'state2']})
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
     def test_top_matches_with_string(self):
         top = {'env': {'match': 'state1', 'nomatch': 'state2'}}
         matches = self.highstate.top_matches(top)
         self.assertEqual(matches, {'env': ['state1']})
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
     def test_matches_whitelist(self):
         matches = {'env': ['state1', 'state2', 'state3']}
         matches = self.highstate.matches_whitelist(matches, ['state2'])
         self.assertEqual(matches, {'env': ['state2']})
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
     def test_matches_whitelist_with_string(self):
         matches = {'env': ['state1', 'state2', 'state3']}
         matches = self.highstate.matches_whitelist(matches,
                                                    'state2,state3')
         self.assertEqual(matches, {'env': ['state2', 'state3']})
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
     def test_show_state_usage(self):
         # monkey patch sub methods
         self.highstate.avail = {
@@ -154,14 +277,13 @@ class HighStateTestCase(TestCase, AdaptedConfigurationTestCaseMixin):
         self.assertEqual(state_usage_dict['base']['used'], ['state.a', 'state.b'])
         self.assertEqual(state_usage_dict['base']['unused'], ['state.c'])
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
     def test_find_sls_ids_with_exclude(self):
         '''
         See https://github.com/saltstack/salt/issues/47182
         '''
         sls_dir = 'issue-47182'
         shutil.copytree(
-            os.path.join(BASE_FILES, sls_dir),
+            os.path.join(RUNTIME_VARS.BASE_FILES, sls_dir),
             os.path.join(self.state_tree_dir, sls_dir)
         )
         shutil.move(
@@ -269,7 +391,6 @@ class StateFormatSlotsTestCase(TestCase, AdaptedConfigurationTestCaseMixin):
         self.state_obj.format_slots(cdata)
         self.assertEqual(cdata, {'args': ['arg'], 'kwargs': {'key': 'val'}})
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_format_slots_arg(self):
         '''
         Test the format slots is calling a slot specified in args with corresponding arguments.
@@ -283,12 +404,69 @@ class StateFormatSlotsTestCase(TestCase, AdaptedConfigurationTestCaseMixin):
                 }
         }
         mock = MagicMock(return_value='fun_return')
+        mock.__name__ = 'fun'
         with patch.dict(self.state_obj.functions, {'mod.fun': mock}):
             self.state_obj.format_slots(cdata)
         mock.assert_called_once_with('fun_arg', fun_key='fun_val')
         self.assertEqual(cdata, {'args': ['fun_return'], 'kwargs': {'key': 'val'}})
 
-    @expectedFailure #bb test was failing when ran in Jenkins
+    def test_format_slots_dict_arg(self):
+        '''
+        Test the format slots is calling a slot specified in dict arg.
+        '''
+        cdata = {
+                'args': [
+                    {'subarg': '__slot__:salt:mod.fun(fun_arg, fun_key=fun_val)'},
+                ],
+                'kwargs': {
+                    'key': 'val',
+                }
+        }
+        mock = MagicMock(return_value='fun_return')
+        mock.__name__ = 'fun'
+        with patch.dict(self.state_obj.functions, {'mod.fun': mock}):
+            self.state_obj.format_slots(cdata)
+        mock.assert_called_once_with('fun_arg', fun_key='fun_val')
+        self.assertEqual(cdata, {'args': [{'subarg': 'fun_return'}], 'kwargs': {'key': 'val'}})
+
+    def test_format_slots_listdict_arg(self):
+        '''
+        Test the format slots is calling a slot specified in list containing a dict.
+        '''
+        cdata = {
+                'args': [[
+                    {'subarg': '__slot__:salt:mod.fun(fun_arg, fun_key=fun_val)'},
+                ]],
+                'kwargs': {
+                    'key': 'val',
+                }
+        }
+        mock = MagicMock(return_value='fun_return')
+        mock.__name__ = 'fun'
+        with patch.dict(self.state_obj.functions, {'mod.fun': mock}):
+            self.state_obj.format_slots(cdata)
+        mock.assert_called_once_with('fun_arg', fun_key='fun_val')
+        self.assertEqual(cdata, {'args': [[{'subarg': 'fun_return'}]], 'kwargs': {'key': 'val'}})
+
+    def test_format_slots_liststr_arg(self):
+        '''
+        Test the format slots is calling a slot specified in list containing a dict.
+        '''
+        cdata = {
+                'args': [[
+                    '__slot__:salt:mod.fun(fun_arg, fun_key=fun_val)',
+                ]],
+                'kwargs': {
+                    'key': 'val',
+                }
+        }
+        mock = MagicMock(return_value='fun_return')
+        mock.__name__ = 'fun'
+        with patch.dict(self.state_obj.functions, {'mod.fun': mock}):
+            self.state_obj.format_slots(cdata)
+        mock.assert_called_once_with('fun_arg', fun_key='fun_val')
+        self.assertEqual(cdata, {'args': [['fun_return']], 'kwargs': {'key': 'val'}})
+
     def test_format_slots_kwarg(self):
         '''
         Test the format slots is calling a slot specified in kwargs with corresponding arguments.
@@ -302,12 +480,12 @@ class StateFormatSlotsTestCase(TestCase, AdaptedConfigurationTestCaseMixin):
             }
         }
         mock = MagicMock(return_value='fun_return')
+        mock.__name__ = 'fun'
         with patch.dict(self.state_obj.functions, {'mod.fun': mock}):
             self.state_obj.format_slots(cdata)
         mock.assert_called_once_with('fun_arg', fun_key='fun_val')
         self.assertEqual(cdata, {'args': ['arg'], 'kwargs': {'key': 'fun_return'}})
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_format_slots_multi(self):
         '''
         Test the format slots is calling all slots with corresponding arguments when multiple slots
@@ -327,6 +505,10 @@ class StateFormatSlotsTestCase(TestCase, AdaptedConfigurationTestCaseMixin):
         mock_b = MagicMock(return_value='fun_b_return')
         mock_c = MagicMock(return_value='fun_c_return')
         mock_d = MagicMock(return_value='fun_d_return')
+        mock_a.__name__ = 'fun_a'
+        mock_b.__name__ = 'fun_b'
+        mock_c.__name__ = 'fun_c'
+        mock_d.__name__ = 'fun_d'
         with patch.dict(self.state_obj.functions, {'test_mod.fun_a': mock_a,
                                                    'test_mod.fun_b': mock_b,
                                                    'test_mod.fun_c': mock_c,
@@ -365,7 +547,48 @@ class StateFormatSlotsTestCase(TestCase, AdaptedConfigurationTestCaseMixin):
         }
         cdata = sls_data.copy()
         mock = MagicMock(return_value='return')
+        mock.__name__ = 'called'
         with patch.dict(self.state_obj.functions, {'not.called': mock}):
             self.state_obj.format_slots(cdata)
         mock.assert_not_called()
         self.assertEqual(cdata, sls_data)
+
+    def test_slot_traverse_dict(self):
+        '''
+        Test the slot parsing of dict response.
+        '''
+        cdata = {
+            'args': [
+                'arg',
+            ],
+            'kwargs': {
+                'key': '__slot__:salt:mod.fun(fun_arg, fun_key=fun_val).key1',
+            }
+        }
+        return_data = {'key1': 'value1'}
+        mock = MagicMock(return_value=return_data)
+        mock.__name__ = 'fun'
+        with patch.dict(self.state_obj.functions, {'mod.fun': mock}):
+            self.state_obj.format_slots(cdata)
+        mock.assert_called_once_with('fun_arg', fun_key='fun_val')
+        self.assertEqual(cdata, {'args': ['arg'], 'kwargs': {'key': 'value1'}})
+
+    def test_slot_append(self):
+        '''
+        Test the slot parsing of dict response.
+        '''
+        cdata = {
+            'args': [
+                'arg',
+            ],
+            'kwargs': {
+                'key': '__slot__:salt:mod.fun(fun_arg, fun_key=fun_val).key1 ~ thing~',
+            }
+        }
+        return_data = {'key1': 'value1'}
+        mock = MagicMock(return_value=return_data)
+        mock.__name__ = 'fun'
+        with patch.dict(self.state_obj.functions, {'mod.fun': mock}):
+            self.state_obj.format_slots(cdata)
+        mock.assert_called_once_with('fun_arg', fun_key='fun_val')
+        self.assertEqual(cdata, {'args': ['arg'], 'kwargs': {'key': 'value1thing~'}})

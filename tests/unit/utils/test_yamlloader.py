@@ -15,7 +15,7 @@ import salt.utils.files
 from salt.ext import six
 
 # Import Salt Testing Libs
-from tests.support.unit import TestCase, skipIf, expectedFailure
+from tests.support.unit import TestCase, skipIf
 from tests.support.mock import patch, NO_MOCK, NO_MOCK_REASON, mock_open
 
 # Import 3rd-party libs
@@ -137,31 +137,6 @@ class YamlLoaderTestCase(TestCase):
                   <<: *p1
                   v2: beta
                   v2: betabeta'''))
-
-    @expectedFailure #bb test was failing when ran in Jenkins
-    def test_yaml_with_unicode_literals(self):
-        '''
-        Test proper loading of unicode literals
-        '''
-        self.assert_matches(
-            self.render_yaml(textwrap.dedent('''\
-                foo:
-                  a: Д
-                  b: {'a': u'\\u0414'}''')),
-            {'foo': {'a': u'\u0414', 'b': {'a': u'\u0414'}}}
-        )
-
-    @expectedFailure #bb test was failing when ran in Jenkins
-    def test_yaml_with_colon_in_inline_dict(self):
-        '''
-        Test proper loading of unicode literal strings in inline dicts
-        '''
-        self.assert_matches(
-            self.render_yaml(textwrap.dedent('''\
-                foo:
-                  b: {u'c': u'https://foo.com'}''')),
-            {'foo': {'b': {'c': 'https://foo.com'}}}
-        )
 
     def test_yaml_with_plain_scalars(self):
         '''

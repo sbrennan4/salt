@@ -679,7 +679,7 @@ class Master(SMaster):
             log.info('Creating master publisher process')
             for transport, opts in iter_transport_opts(self.opts):
                 chan = salt.transport.server.PubServerChannel.factory(opts)
-                chan.pre_fork(self.process_manager)
+                chan.pre_fork(self.process_manager, kwargs={'log_queue': log_queue})
                 pub_channels.append(chan)
 
             log.info('Creating master event publisher process')
@@ -2033,7 +2033,7 @@ class ClearFuncs(object):
             if not wheel_check:
                 return {'error': {'name': err_name,
                                   'message': 'Authentication failure of type "{0}" occurred for '
-                                             'user {1}.'.format(auth_type, username)}}
+                                             'user "{1}".'.format(auth_type, username)}}
             elif isinstance(wheel_check, dict) and 'error' in wheel_check:
                 # A dictionary with an error name/message was handled by ckminions.wheel_check
                 return wheel_check

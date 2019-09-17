@@ -21,7 +21,7 @@ from salt.beacons import status
 import salt.modules.status as status_module
 
 # Salt testing libs
-from tests.support.unit import TestCase, expectedFailure
+from tests.support.unit import TestCase
 from tests.support.mixins import LoaderModuleMockMixin
 
 
@@ -34,7 +34,13 @@ class StatusBeaconTestCase(TestCase, LoaderModuleMockMixin):
         opts = salt.config.DEFAULT_MINION_OPTS
         module_globals = {
             '__opts__': opts,
-            '__salt__': 'autoload',
+            '__salt__': {
+                'status.loadavg': status_module.loadavg,
+                'status.cpustats': status_module.cpustats,
+                'status.meminfo': status_module.meminfo,
+                'status.vmstats': status_module.vmstats,
+                'status.time': status_module.time_,
+            },
             '__context__': {},
             '__grains__': {'kernel': 'Linux'}
         }
@@ -43,7 +49,6 @@ class StatusBeaconTestCase(TestCase, LoaderModuleMockMixin):
             status_module: module_globals
         }
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_empty_config(self, *args, **kwargs):
         config = []
 

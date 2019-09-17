@@ -12,7 +12,7 @@ import tempfile
 from tests.support.runtests import RUNTIME_VARS
 from tests.support.mixins import LoaderModuleMockMixin
 from tests.support.paths import TMP
-from tests.support.unit import skipIf, TestCase, expectedFailure
+from tests.support.unit import skipIf, TestCase
 from tests.support.mock import (
     NO_MOCK,
     NO_MOCK_REASON,
@@ -167,7 +167,6 @@ class SaltmodTestCase(TestCase, LoaderModuleMockMixin):
                     self.assertIn(minion, comment)
 
     # 'function' function tests: 1
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_function(self):
         '''
         Test to execute a single module function on a remote
@@ -176,13 +175,11 @@ class SaltmodTestCase(TestCase, LoaderModuleMockMixin):
         name = 'state'
         tgt = 'larry'
 
-        comt = ('Function state will be executed'
-                ' on target {0} as test=False'.format(tgt))
-
         ret = {'name': name,
                'changes': {},
                'result': None,
-               'comment': comt}
+               'comment': 'Function state would be executed '
+                          'on target {0}'.format(tgt)}
 
         with patch.dict(saltmod.__opts__, {'test': True}):
             self.assertDictEqual(saltmod.function(name, tgt), ret)
@@ -252,7 +249,6 @@ class SaltmodTestCase(TestCase, LoaderModuleMockMixin):
                                          ret)
 
     # 'runner' function tests: 1
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_runner(self):
         '''
         Test to execute a runner module on the master
@@ -262,13 +258,12 @@ class SaltmodTestCase(TestCase, LoaderModuleMockMixin):
         ret = {'changes': {'return': True}, 'name': 'state', 'result': True,
                'comment': 'Runner function \'state\' executed.',
                '__orchestration__': True}
-        runner_mock = MagicMock(return_value={'return': True})
+        runner_mock = MagicMock(return_value={'data':{'return': True}, 'success': True})
 
         with patch.dict(saltmod.__salt__, {'saltutil.runner': runner_mock}):
             self.assertDictEqual(saltmod.runner(name), ret)
 
     # 'wheel' function tests: 1
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_wheel(self):
         '''
         Test to execute a wheel module on the master
@@ -278,7 +273,7 @@ class SaltmodTestCase(TestCase, LoaderModuleMockMixin):
         ret = {'changes': {'return': True}, 'name': 'state', 'result': True,
                'comment': 'Wheel function \'state\' executed.',
                '__orchestration__': True}
-        wheel_mock = MagicMock(return_value={'return': True})
+        wheel_mock = MagicMock(return_value={'data': {'return': True}})
 
         with patch.dict(saltmod.__salt__, {'saltutil.wheel': wheel_mock}):
             self.assertDictEqual(saltmod.wheel(name), ret)

@@ -4,20 +4,23 @@
 from __future__ import absolute_import
 import os
 import copy
+import shutil
 import hashlib
 
 # Import Salt Testing Libs
 from tests.integration import AdaptedConfigurationTestCaseMixin
-from tests.support.unit import TestCase, skipIf, expectedFailure
+from tests.support.unit import TestCase, skipIf
+from tests.support.helpers import patched_environ
+from tests.support.runtests import RUNTIME_VARS
+from tests.support.events import eventpublisher_process
 
 # Import Salt libs
 import salt.auth
+import salt.utils.event
 import salt.utils.json
 import salt.utils.yaml
-from salt.ext.six.moves import map  # pylint: disable=import-error
+from salt.ext.six.moves import map, range  # pylint: disable=import-error
 try:
-    import salt.netapi.rest_tornado as rest_tornado
-    from salt.netapi.rest_tornado import saltnado
     HAS_TORNADO = True
 except ImportError:
     HAS_TORNADO = False
@@ -28,14 +31,19 @@ try:
     import tornado.escape
     import tornado.testing
     import tornado.concurrent
-    from tornado.testing import AsyncHTTPTestCase, gen_test
+    from tornado.testing import AsyncTestCase, AsyncHTTPTestCase, gen_test
     from tornado.httpclient import HTTPRequest, HTTPError
     from tornado.websocket import websocket_connect
+    import salt.netapi.rest_tornado as rest_tornado
+    from salt.netapi.rest_tornado import saltnado
     HAS_TORNADO = True
 except ImportError:
     HAS_TORNADO = False
 
-    # Let's create a fake AsyncHTTPTestCase so we can properly skip the test case
+    # Create fake test case classes so we can properly skip the test case
+    class AsyncTestCase(object):
+        pass
+
     class AsyncHTTPTestCase(object):
         pass
 
@@ -46,7 +54,7 @@ from salt.ext.six.moves.urllib.parse import urlencode, urlparse  # pylint: disab
 from tests.support.mock import NO_MOCK, NO_MOCK_REASON, MagicMock, patch
 
 
-@skipIf(HAS_TORNADO is False, 'The tornado package needs to be installed')  # pylint: disable=W0223
+@skipIf(not HAS_TORNADO, 'The tornado package needs to be installed')  # pylint: disable=W0223
 class SaltnadoTestCase(TestCase, AdaptedConfigurationTestCaseMixin, AsyncHTTPTestCase):
     '''
     Mixin to hold some shared things
@@ -89,15 +97,12 @@ class SaltnadoTestCase(TestCase, AdaptedConfigurationTestCaseMixin, AsyncHTTPTes
 
     def setUp(self):
         super(SaltnadoTestCase, self).setUp()
-        self.async_timeout_prev = os.environ.pop('ASYNC_TEST_TIMEOUT', None)
-        os.environ['ASYNC_TEST_TIMEOUT'] = str(30)
+        self.patched_environ = patched_environ(ASYNC_TEST_TIMEOUT='30')
+        self.patched_environ.__enter__()
+        self.addCleanup(self.patched_environ.__exit__)
 
     def tearDown(self):
         super(SaltnadoTestCase, self).tearDown()
-        if self.async_timeout_prev is None:
-            os.environ.pop('ASYNC_TEST_TIMEOUT', None)
-        else:
-            os.environ['ASYNC_TEST_TIMEOUT'] = self.async_timeout_prev
         if hasattr(self, 'http_server'):
             del self.http_server
         if hasattr(self, 'io_loop'):
@@ -531,7 +536,7 @@ class TestSaltAuthHandler(SaltnadoTestCase):
 
         self.assertEqual(response.code, 200)
         response_obj = salt.utils.json.loads(response.body)['return'][0]
-        self.assertEqual(response_obj['perms'], self.opts['external_auth']['auto'][self.auth_creds_dict['username']])
+        self.assertEqual(sorted(response_obj['perms']), sorted(self.opts['external_auth']['auto'][self.auth_creds_dict['username']]))
         self.assertIn('token', response_obj)  # TODO: verify that its valid?
         self.assertEqual(response_obj['user'], self.auth_creds_dict['username'])
         self.assertEqual(response_obj['eauth'], self.auth_creds_dict['eauth'])
@@ -544,7 +549,7 @@ class TestSaltAuthHandler(SaltnadoTestCase):
 
         self.assertEqual(response.code, 200)
         response_obj = salt.utils.json.loads(response.body)['return'][0]
-        self.assertEqual(response_obj['perms'], self.opts['external_auth']['auto'][self.auth_creds_dict['username']])
+        self.assertEqual(sorted(response_obj['perms']), sorted(self.opts['external_auth']['auto'][self.auth_creds_dict['username']]))
         self.assertIn('token', response_obj)  # TODO: verify that its valid?
         self.assertEqual(response_obj['user'], self.auth_creds_dict['username'])
         self.assertEqual(response_obj['eauth'], self.auth_creds_dict['eauth'])
@@ -557,7 +562,7 @@ class TestSaltAuthHandler(SaltnadoTestCase):
 
         self.assertEqual(response.code, 200)
         response_obj = salt.utils.json.loads(response.body)['return'][0]
-        self.assertEqual(response_obj['perms'], self.opts['external_auth']['auto'][self.auth_creds_dict['username']])
+        self.assertEqual(sorted(response_obj['perms']), sorted(self.opts['external_auth']['auto'][self.auth_creds_dict['username']]))
         self.assertIn('token', response_obj)  # TODO: verify that its valid?
         self.assertEqual(response_obj['user'], self.auth_creds_dict['username'])
         self.assertEqual(response_obj['eauth'], self.auth_creds_dict['eauth'])
@@ -578,7 +583,6 @@ class TestSaltAuthHandler(SaltnadoTestCase):
 
         self.assertEqual(response.code, 400)
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     def test_login_bad_creds(self):
         '''
         Test logins with bad/missing passwords
@@ -587,7 +591,10 @@ class TestSaltAuthHandler(SaltnadoTestCase):
         for key, val in six.iteritems(self.auth_creds_dict):
             if key == 'username':
                 val = val + 'foo'
+            if key == 'eauth':
+                val = 'sharedsecret'
             bad_creds.append((key, val))
+
         response = self.fetch('/login',
                                method='POST',
                                body=urlencode(bad_creds),
@@ -649,7 +656,7 @@ class TestSaltRunHandler(SaltnadoTestCase):
             self.assertEqual(valid_response, salt.utils.json.loads(response.body))
 
 
-@skipIf(HAS_TORNADO is False, 'The tornado package needs to be installed')  # pylint: disable=W0223
+@skipIf(not HAS_TORNADO, 'The tornado package needs to be installed')  # pylint: disable=W0223
 class TestWebsocketSaltAPIHandler(SaltnadoTestCase):
 
     def get_app(self):
@@ -754,3 +761,193 @@ class TestWebsocketSaltAPIHandler(SaltnadoTestCase):
         ws = yield websocket_connect(request)
         ws.write_message('websocket client ready')
         ws.close()
+
+
+@skipIf(not HAS_TORNADO, 'The tornado package needs to be installed')
+class TestSaltnadoUtils(AsyncTestCase):
+    def test_any_future(self):
+        '''
+        Test that the Any Future does what we think it does
+        '''
+        # create a few futures
+        futures = []
+        for x in range(0, 3):
+            future = tornado.concurrent.Future()
+            future.add_done_callback(self.stop)
+            futures.append(future)
+
+        # create an any future, make sure it isn't immediately done
+        any_ = saltnado.Any(futures)
+        self.assertIs(any_.done(), False)
+
+        # finish one, lets see who finishes
+        futures[0].set_result('foo')
+        self.wait()
+
+        self.assertIs(any_.done(), True)
+        self.assertIs(futures[0].done(), True)
+        self.assertIs(futures[1].done(), False)
+        self.assertIs(futures[2].done(), False)
+
+        # make sure it returned the one that finished
+        self.assertEqual(any_.result(), futures[0])
+
+        futures = futures[1:]
+        # re-wait on some other futures
+        any_ = saltnado.Any(futures)
+        futures[0].set_result('foo')
+        self.wait()
+        self.assertIs(any_.done(), True)
+        self.assertIs(futures[0].done(), True)
+        self.assertIs(futures[1].done(), False)
+
+
+@skipIf(not HAS_TORNADO, 'The tornado package needs to be installed')
+class TestEventListener(AsyncTestCase):
+    def setUp(self):
+        self.sock_dir = os.path.join(RUNTIME_VARS.TMP, 'test-socks')
+        if not os.path.exists(self.sock_dir):
+            os.makedirs(self.sock_dir)
+        self.addCleanup(shutil.rmtree, self.sock_dir, ignore_errors=True)
+        super(TestEventListener, self).setUp()
+
+    def test_simple(self):
+        '''
+        Test getting a few events
+        '''
+        with eventpublisher_process(self.sock_dir):
+            me = salt.utils.event.MasterEvent(self.sock_dir)
+            event_listener = saltnado.EventListener({},  # we don't use mod_opts, don't save?
+                                                    {'sock_dir': self.sock_dir,
+                                                     'transport': 'zeromq'})
+            self._finished = False  # fit to event_listener's behavior
+            event_future = event_listener.get_event(self, 'evt1', callback=self.stop)  # get an event future
+            me.fire_event({'data': 'foo2'}, 'evt2')  # fire an event we don't want
+            me.fire_event({'data': 'foo1'}, 'evt1')  # fire an event we do want
+            self.wait()  # wait for the future
+
+            # check that we got the event we wanted
+            self.assertTrue(event_future.done())
+            self.assertEqual(event_future.result()['tag'], 'evt1')
+            self.assertEqual(event_future.result()['data']['data'], 'foo1')
+
+    def test_set_event_handler(self):
+        '''
+        Test subscribing events using set_event_handler
+        '''
+        with eventpublisher_process(self.sock_dir):
+            me = salt.utils.event.MasterEvent(self.sock_dir)
+            event_listener = saltnado.EventListener({},  # we don't use mod_opts, don't save?
+                                                    {'sock_dir': self.sock_dir,
+                                                     'transport': 'zeromq'})
+            self._finished = False  # fit to event_listener's behavior
+            event_future = event_listener.get_event(self,
+                                                    tag='evt',
+                                                    callback=self.stop,
+                                                    timeout=1,
+                                                    )  # get an event future
+            me.fire_event({'data': 'foo'}, 'evt')  # fire an event we do want
+            self.wait()
+
+            # check that we subscribed the event we wanted
+            self.assertEqual(len(event_listener.timeout_map), 0)
+
+    def test_timeout(self):
+        '''
+        Make sure timeouts work correctly
+        '''
+        with eventpublisher_process(self.sock_dir):
+            event_listener = saltnado.EventListener({},  # we don't use mod_opts, don't save?
+                                                    {'sock_dir': self.sock_dir,
+                                                     'transport': 'zeromq'})
+            self._finished = False  # fit to event_listener's behavior
+            event_future = event_listener.get_event(self,
+                                                    tag='evt1',
+                                                    callback=self.stop,
+                                                    timeout=1,
+                                                    )  # get an event future
+            self.wait()
+            self.assertTrue(event_future.done())
+            with self.assertRaises(saltnado.TimeoutException):
+                event_future.result()
+
+    def test_clean_by_request(self):
+        '''
+        Make sure the method clean_by_request clean up every related data in EventListener
+        request_future_1 : will be timeout-ed by clean_by_request(self)
+        request_future_2 : will be finished by me.fire_event ...
+        dummy_request_future_1 : will be finished by me.fire_event ...
+        dummy_request_future_2 : will be timeout-ed by clean-by_request(dummy_request)
+        '''
+        class DummyRequest(object):
+            '''
+            Dummy request object to simulate the request object
+            '''
+            @property
+            def _finished(self):
+                '''
+                Simulate _finished of the request object
+                '''
+                return False
+
+        # Inner functions never permit modifying primitive values directly
+        cnt = [0]
+
+        def stop():
+            '''
+            To realize the scenario of this test, define a custom stop method to call
+            self.stop after finished two events.
+            '''
+            cnt[0] += 1
+            if cnt[0] == 2:
+                self.stop()
+
+        with eventpublisher_process(self.sock_dir):
+            me = salt.utils.event.MasterEvent(self.sock_dir)
+            event_listener = saltnado.EventListener({},  # we don't use mod_opts, don't save?
+                                                    {'sock_dir': self.sock_dir,
+                                                     'transport': 'zeromq'})
+
+            self.assertEqual(0, len(event_listener.tag_map))
+            self.assertEqual(0, len(event_listener.request_map))
+
+            self._finished = False  # fit to event_listener's behavior
+            dummy_request = DummyRequest()
+            request_future_1 = event_listener.get_event(self, tag='evt1')
+            request_future_2 = event_listener.get_event(self, tag='evt2', callback=lambda f: stop())
+            dummy_request_future_1 = event_listener.get_event(dummy_request, tag='evt3', callback=lambda f: stop())
+            dummy_request_future_2 = event_listener.get_event(dummy_request, timeout=10, tag='evt4')
+
+            self.assertEqual(4, len(event_listener.tag_map))
+            self.assertEqual(2, len(event_listener.request_map))
+
+            me.fire_event({'data': 'foo2'}, 'evt2')
+            me.fire_event({'data': 'foo3'}, 'evt3')
+            self.wait()
+            event_listener.clean_by_request(self)
+            me.fire_event({'data': 'foo1'}, 'evt1')
+
+            self.assertTrue(request_future_1.done())
+            with self.assertRaises(saltnado.TimeoutException):
+                request_future_1.result()
+
+            self.assertTrue(request_future_2.done())
+            self.assertEqual(request_future_2.result()['tag'], 'evt2')
+            self.assertEqual(request_future_2.result()['data']['data'], 'foo2')
+
+            self.assertTrue(dummy_request_future_1.done())
+            self.assertEqual(dummy_request_future_1.result()['tag'], 'evt3')
+            self.assertEqual(dummy_request_future_1.result()['data']['data'], 'foo3')
+
+            self.assertFalse(dummy_request_future_2.done())
+
+            self.assertEqual(2, len(event_listener.tag_map))
+            self.assertEqual(1, len(event_listener.request_map))
+
+            event_listener.clean_by_request(dummy_request)
+
+            with self.assertRaises(saltnado.TimeoutException):
+                dummy_request_future_2.result()
+
+            self.assertEqual(0, len(event_listener.tag_map))
+            self.assertEqual(0, len(event_listener.request_map))

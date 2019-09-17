@@ -596,9 +596,10 @@ class MinionBase(object):
                 opts['master_list'] = [opts['master']]
 
         for master in opts['master_list']:
-            opts['master'] = master
-            opts.update(prep_ip_port(opts))
-            opts['master_uri_list'].append(resolve_dns(opts)['master_uri'])
+            opts_copy = copy.deepcopy(opts)
+            opts_copy['master'] = master
+            opts_copy.update(prep_ip_port(opts_copy))
+            opts['master_uri_list'].append(resolve_dns(opts_copy)['master_uri'])
 
         # if we have a list of masters, loop through them and be
         # happy with the first one that allows us to connect
@@ -1002,16 +1003,7 @@ class MinionManager(MinionBase):
         if (self.opts['master_type'] in ('failover', 'distributed')) or not isinstance(self.opts['master'], list):
             masters = [masters]
 
-        # This sits outside of the connection loop below because it needs to set
-        # up a list of master URIs regardless of which masters are available
-        # to connect _to_. This is primarily used for masterless and multimaster mode,
-        # when we need a list of master URIs to fire calls back to.
-        self.opts['master_uri_list'] = []
-        for master in masters:
-            s_opts = copy.deepcopy(self.opts)
-            s_opts['master'] = master
-            s_opts.update(prep_ip_port(s_opts))
-            self.opts['master_uri_list'].append(resolve_dns(s_opts)['master_uri'])
+        self.opts['master_list'] = copy.deepcopy(masters)
 
         for master in masters:
             s_opts = copy.deepcopy(self.opts)
@@ -1504,11 +1496,16 @@ class Minion(MinionBase):
                 self.schedule.returners = self.returners
 
         process_count_max = self.opts.get('process_count_max')
+        process_count_max_sleep_secs = self.opts.get('process_count_max_sleep_secs')
         if process_count_max > 0:
             process_count = len(salt.utils.minion.running(self.opts))
             while process_count >= process_count_max:
-                log.warn("Maximum number of processes reached while executing jid {0}, waiting...".format(data['jid']))
-                yield tornado.gen.sleep(10)
+                log.warning('Maximum number of processes (%s) reached while '
+                            'executing jid %s, waiting %s seconds...',
+                            process_count_max,
+                            data['jid'],
+                            process_count_max_sleep_secs)
+                yield tornado.gen.sleep(process_count_max_sleep_secs)
                 process_count = len(salt.utils.minion.running(self.opts))
 
         # We stash an instance references to allow for the socket

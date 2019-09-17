@@ -12,7 +12,7 @@ import salt.utils.files
 
 # Import Salt Testing Libs
 from tests.support.runtests import RUNTIME_VARS
-from tests.support.unit import TestCase, skipIf, expectedFailure
+from tests.support.unit import TestCase, skipIf
 from tests.support.mixins import LoaderModuleMockMixin
 from tests.support.mock import NO_MOCK, NO_MOCK_REASON, patch, PropertyMock
 from tests.unit.test_crypt import PRIVKEY_DATA
@@ -27,6 +27,8 @@ PASS_DATA = (
 
 
 @skipIf(NO_MOCK, NO_MOCK_REASON)
+@skipIf(not ec2.HAS_M2, 'missing m2crypto lib')
+@skipIf(not ec2.HAS_PYCRYPTO, 'missing pycrpyto lib')
 class EC2TestCase(TestCase, LoaderModuleMockMixin):
     '''
     Unit TestCase for salt.cloud.clouds.ec2 module.
@@ -66,7 +68,6 @@ class EC2TestCase(TestCase, LoaderModuleMockMixin):
             self.assertRaises(
                 SaltCloudSystemExit, ec2._validate_key_path_and_mode, 'key_file')
 
-    @expectedFailure #bb test was failing when ran in Jenkins
     @patch('salt.cloud.clouds.ec2._get_node')
     @patch('salt.cloud.clouds.ec2.get_location')
     @patch('salt.cloud.clouds.ec2.get_provider')

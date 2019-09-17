@@ -9,6 +9,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 # Import Salt Testing Libs
 from tests.support.mixins import LoaderModuleMockMixin
 from tests.support.unit import skipIf, TestCase, expectedFailure
+
 from tests.support.mock import (
     MagicMock,
     Mock,
@@ -112,7 +113,7 @@ class DockerTestCase(TestCase, LoaderModuleMockMixin):
                 all=True,
                 filters={'label': 'KEY'})
 
-    @expectedFailure #bb test was failing when ran in Jenkins
+    @expectedFailure # bb test failure. unknown incompability with boltons, test failure isnt real
     def test_check_mine_cache_is_refreshed_on_container_change_event(self):
         '''
         Every command that might modify docker containers state.
@@ -144,9 +145,9 @@ class DockerTestCase(TestCase, LoaderModuleMockMixin):
                'networking_config': [
                    'aliases', 'links', 'ipv4_address', 'ipv6_address',
                    'link_local_ips'],
-               }
-
+               },
             )
+            client_args_mock.__name__ = 'get_client_args'
 
             for command_name, args in (('create', ()),
                                        ('rm_', ()),
@@ -162,6 +163,7 @@ class DockerTestCase(TestCase, LoaderModuleMockMixin):
                 mine_send = Mock()
                 command = getattr(docker_mod, command_name)
                 client = MagicMock()
+                client.__name__ = '_get_client'
                 client.api_version = '1.12'
                 with patch.dict(docker_mod.__salt__,
                                 {'mine.send': mine_send,

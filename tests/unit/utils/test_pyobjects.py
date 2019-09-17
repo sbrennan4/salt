@@ -321,7 +321,6 @@ class RendererMixin(object):
 
 
 class RendererTests(RendererMixin, StateTests, MapBuilder):
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
     def test_basic(self):
         ret = self.render(basic_template)
         self.assertEqual(ret, OrderedDict([
@@ -335,20 +334,17 @@ class RendererTests(RendererMixin, StateTests, MapBuilder):
         ]))
         self.assertEqual(Registry.states, OrderedDict())
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
     def test_invalid_function(self):
         def _test():
             self.render(invalid_template)
         self.assertRaises(InvalidFunction, _test)
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
     def test_include(self):
         ret = self.render(include_template)
         self.assertEqual(ret, OrderedDict([
             ('include', ['http']),
         ]))
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
     def test_extend(self):
         ret = self.render(extend_template,
                           {'grains': {
@@ -366,7 +362,6 @@ class RendererTests(RendererMixin, StateTests, MapBuilder):
             ])),
         ]))
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
     def test_sls_imports(self):
         def render_and_assert(template):
             ret = self.render(template,
@@ -391,7 +386,6 @@ class RendererTests(RendererMixin, StateTests, MapBuilder):
         self.write_template_file("recursive_map.sls", recursive_map_template)
         render_and_assert(recursive_import_template)
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
     def test_import_scope(self):
         self.write_template_file("map.sls", self.build_map())
         self.write_template_file("recursive_map.sls", recursive_map_template)
@@ -405,18 +399,15 @@ class RendererTests(RendererMixin, StateTests, MapBuilder):
 
         self.assertRaises(NameError, do_render)
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
     def test_random_password(self):
         '''Test for https://github.com/saltstack/salt/issues/21796'''
         ret = self.render(random_password_template)
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
     def test_import_random_password(self):
         '''Import test for https://github.com/saltstack/salt/issues/21796'''
         self.write_template_file("password.sls", random_password_template)
         ret = self.render(random_password_import_template)
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
     def test_requisite_implicit_list(self):
         '''Ensure that the implicit list characteristic works as expected'''
         ret = self.render(requisite_implicit_list_template,
@@ -473,7 +464,6 @@ class MapTests(RendererMixin, TestCase, MapBuilder):
         else:
             raise AssertionError('both dicts are equal')
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
     def test_map(self):
         '''
         Test declarative ordering
@@ -509,7 +499,6 @@ class MapTests(RendererMixin, TestCase, MapBuilder):
         ret = self.samba_with_grains(template, self.ubuntu_grains)
         self.assert_not_equal(ret, *self.ubuntu_attrs)
 
-    @skipIf(True, 'bb test was failing when ran in Jenkins')
     def test_map_with_priority(self):
         '''
         With declarative ordering, the debian service name would override the

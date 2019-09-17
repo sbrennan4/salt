@@ -216,6 +216,11 @@ def pytest_configure(config):
 
     # Make sure the test suite "knows" this is a pytest test run
     RUNTIME_VARS.PYTEST_SESSION = True
+    for kind in ('cli', 'client', 'cloud', 'fileserver', 'loader', 'minion', 'modules',
+                 'netapi', 'output', 'reactor', 'renderers', 'runners', 'sdb', 'shell',
+                 'ssh', 'states', 'utils', 'wheel', 'acl', 'beacons', 'cli', 'cloud',
+                 'config', 'grains', 'serializers', 'templates', 'transport', 'pillar'):
+        config.addinivalue_line("markers", '{0}: {0} tests'.format(kind))
 
     # Provide a global timeout for each test(pytest-timeout).
     if config._env_timeout is None:

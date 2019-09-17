@@ -365,6 +365,10 @@ VALID_OPTS = {
     # Maximum number of concurrently active processes at any given point in time
     'process_count_max': int,
 
+    # If the minion reaches process_count_max, how long should it sleep
+    # before trying to generate a new process.
+    'process_count_max_sleep_secs': int,
+
     # Whether or not the salt minion should run scheduled mine updates
     'mine_enabled': bool,
 
@@ -942,6 +946,9 @@ VALID_OPTS = {
     # Set a hard limit for the amount of memory modules can consume on a minion.
     'modules_max_memory': int,
 
+    # Blacklist specific core grains to be filtered
+    'grains_blacklist': list,
+
     # The number of minutes between the minion refreshing its cache of grains
     'grains_refresh_every': int,
 
@@ -1255,6 +1262,7 @@ DEFAULT_MINION_OPTS = {
     'cachedir_umask': 0o077,
     'append_minionid_config_dirs': [],
     'cache_jobs': False,
+    'grains_blacklist': [],
     'grains_cache': False,
     'grains_cache_expiration': 300,
     'grains_deep_merge': False,
@@ -1384,6 +1392,7 @@ DEFAULT_MINION_OPTS = {
     'autosign_timeout': 120,
     'multiprocessing': True,
     'process_count_max': -1,
+    'process_count_max_sleep_secs': 10,
     'mine_enabled': True,
     'mine_return_job': False,
     'mine_interval': 60,
