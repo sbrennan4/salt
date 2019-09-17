@@ -325,6 +325,8 @@ def state(name,
 
     if saltenv is not None:
         cmd_kw['kwarg']['saltenv'] = saltenv
+    else:
+        cmd_kw['kwarg']['saltenv'] = __opts__['saltenv']
 
     if exclude is not None:
         cmd_kw['kwarg']['exclude'] = exclude
