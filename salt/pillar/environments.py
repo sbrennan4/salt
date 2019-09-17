@@ -165,7 +165,7 @@ def stage_envs(stage, envs):
 # 2. if not, include at minimum an empty dict/key so the node is considered in the environment
 # all multitenancies are assumed to exist by /{base-path}/{name}-{stage}/ for SN2..S4
 # file_roots mapping {name-stage} environment to the above roots exists
-def ext_pillar(minion_id, pillar):
+def ext_pillar(minion_id, pillar, *args):
     """
     A salt external pillar which provides the list of nodegroups of which the minion is a member.
 
@@ -174,6 +174,9 @@ def ext_pillar(minion_id, pillar):
     :param pillar_name: optional name to use for the pillar, defaults to 'environments'
     :return: a dictionary which is included by the salt master in the pillars returned to the minion
     """
+
+    if args:
+        log.error('got unexpected args: %s', args)
 
     global_tenancy_groups = global_tenancy_groups_set()
 
