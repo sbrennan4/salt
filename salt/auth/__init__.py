@@ -402,7 +402,7 @@ class LoadAuth(object):
             name = self.load_name(load)  # The username we are attempting to auth with
             groups = self.get_groups(load)  # The groups this user belongs to
 
-        default_config = self.opts['external_auth'].get('default', {})
+        default_config = self.opts['external_auth'].get('default', [])
         # if eauth is default, pillar is asking for a default auth_list, so we do nothing
         if eauth == 'default':
             eauth_config = {'default': default_config}
@@ -412,7 +412,7 @@ class LoadAuth(object):
 
             # if a default profile was specified, we must merge into each matcher
             if default_config and eauth_config:
-                for matcher in default_config.keys():
+                for matcher in eauth_config.keys():
                     eauth_config[matcher] = default_config + eauth_config.get(matcher, [])
 
         if not eauth_config:
