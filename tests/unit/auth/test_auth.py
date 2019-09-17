@@ -29,10 +29,31 @@ class LoadAuthTestCase(TestCase, LoaderModuleMockMixin):
 
     def setUp(self):
         opts = auth.__opts__
+        self.opts = opts
         self.auth = auth.LoadAuth(opts)
 
-    def test__process_acl(self):
+    def test__process_acl_eauth_not_in_load(self):
         auth_list=['junk']
-        pdb.set_trace()
+        # test when 'eauth' not in load
         ret = auth.LoadAuth._LoadAuth__process_acl(self.auth, {}, auth_list)
         self.assertEqual(ret, auth_list)
+
+    def test__process_acl_fstr_not_in_self_auth(self):
+        auth_list=['abcde']
+        # test fstr not in self.auth
+        ret = auth.LoadAuth._LoadAuth__process_acl(self.auth, {'eauth': 'junk'}, auth_list)
+        self.assertEqual(ret, auth_list)
+
+    def test__process_acl_eauth_is_ldap(self):
+        auth_list=['dummy_junk']
+        # test fstr not in self.auth
+        ret = auth.LoadAuth._LoadAuth__process_acl(self.auth, {'eauth': 'ldap'}, auth_list)
+        self.assertEqual(ret, auth_list)
+
+    # def test__process_acl_exception(self):
+        # auth_list=['aw12xdftqqq']
+        # test self.auth[fstr] exception
+        # pdb.set_trace()
+        # with patch.object('auth.ldap.process_acl(auth_list, self.opts)', side_effect=lambda: [KeyError(), 'BAD cmd']):
+            # with pytest.raises(KeyError):
+                # ret = auth.LoadAuth._LoadAuth__process_acl(self.auth, {'eauth': 'junk'}, auth_list)
