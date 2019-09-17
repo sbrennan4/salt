@@ -303,7 +303,7 @@ class AsyncReqMessageClientPoolTest(TestCase):
         self.message_client_pool.message_clients = [MagicMock() for _ in range(sock_pool_size)]
 
     def tearDown(self):
-        with patch('salt.transport.zeromq.AsyncReqMessageClient.destroy', MagicMock(return_value=None)):
+        with patch('salt.transport.zeromq.AsyncReqMessageClient.__del__', MagicMock(return_value=None)):
             del self.original_message_clients
         super(AsyncReqMessageClientPoolTest, self).tearDown()
 
