@@ -3,7 +3,6 @@
 # Import python libs
 from __future__ import absolute_import, print_function, unicode_literals
 import pytest
-import pdb
 
 # Import Salt Testing Libs
 from tests.support.mixins import LoaderModuleMockMixin
@@ -54,8 +53,6 @@ class LoadAuthTestCase(TestCase, LoaderModuleMockMixin):
     def test__process_acl_exception(self):
         auth_list=['aw12xdftqqq']
         # test self.auth[fstr] exception
-        pdb.set_trace()
-        with patch('salt.auth.ldap.process_acl', side_effect=lambda: [KeyError(), 'BAD cmd']):
-                with pytest.raises(KeyError):
-                    ret = self.auth._LoadAuth__process_acl({'eauth': 'ldap'}, auth_list)
-                    self.assertEqual(ret, auth_list)
+        with patch('salt.auth.ldap.process_acl', side_effect=KeyError()):
+            ret = self.auth._LoadAuth__process_acl({'eauth': 'ldap'}, auth_list)
+            self.assertEqual(ret, auth_list)
