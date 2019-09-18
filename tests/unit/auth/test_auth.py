@@ -51,10 +51,11 @@ class LoadAuthTestCase(TestCase, LoaderModuleMockMixin):
         ret = self.auth._LoadAuth__process_acl({'eauth': 'ldap'}, auth_list)
         self.assertEqual(ret, ret_ldap_process_acl)
 
-    # def test__process_acl_exception(self):
-        # auth_list=['aw12xdftqqq']
+    def test__process_acl_exception(self):
+        auth_list=['aw12xdftqqq']
         # test self.auth[fstr] exception
-        # pdb.set_trace()
-        # with patch.object('auth.ldap.process_acl(auth_list, self.opts)', side_effect=lambda: [KeyError(), 'BAD cmd']):
-            # with pytest.raises(KeyError):
-                # ret = auth.LoadAuth._LoadAuth__process_acl(self.auth, {'eauth': 'junk'}, auth_list)
+        pdb.set_trace()
+        with patch('salt.auth.ldap.process_acl', side_effect=lambda: [KeyError(), 'BAD cmd']):
+                with pytest.raises(KeyError):
+                    ret = self.auth._LoadAuth__process_acl({'eauth': 'ldap'}, auth_list)
+                    self.assertEqual(ret, auth_list)
