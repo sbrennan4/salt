@@ -174,10 +174,6 @@ def ext_pillar(minion_id, pillar, *args):
     :param pillar_name: optional name to use for the pillar, defaults to 'environments'
     :return: a dictionary which is included by the salt master in the pillars returned to the minion
     """
-
-    if args:
-        log.error('got unexpected args: %s', args)
-
     global_tenancy_groups = global_tenancy_groups_set()
 
     # hostinfo resolving a node that is None will throw an error
