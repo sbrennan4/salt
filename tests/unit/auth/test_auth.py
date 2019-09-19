@@ -46,9 +46,8 @@ class LoadAuthTestCase(TestCase, LoaderModuleMockMixin):
     def test__process_acl_eauth_is_ldap(self):
         auth_list=['dummy_junk']
         # test fstr not in self.auth
-        ret_ldap_process_acl = self.auth.auth['ldap.process_acl'](auth_list, self.opts)
         ret = self.auth._LoadAuth__process_acl({'eauth': 'ldap'}, auth_list)
-        self.assertEqual(ret, ret_ldap_process_acl)
+        self.assertEqual(ret, auth_list)
 
     def test__process_acl_exception(self):
         auth_list=['aw12xdftqqq']
