@@ -246,17 +246,6 @@ class AsyncZeroMQReqChannel(salt.transport.client.ReqChannel):
             if not loop_instance_map:
                 del self.__class__.instance_map[self._io_loop]
 
-        # Remove the entry from the instance map so that a closed entry may not
-        # be reused.
-        # This forces this operation even if the reference count of the entry
-        # has not yet gone to zero.
-        if self._io_loop in self.__class__.instance_map:
-            loop_instance_map = self.__class__.instance_map[self._io_loop]
-            if self._instance_key in loop_instance_map:
-                del loop_instance_map[self._instance_key]
-            if not loop_instance_map:
-                del self.__class__.instance_map[self._io_loop]
-
     def __del__(self):
         with self._refcount_lock:
             # Make sure we actually close no matter if something
@@ -791,7 +780,7 @@ class ZeroMQReqServerChannel(salt.transport.mixins.auth.AESReqServerMixin,
             ret, req_opts = yield self.payload_handler(payload)
         except Exception as e:
             # always attempt to return an error to the minion
-            stream.send('Some exception handling minion payload')
+            stream.send(self.serial.dumps('Some exception handling minion payload'))
             log.error('Some exception handling a payload from minion', exc_info=True)
             raise tornado.gen.Return()
 
@@ -808,7 +797,7 @@ class ZeroMQReqServerChannel(salt.transport.mixins.auth.AESReqServerMixin,
         else:
             log.error('Unknown req_fun %s', req_fun)
             # always attempt to return an error to the minion
-            stream.send('Server-side exception handling payload')
+            stream.send(self.serial.dumps('Server-side exception handling payload'))
         raise tornado.gen.Return()
 
     def __setup_signals(self):

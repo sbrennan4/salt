@@ -16,6 +16,7 @@ so that any external authentication system can be used inside of Salt
 # Import python libs
 from __future__ import absolute_import, print_function, unicode_literals
 import collections
+import copy
 import time
 import logging
 import random
@@ -46,7 +47,8 @@ AUTH_INTERNAL_KEYWORDS = frozenset([
     'key',
     'fun',
     'kwarg',
-    'match'
+    'match',
+    'jid'
 ])
 
 
@@ -408,7 +410,7 @@ class LoadAuth(object):
             eauth_config = {'default': default_config}
             name = 'default'
         else:
-            eauth_config = self.opts['external_auth'][eauth]
+            eauth_config = copy.deepcopy(self.opts['external_auth'][eauth])
 
             # if a default profile was specified, we must merge into each matcher
             if default_config and eauth_config:

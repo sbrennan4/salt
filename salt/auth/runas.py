@@ -50,7 +50,7 @@ def acl(eauth_opts=None, username=None, **kwargs):
 
     return auth_list
 
-def auth(key=None, auth_type=None):
+def auth(key=None, auth_type=None, **kwargs):
     '''
     acts as master aes key authentication for implicit calls
     '''

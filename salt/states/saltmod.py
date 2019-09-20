@@ -129,6 +129,11 @@ def state(name,
         queue=False,
         subset=None,
         orchestration_jid=None,
+        failhard=None,
+        eauth=None,
+        eauth_opts=None,
+        module_executors=None,
+        executor_opts=None,
         **kwargs):
     '''
     Invoke a state run on a given target
@@ -233,6 +238,10 @@ def state(name,
 
         .. versionadded:: neon
 
+    failhard
+        pass failhard down to the executing state
+
+        .. versionadded:: develop
 
     Examples:
 
@@ -340,8 +349,24 @@ def state(name,
 
     if batch is not None:
         cmd_kw['batch'] = six.text_type(batch)
+
     if subset is not None:
         cmd_kw['subset'] = subset
+
+    if failhard is True or __opts__.get('failhard'):
+        cmd_kw['failhard'] = True
+
+    if eauth:
+        cmd_kw['eauth'] = eauth
+
+    if eauth_opts:
+        cmd_kw['eauth_opts'] = eauth_opts
+
+    if executor_opts:
+        cmd_kw['executor_opts'] = executor_opts
+
+    if module_executors:
+        cmd_kw['module_executors'] = module_executors
 
     masterless = __opts__['__role'] == 'minion' and \
                  __opts__['file_client'] == 'local'
@@ -468,6 +493,11 @@ def function(
         timeout=None,
         batch=None,
         subset=None,
+        failhard=None,
+        eauth=None,
+        eauth_opts=None,
+        module_executors=None,
+        executor_opts=None,
         **kwargs):  # pylint: disable=unused-argument
     '''
     Execute a single module function on a remote minion via salt or salt-ssh
@@ -522,6 +552,11 @@ def function(
 
         .. versionadded:: neon
 
+    failhard
+        pass failhard down to the executing state
+
+        .. versionadded:: develop
+
     '''
     func_ret = {'name': name,
                 'changes': {},
@@ -548,11 +583,26 @@ def function(
     cmd_kw['_cmd_meta'] = True
     cmd_kw['asynchronous'] = kwargs.pop('asynchronous', False)
 
+    if failhard is True or __opts__.get('failhard'):
+        cmd_kw['failhard'] = True
+
     if ret_config:
         cmd_kw['ret_config'] = ret_config
 
     if ret_kwargs:
         cmd_kw['ret_kwargs'] = ret_kwargs
+
+    if eauth:
+        cmd_kw['eauth'] = eauth
+
+    if eauth_opts:
+        cmd_kw['eauth_opts'] = eauth_opts
+
+    if executor_opts:
+        cmd_kw['executor_opts'] = executor_opts
+
+    if module_executors:
+        cmd_kw['module_executors'] = module_executors
 
     fun = name
     if __opts__['test'] is True:
@@ -622,7 +672,7 @@ def function(
         func_ret['command'] = 'No minions responded'
     else:
         if changes:
-            func_ret['changes'] = {'out': 'highstate', 'ret': changes}
+            func_ret['changes'] = changes
         if fail:
             func_ret['result'] = False
             func_ret['comment'] = 'Running function {0} failed on minions: {1}'.format(name, ', '.join(fail))

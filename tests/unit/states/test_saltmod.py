@@ -185,7 +185,7 @@ class SaltmodTestCase(TestCase, LoaderModuleMockMixin):
             self.assertDictEqual(saltmod.function(name, tgt), ret)
 
         ret.update({'result': True,
-                    'changes': {'out': 'highstate', 'ret': {tgt: ''}},
+                    'changes': {tgt: ''},
                     'comment': 'Function ran successfully.'
                               ' Function state ran on {0}.'.format(tgt)})
         with patch.dict(saltmod.__opts__, {'test': False}):
