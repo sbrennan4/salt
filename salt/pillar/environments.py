@@ -157,7 +157,7 @@ def stage_envs(stage, envs):
     """
     stage = stage.lower() # stage must be lowercase
     staged_envs = ['{}-{}'.format(env, stage) for env in envs]
-    return {'environments': staged_envs}
+    return {'environments': staged_envs, 'tenancies': list(envs)}
 
 
 # the goal here is to
@@ -165,7 +165,7 @@ def stage_envs(stage, envs):
 # 2. if not, include at minimum an empty dict/key so the node is considered in the environment
 # all multitenancies are assumed to exist by /{base-path}/{name}-{stage}/ for SN2..S4
 # file_roots mapping {name-stage} environment to the above roots exists
-def ext_pillar(minion_id, pillar, *args):
+def ext_pillar(minion_id, pillar=None, *args):
     """
     A salt external pillar which provides the list of nodegroups of which the minion is a member.
 

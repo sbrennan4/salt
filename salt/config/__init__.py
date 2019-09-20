@@ -828,6 +828,8 @@ VALID_OPTS = {
     # same module used for external authentication.
     'eauth_acl_module': six.string_types,
 
+    'pillar_acl_module': six.string_types,
+
     # Subsystem to use to maintain eauth tokens. By default, tokens are stored on the local
     # filesystem
     'eauth_tokens': six.string_types,
@@ -1700,6 +1702,7 @@ DEFAULT_MASTER_OPTS = {
     'permissive_acl': False,
     'loader_acl': [],
     'keep_acl_in_token': False,
+    'pillar_acl_module': '',
     'eauth_acl_module': '',
     'eauth_tokens': 'localfs',
     'extension_modules': os.path.join(salt.syspaths.CACHE_DIR, 'master', 'extmods'),

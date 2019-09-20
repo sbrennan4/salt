@@ -1178,8 +1178,14 @@ class AESFuncs(object):
         )
         self.__setup_fileserver()
         self.masterapi = salt.daemons.masterapi.RemoteFuncs(opts)
+
         # Make an Auth object
-        self.loadauth = salt.auth.LoadAuth(opts)
+        if self.opts['pillar_acl_module']:
+            opts = copy.deepcopy(self.opts)
+            opts['eauth_acl_module'] = self.opts['pillar_acl_module']
+            self.loadauth = salt.auth.LoadAuth(opts)
+        else:
+            self.loadauth = salt.auth.LoadAuth(self.opts)
 
     def __setup_fileserver(self):
         '''
@@ -1196,9 +1202,7 @@ class AESFuncs(object):
         self._file_list_emptydirs = self.fs_.file_list_emptydirs
         self._dir_list = self.fs_.dir_list
         self._symlink_list = self.fs_.symlink_list
-        # only instantiate pillars loader if necessary
-        if any('environments' in ext for ext in self.opts['ext_pillar']):
-            self.pillars = salt.loader.pillars(self.opts, {})
+        self.pillars = salt.loader.pillars(self.opts, {})
 
     def _file_envs(self, load=None):
         '''
@@ -1556,8 +1560,12 @@ class AESFuncs(object):
         :return: The pillar data for the minion
         '''
 
-        if self.opts['loader_acl']:
-            auth_list = self.loadauth.get_auth_list({'eauth': 'default'})
+        # when pillar_acl_module is set, it implicilty overrides
+        # eauth_acl_module in self.loadauth
+        if self.opts['pillar_acl_module']:
+            # eauth here is irrelevant, it just needs to be not rejected by loadauth
+            load['eauth'] = 'default'
+            auth_list = self.loadauth.get_auth_list(load)
 
             auth_check = {'auth_list': auth_list,
                           'auth_type': '_pillar',
