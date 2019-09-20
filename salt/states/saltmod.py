@@ -130,6 +130,10 @@ def state(name,
         subset=None,
         orchestration_jid=None,
         failhard=None,
+        eauth=None,
+        eauth_opts=None,
+        module_executors=None,
+        executor_opts=None,
         **kwargs):
     '''
     Invoke a state run on a given target
@@ -352,6 +356,18 @@ def state(name,
     if failhard is True or __opts__.get('failhard'):
         cmd_kw['failhard'] = True
 
+    if eauth:
+        cmd_kw['eauth'] = eauth
+
+    if eauth_opts:
+        cmd_kw['eauth_opts'] = eauth_opts
+
+    if executor_opts:
+        cmd_kw['executor_opts'] = executor_opts
+
+    if module_executors:
+        cmd_kw['module_executors'] = module_executors
+
     masterless = __opts__['__role'] == 'minion' and \
                  __opts__['file_client'] == 'local'
     if not masterless:
@@ -478,6 +494,10 @@ def function(
         batch=None,
         subset=None,
         failhard=None,
+        eauth=None,
+        eauth_opts=None,
+        module_executors=None,
+        executor_opts=None,
         **kwargs):  # pylint: disable=unused-argument
     '''
     Execute a single module function on a remote minion via salt or salt-ssh
@@ -571,6 +591,18 @@ def function(
 
     if ret_kwargs:
         cmd_kw['ret_kwargs'] = ret_kwargs
+
+    if eauth:
+        cmd_kw['eauth'] = eauth
+
+    if eauth_opts:
+        cmd_kw['eauth_opts'] = eauth_opts
+
+    if executor_opts:
+        cmd_kw['executor_opts'] = executor_opts
+
+    if module_executors:
+        cmd_kw['module_executors'] = module_executors
 
     fun = name
     if __opts__['test'] is True:
