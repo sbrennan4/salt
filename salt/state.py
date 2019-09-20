@@ -1950,9 +1950,8 @@ class State(object):
             # Let's get a reference to the salt environment to use within this
             # state call.
             #
-            # If the state function accepts an 'env' keyword argument, it
-            # allows the state to be overridden(we look for that in cdata). If
-            # that's not found in cdata, we look for what we're being passed in
+            # BLP Specific: If the state function accepts an 'saltenv' keyword
+            # argument, we ignore it. We look for what we're being passed in
             # the original data, namely, the special dunder __env__. If that's
             # not found we default to 'base'
             if ('unless' in low and '{0[state]}.mod_run_check'.format(low) not in self.states) or \
@@ -1964,9 +1963,7 @@ class State(object):
                 # salt/modules/state.py, before we ever get here, but this
                 # additional check keeps use of the State class outside of the
                 # salt/modules/state.py from getting around this setting.
-                if 'saltenv' in low:
-                    inject_globals['__env__'] = six.text_type(low['saltenv'])
-                elif isinstance(cdata['kwargs'].get('env', None), six.string_types):
+                if isinstance(cdata['kwargs'].get('env', None), six.string_types):
                     # User is using a deprecated env setting which was parsed by
                     # format_call.
                     # We check for a string type since module functions which
