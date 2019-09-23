@@ -82,14 +82,13 @@ class EnvironmentsTestCase(TestCase, LoaderModuleMockMixin):
 
         with patch.object(environments, 'resolve_node', MagicMock(return_value=None)):
             result = environments.ext_pillar('minion_id', {})
-        self.assertEqual(result, {'environments': ['salt-coffee-nostage', 'salt-apple-nostage']})
+        self.assertEqual(result, {'environments': ['salt-coffee-nostage', 'salt-apple-nostage'], 'tenancies': ['salt-coffee', 'salt-apple']})
 
     # parameterize if/when salt switch to pytest runner
     def test_ext_pillar_hostinfo_groups_match_none(self):
         result = environments.ext_pillar('no-exist', {})
-        self.assertEqual(result, {'environments': ['salt-coffee-nostage', 'salt-apple-nostage']})
+        self.assertEqual(result, {'environments': ['salt-coffee-nostage', 'salt-apple-nostage'], 'tenancies': ['salt-coffee', 'salt-apple']})
 
     def test_ext_pillar_hostinfo_groups_match_some(self):
         result = environments.ext_pillar('sltdm-rr-129', {})
-        self.assertEqual(result, {'environments': ['salt-coffee-s2', 'salt-apple-s2', 'sltdm-s2']})
-
+        self.assertEqual(result, {'environments': ['salt-coffee-s2', 'salt-apple-s2', 'sltdm-s2'], 'tenancies': ['salt-coffee', 'salt-apple', 'sltdm']})
