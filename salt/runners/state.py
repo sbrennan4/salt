@@ -57,7 +57,8 @@ def orchestrate(mods,
                 pillar=None,
                 pillarenv=None,
                 pillar_enc=None,
-                orchestration_jid=None):
+                orchestration_jid=None,
+                **kwargs):
     '''
     .. versionadded:: 0.17.0
 

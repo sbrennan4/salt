@@ -1989,10 +1989,14 @@ class ClearFuncs(object):
         # Authorized. Do the job!
         try:
             # store auth_check for later nested authorizations from this call
-            RequestContext.current['auth_check'] = auth_check
-
             fun = clear_load.pop('fun')
-            runner_client = salt.runner.RunnerClient(self.opts)
+            kwarg = clear_load.get('kwarg', {})
+            opts_overrides = kwarg.get('kwarg', {}).get('opts_overrides', {})
+            opts = copy.deepcopy(self.opts)
+            opts.update(opts_overrides)
+
+
+            runner_client = salt.runner.RunnerClient(opts)
 
             # if runner is pre-subscribed from ie salt-api, honor it
             if 'jid' in clear_load:
@@ -2003,7 +2007,7 @@ class ClearFuncs(object):
                 pub = None
 
             return runner_client.asynchronous(fun,
-                                              clear_load.get('kwarg', {}),
+                                              kwarg,
                                               username,
                                               pub=pub)
         except Exception as exc:

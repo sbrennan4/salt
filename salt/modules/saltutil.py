@@ -1574,6 +1574,8 @@ def runner(name, arg=None, kwarg=None, full_return=False, saltenv='base', jid=No
     if 'auth_check' in kwargs:
         raise AuthorizationError('auth_check found in saltutil.cmd kwargs. Someone is trying to be clever and circumvent acl')
 
+    opts_overrides = kwargs.get('kwargs', {}).pop('opts_overrides', {})
+
     jid = kwargs.pop('__orchestration_jid__', jid)
     saltenv = kwargs.pop('__env__', saltenv)
     kwargs = salt.utils.args.clean_kwargs(**kwargs)
@@ -1596,6 +1598,9 @@ def runner(name, arg=None, kwarg=None, full_return=False, saltenv='base', jid=No
 
     if name in ['state.orchestrate', 'state.orch', 'state.sls']:
         kwarg['orchestration_jid'] = jid
+
+    if opts_overrides:
+        kwarg['opts_overrides'] = opts_overrides
 
     if jid:
         salt.utils.event.fire_args(
